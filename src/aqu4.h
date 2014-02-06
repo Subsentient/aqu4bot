@@ -2,7 +2,7 @@
  * Copyright 2014 Subsentient, all rights reserved.*/
 
 #define BOT_VERSION "baking"
-#define CONFIG_FILE "aqu4.conf"
+#define CONFIG_FILE "aqu4bot.conf"
 
 #define IRC_CODE_OK 1
 #define IRC_CODE_NICKTAKEN 433
