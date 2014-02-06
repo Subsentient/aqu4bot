@@ -156,15 +156,18 @@ Bool Config_ReadConfig(void)
 	free(ConfigStream);
 	
 	if (ServerInfo.Hostname[0] == 0) goto Error;
-	if (ServerInfo.Ident[0] == 0) goto Error;
+	if (ServerInfo.PortNum == 0) ServerInfo.PortNum = 6667; /*I always thought this was a creepy port number. I use freenode on port 8000.*/
 	if (ServerInfo.Nick[0] == 0) goto Error;
-	if (ServerInfo.PortNum == 0) goto Error;
-	if (ServerInfo.RealName[0] == 0) goto Error;
+	if (ServerInfo.Ident[0] == 0) strcpy(ServerInfo.Ident, ServerInfo.Nick);
+	if (ServerInfo.RealName[0] == 0) strcpy(ServerInfo.RealName, ServerInfo.Nick);
+	if (!AdminAuths) fprintf(stderr,"\n *** WARNING ***: You have not specified any owners or admins.\n"
+							"Many commands require admin or owner permissions and will not work.\n");
 	
 	puts("OK");
 	
 	return true;
 Error:
-	fprintf(stderr, "Failed.\n");
+	fprintf(stderr, "Failed.\nEither your configuration file does not exist, is unreadable, or is missing info.\n"
+			"Ensure that you have specified at least a hostname and a nick in aqu4.conf.\n");
 	return false;
 }
