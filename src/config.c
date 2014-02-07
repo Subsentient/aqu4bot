@@ -142,6 +142,14 @@ Bool Config_ReadConfig(void)
 		{
 			SendDelay = atoi(LineData);
 		}
+		else if (!strcmp(LineID, "Logging"))
+		{
+			Logging = !strcmp(LineData, "true");
+		}
+		else if (!strcmp(LineID, "LogPMs"))
+		{
+			LogPMs = !strcmp(LineData, "true");
+		}
 		else if (!strcmp(LineID, "SetBotmode"))
 		{
 			if (!strcmp(LineData, "true")) ServerInfo.SetBotmode = true;

@@ -12,6 +12,9 @@
 
 #include "aqu4.h"
 
+Bool Logging;
+Bool LogPMs;
+
 Bool Log_WriteMsg(const char *InStream, MessageType MType)
 {
 	FILE *Descriptor = NULL;
@@ -22,8 +25,12 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 	char TimeString[1024];
 	struct stat DirStat;
 	
+	if (!Logging) return true;
+	
 	IRC_BreakdownNick(InStream, Nick, Ident, Mask);
 	IRC_GetMessageData(InStream, Origin);
+	
+	if (*Origin != '#' && !LogPMs) return true;
 	
 	if (MType != IMSG_JOIN && MType != IMSG_PART)
 	{
@@ -38,9 +45,13 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 		Message[sizeof Message - 1] = '\0';
 	}
 	
-	if (MType == IMSG_PART)
+	if (MType == IMSG_PART || MType == IMSG_JOIN) /*I really doubt I'll ever see that on a JOIN.*/
 	{
 		if ((Worker = strstr(Origin, " :"))) *Worker = '\0';
+	}
+	else if (MType == IMSG_KICK)
+	{
+		if ((Worker = strstr(Message, " :"))) *Worker = '\0';
 	}
 	
 	if (stat("logs", &DirStat) != 0)
@@ -74,6 +85,9 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 			break;
 		case IMSG_PART:
 			snprintf(OutBuf, sizeof OutBuf, "%s <%s left %s>\n", TimeString, Nick, Origin);
+			break;
+		case IMSG_KICK:
+			snprintf(OutBuf, sizeof OutBuf, "%s <%s was kicked from %s by %s>\n", TimeString, Message, Origin, Nick);
 			break;
 		default:
 			return false;

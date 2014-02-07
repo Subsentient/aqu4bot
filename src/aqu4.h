@@ -110,3 +110,5 @@ extern char CmdPrefix[1024];
 extern unsigned short SendDelay;
 extern Bool ShowOutput;
 extern struct AuthTree *AdminAuths;
+extern Bool Logging;
+extern Bool LogPMs;

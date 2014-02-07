@@ -114,6 +114,8 @@ void IRC_Loop(void)
 				
 				IRC_GetMessageData(MessageBuf, InBuf);
 				
+				Log_WriteMsg(MessageBuf, IMSG_KICK);
+				
 				if (!(Worker = strchr(InBuf, ' '))) break;
 				
 				*Worker = '\0';
