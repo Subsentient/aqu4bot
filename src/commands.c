@@ -130,6 +130,25 @@ void CMD_ProcessCommand(const char *InStream_)
 			IRC_Message(SendTo, OutBuf);
 		}
 	}
+	else if (!strcmp(CommandID, "wz"))
+	{
+		if (*Argument)
+		{
+			if (!strcmp(Argument, "legacy"))
+			{
+				WZ_GetGamesList(WZSERVER_LEGACY, WZSERVER_LEGACY_PORT, SendTo);
+			}
+			else
+			{
+				IRC_Message(SendTo, "Bad argument for command.");
+				return;
+			}
+		}
+		else
+		{
+			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo);
+		}
+	}
 	else if (!strcmp(CommandID, "guessinggame"))
 	{
 		char OutBuf[2048];
@@ -232,8 +251,8 @@ void CMD_ProcessCommand(const char *InStream_)
 		if (*Argument == 0) IRC_Message(SendTo, "Give me a command please!");
 		else
 		{
-			Net_Write(Argument);
-			Net_Write("\r\n");
+			Net_Write(SocketDescriptor, Argument);
+			Net_Write(SocketDescriptor, "\r\n");
 		}
 	}
 	else if (!strcmp(CommandID, "whoami"))
@@ -766,7 +785,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		IRC_Message(SendTo, "Ok.");
 		
 		snprintf(OutBuf, sizeof OutBuf, "MODE %s\r\n", CmdStream);
-		Net_Write(OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		return;
 	}
 	else if (!strcmp(Command, "invite"))
@@ -797,7 +816,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		
 		IRC_Message(SendTo, "Ok.");
 		snprintf(OutBuf, sizeof OutBuf, "INVITE %s :%s\r\n", NickName, Worker);
-		Net_Write(OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		return;
 	}
@@ -829,7 +848,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		
 		IRC_Message(SendTo, "Ok.");
 		snprintf(OutBuf, sizeof OutBuf, "TOPIC %s :%s\r\n", ChannelName, Worker);
-		Net_Write(OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		return;
 	}
@@ -877,7 +896,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		else if (!strcmp(Command, "unquiet")) Mode = 7;
 		
 		snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s\n", ChannelName, Flag[Mode], Worker);
-		Net_Write(OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		return;
 	}
@@ -909,7 +928,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		
 		IRC_Message(SendTo, "Ok.");
 		snprintf(OutBuf, sizeof OutBuf, "KICK %s %s\r\n", ChannelName, Worker);
-		Net_Write(OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		return;
 	}

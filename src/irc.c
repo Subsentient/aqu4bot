@@ -17,7 +17,7 @@ void IRC_Loop(void)
 	
 	while (1)
 	{
-		if (!Net_Read(MessageBuf, sizeof MessageBuf))
+		if (!Net_Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true))
 		{ /*No command should ever call Net_Read() besides us and the connecting stuff that comes before us.*/
 			puts("\033[31mCONNECTION LOST\033[0m");
 			close(SocketDescriptor);
@@ -174,18 +174,18 @@ Bool IRC_Connect(void)
 	
 	printf("Connecting to \"%s:%hu\"... ", ServerInfo.Hostname, ServerInfo.PortNum), fflush(stdout);
 	
-	if (!Net_Connect(ServerInfo.Hostname, ServerInfo.PortNum)) goto Error;
+	if (!Net_Connect(ServerInfo.Hostname, ServerInfo.PortNum, &SocketDescriptor)) goto Error;
 	
 	snprintf(UserString, sizeof UserString, "USER %s 8 * :%s\r\n", ServerInfo.Ident, ServerInfo.RealName);
 	snprintf(NickString, sizeof NickString, "NICK %s\r\n", ServerInfo.Nick);
 	
-	Net_Write(UserString);
-	Net_Write(NickString);
+	Net_Write(SocketDescriptor, UserString);
+	Net_Write(SocketDescriptor, NickString);
 	
 	/*Check if the server likes us.*/
 	while (!ServerLikesUs)
 	{
-		if (!Net_Read(MessageBuf, sizeof MessageBuf)) goto Error;
+		if (!Net_Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true)) goto Error;
 		
 		IRC_GetStatusCode(MessageBuf, &Code);
 		
@@ -216,7 +216,7 @@ Bool IRC_Connect(void)
 		
 		snprintf(OutBuf, sizeof OutBuf, "MODE %s +B\r\n", ServerInfo.Nick);
 		
-		Net_Write(OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		puts(" Done.");
 	}
@@ -261,12 +261,12 @@ Bool IRC_Quit(const char *QuitMSG)
 			char OutBuf[2048];
 			
 			snprintf(OutBuf, sizeof OutBuf, "QUIT :%s\r\n", QuitMSG);
-			Net_Write(OutBuf);
+			Net_Write(SocketDescriptor, OutBuf);
 		}
-		else Net_Write("QUIT :aqu4bot " BOT_VERSION " shutting down.\r\n");
+		else Net_Write(SocketDescriptor, "QUIT :aqu4bot " BOT_VERSION " shutting down.\r\n");
 	}
 	
-	return Net_Disconnect();
+	return Net_Disconnect(SocketDescriptor);
 }
 
 void IRC_AddChannelToTree(const char *Channel)
@@ -351,7 +351,7 @@ Bool IRC_JoinChannel(const char *Channel)
 	
 	snprintf(ChanString, sizeof ChanString, "JOIN %s\r\n", Channel);
 	
-	return Net_Write(ChanString);
+	return Net_Write(SocketDescriptor, ChanString);
 }
 	
 Bool IRC_LeaveChannel(const char *Channel)
@@ -360,7 +360,7 @@ Bool IRC_LeaveChannel(const char *Channel)
 	
 	snprintf(ChanString, sizeof ChanString, "PART %s\r\n", Channel);
 	
-	return Net_Write(ChanString);
+	return Net_Write(SocketDescriptor, ChanString);
 }
 
 Bool IRC_Message(const char *Target, const char *Message)
@@ -368,14 +368,14 @@ Bool IRC_Message(const char *Target, const char *Message)
 	char OutString[2048];
 	
 	snprintf(OutString, sizeof OutString, "PRIVMSG %s :%s\r\n", Target, Message);
-	return Net_Write(OutString);
+	return Net_Write(SocketDescriptor, OutString);
 }
 
 Bool IRC_Notice(const char *Target, const char *Notice)
 {
 	char OutString[2048];
 	snprintf(OutString, sizeof OutString, "NOTICE %s :%s\r\n", Target, Notice);
-	return Net_Write(OutString);
+	return Net_Write(SocketDescriptor, OutString);
 }
 
 Bool IRC_NickChange(const char *Nick)
@@ -383,7 +383,7 @@ Bool IRC_NickChange(const char *Nick)
 	char OutString[2048];
 	
 	snprintf(OutString, sizeof OutString, "NICK %s\r\n", Nick);
-	return Net_Write(OutString);
+	return Net_Write(SocketDescriptor, OutString);
 }
 
 MessageType IRC_GetMessageType(const char *InStream_)
@@ -495,5 +495,5 @@ void IRC_Pong(const char *Param)
 	char OutBuf[2048];
 	
 	snprintf(OutBuf, 2048, "PONG%s\r\n", Param + strlen("PING"));
-	Net_Write(OutBuf);
+	Net_Write(SocketDescriptor, OutBuf);
 }

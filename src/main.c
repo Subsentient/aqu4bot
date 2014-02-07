@@ -40,14 +40,14 @@ int main(int argc, char **argv)
 			ShowOutput = true;
 		}
 	}
-	
+		
 	puts("\033[36maqu4bot " BOT_VERSION " starting up.\033[0m\n");
 	
 	if (!Config_ReadConfig())
 	{
 		return 1;
 	}
-	
+
 	if (!IRC_Connect())
 	{
 		return 1;

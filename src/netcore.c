@@ -13,7 +13,7 @@
 int SocketDescriptor;
 unsigned short SendDelay = 8; /*Ten is one second.*/
 
-Bool Net_Connect(char *InHost, unsigned short PortNum)
+Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_)
 {
 
 	char *FailMsg = "Failed to establish a connection to the server:";
@@ -30,7 +30,7 @@ Bool Net_Connect(char *InHost, unsigned short PortNum)
 		return 0;
 	}
 	
-	if ((SocketDescriptor = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	if ((*SocketDescriptor_ = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	{
 		SocketDescriptor = 0;
 		perror(FailMsg);
@@ -42,25 +42,25 @@ Bool Net_Connect(char *InHost, unsigned short PortNum)
 	SocketStruct.sin_family = AF_INET;
 	SocketStruct.sin_port = htons(PortNum);
 	
-	if (connect(SocketDescriptor, (struct sockaddr *)&SocketStruct, sizeof SocketStruct) != 0)
+	if (connect(*SocketDescriptor_, (struct sockaddr *)&SocketStruct, sizeof SocketStruct) != 0)
 	{
 		
 		fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
-		SocketDescriptor = 0;
+		*SocketDescriptor_ = 0;
 		return false;
 	}
 
 	return true;
 }
 
-Bool Net_Write(const char *InMsg)
+Bool Net_Write(int SockDescriptor, const char *InMsg)
 {
 	size_t StringSize = strlen(InMsg);
 	unsigned long Transferred = 0, TotalTransferred = 0;
 
 	do
 	{
-		Transferred = send(SocketDescriptor, InMsg, (StringSize - TotalTransferred), MSG_NOSIGNAL);
+		Transferred = send(SockDescriptor, InMsg, (StringSize - TotalTransferred), MSG_NOSIGNAL);
 		
 		if (Transferred == -1) /*This is ugly I know, but it's converted implicitly, so shut up.*/
 		{
@@ -77,27 +77,29 @@ Bool Net_Write(const char *InMsg)
 	return true;
 }
 
-Bool Net_Read(char *OutStream_, unsigned long MaxLength)
+Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Bool TextStream)
 {
 	int Status = 0;
-	char Byte = 0;
-	char *OutStream = OutStream_;
+	unsigned char Byte = 0;
+	unsigned char *OutStream = OutStream_;
 	unsigned long Inc = 0;
 	
 	*OutStream = '\0';
 	
 	do
 	{
-		Status = recv(SocketDescriptor, &Byte, 1, 0);
+		Status = recv(SockDescriptor, &Byte, 1, 0);
 		
-		if (Byte == '\n') break;
+		if (TextStream && Byte == '\n') break;
 		
 		*OutStream++ = Byte;
-	} while (++Inc, Status > 0 && Inc < MaxLength - 1);
+	} while (++Inc, Status > 0 && Inc < (TextStream ? MaxLength - 1 : MaxLength));
 	
-	*OutStream = '\0';
-	
-	if (*(OutStream - 1) == '\r') *(OutStream - 1) = '\0'; /*Remove carriage returns.*/
+	if (TextStream)
+	{
+		*OutStream = '\0';
+		if (*(OutStream - 1) == '\r') *(OutStream - 1) = '\0';
+	}
 	
 	if (Status == -1) return false;
 	
@@ -106,9 +108,9 @@ Bool Net_Read(char *OutStream_, unsigned long MaxLength)
 	return true;
 }
 
-Bool Net_Disconnect(void)
+Bool Net_Disconnect(int SockDescriptor)
 {
-	if (!SocketDescriptor) return false;
+	if (!SockDescriptor) return false;
 	
-	return !close(SocketDescriptor);
+	return !close(SockDescriptor);
 }

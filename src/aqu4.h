@@ -7,6 +7,12 @@
 #define IRC_CODE_OK 1
 #define IRC_CODE_NICKTAKEN 433
 
+#define WZSERVER_MAIN "lobby.wz2100.net"
+#define WZSERVER_MAIN_PORT 9990
+
+#define WZSERVER_LEGACY "warzonelegacy.org"
+#define WZSERVER_LEGACY_PORT 9990
+
 /*This is how we do it.*/
 typedef signed char Bool;
 enum { false, true };
@@ -65,10 +71,10 @@ extern char *NextLine(const char *InStream);
 extern Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long MaxSize);
 extern Bool Config_ReadConfig(void);
 
-extern Bool Net_Connect(char *InHost, unsigned short PortNum);
-extern Bool Net_Write(const char *InMsg);
-extern Bool Net_Read(char *OutStream_, unsigned long MaxLength);
-extern Bool Net_Disconnect(void);
+extern Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);
+extern Bool Net_Write(int SockDescriptor, const char *InMsg);
+extern Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Bool TextStream);
+extern Bool Net_Disconnect(int SockDescriptor);
 
 extern Bool IRC_Connect(void);
 extern void IRC_Loop(void);
@@ -102,6 +108,8 @@ extern Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, 
 extern void Auth_ShutdownAdmin(void);
 
 extern Bool Log_WriteMsg(const char *InStream, MessageType MType);
+
+extern Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo);
 
 extern int SocketDescriptor;
 extern struct _ServerInfo ServerInfo;
