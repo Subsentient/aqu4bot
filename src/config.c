@@ -175,7 +175,8 @@ Bool Config_ReadConfig(void)
 	
 	return true;
 Error:
-	fprintf(stderr, "Failed.\nEither your configuration file does not exist, is unreadable, or is missing info.\n"
-			"Ensure that you have specified at least a hostname and a nick in aqu4.conf.\n");
+	fprintf(stderr, "Failed.\n\nEither your configuration file doesn't exist, "
+			"is unreadable, or is missing info.\nEnsure that you have specified at least "
+			"a hostname and a nickname in your \n" CONFIG_FILE " configuration file.\n");
 	return false;
 }

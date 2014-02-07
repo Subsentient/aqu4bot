@@ -62,7 +62,7 @@ Bool Net_Write(const char *InMsg)
 	{
 		Transferred = send(SocketDescriptor, InMsg, (StringSize - TotalTransferred), MSG_NOSIGNAL);
 		
-		if (Transferred == -1)
+		if (Transferred == -1) /*This is ugly I know, but it's converted implicitly, so shut up.*/
 		{
 			return false;
 		}

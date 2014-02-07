@@ -755,7 +755,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	
 	while (*CmdStream == ' ') ++CmdStream; /*Skip past any other spaces.*/
 	
-	if (CmdStream == '\0')
+	if (*CmdStream == '\0')
 	{
 		IRC_Message(SendTo, "That command requires an argument.");
 		return;
