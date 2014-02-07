@@ -101,6 +101,8 @@ extern Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask,
 extern Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *BotOwner);
 extern void Auth_ShutdownAdmin(void);
 
+extern Bool Log_WriteMsg(const char *InStream, MessageType MType);
+
 extern int SocketDescriptor;
 extern struct _ServerInfo ServerInfo;
 extern struct ChannelTree *Channels;

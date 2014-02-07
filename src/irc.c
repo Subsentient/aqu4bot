@@ -34,9 +34,11 @@ void IRC_Loop(void)
 			{
 				char MessageData[2048], *TC = NULL, Channel[1024];
 				unsigned long Inc = 0;
-				
+								
 				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
 				IRC_GetMessageData(MessageBuf, MessageData);
+				
+				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_PRIVMSG);
 				
 				for (; MessageData[Inc] != ' ' && MessageData[Inc] && Inc < sizeof Channel - 1; ++Inc)
 				{
@@ -67,13 +69,19 @@ void IRC_Loop(void)
 										
 					CMD_ProcessCommand(MessageBuf);
 					
-					if (*Channel == '#' && strcmp(Nick, ServerInfo.Nick) != 0)
+					if (strcmp(Nick, ServerInfo.Nick) != 0)
 					{
 						CMD_UpdateSeenDB(time(NULL), Nick, Channel, TC);
 					}
 				}
 				break;
 			}
+			case IMSG_NOTICE:
+				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+				
+				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_NOTICE);
+				
+				break;				
 			case IMSG_INVITE:
 			{
 				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
@@ -132,9 +140,15 @@ void IRC_Loop(void)
 				
 				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
 				
+				Log_WriteMsg(MessageBuf, IMSG_JOIN);
 				while (CMD_ReadTellDB(Nick));
 				break;
 			}
+			case IMSG_PART:
+				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+
+				Log_WriteMsg(MessageBuf, IMSG_PART);
+				break;
 			case IMSG_NICK:
 			{
 				char NewNick[1024];

@@ -1121,8 +1121,17 @@ static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 			gmtime_r(&Worker->Time, &TimeStruct);
 			strftime(TimeString, sizeof TimeString, "%F %T UTC", &TimeStruct);
 			
-			snprintf(OutBuf, 2048, "I last saw %s at %s in %s; their most recent message is \"%s\".",
-					Worker->Nick, TimeString, Worker->Channel, Worker->LastMessage);
+			if (*Worker->Channel == '#')
+			{
+				snprintf(OutBuf, 2048, "I last saw %s at %s in %s. Their most recent message is \"%s\"",
+						Worker->Nick, TimeString, Worker->Channel, Worker->LastMessage);
+			}
+			else
+			{
+				snprintf(OutBuf, 2048, "I last saw %s at %s in a private message to me. "
+						"Their most recent message was \"%s\"", Worker->Nick, TimeString, Worker->LastMessage);
+			}
+			
 			IRC_Message(SendTo, OutBuf);
 			return true;
 		}
