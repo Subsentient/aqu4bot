@@ -18,7 +18,20 @@ static struct _RandomGame
 	unsigned int Num : 4;
 } RandGame;
 
+
+static struct _SeenDB
+{
+	time_t Time;
+	char Nick[1024];
+	char Channel[1024];
+	char LastMessage[2048];
+	
+	struct _SeenDB *Next;
+	struct _SeenDB *Prev;
+} *SeenRoot;
+
 static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo);
+static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo);
 
 void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
@@ -184,7 +197,19 @@ void CMD_ProcessCommand(const char *InStream_)
 		IRC_Message(SendTo, "See you around.");
 		IRC_Quit(*Argument ? Argument : NULL);
 		IRC_ShutdownChannelTree();
+		Auth_ShutdownAdmin();
+		CMD_SaveSeenDB();
 		exit(0);
+	}
+	else if (!strcmp(CommandID, "seen"))
+	{
+		if (*Argument == 0)
+		{
+			IRC_Message(SendTo, "I need a nickname to check.");
+			return;
+		}
+		
+		CMD_CheckSeenDB(Argument, SendTo);
 	}
 	else if (!strcmp(CommandID, "chanctl"))
 	{
@@ -1011,4 +1036,188 @@ Bool CMD_StickyDB(unsigned long StickyID, const char *Nick, const char *SendTo)
 	free(StickyDB);
 	
 	return Found;
+}
+
+void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage)
+{
+	struct _SeenDB *Worker = SeenRoot;
+	
+	if (!SeenRoot)
+	{
+		Worker = SeenRoot = malloc(sizeof(struct _SeenDB));
+		memset(SeenRoot, 0, sizeof(struct _SeenDB));
+	}
+	else
+	{
+		struct _SeenDB *Temp = NULL;
+		
+		for (; Worker; Worker = Temp)
+		{
+			Temp = Worker->Next;
+			
+			if (!strcmp(Worker->Nick, Nick))
+			{ /*We need to recurse to start it over if it turns out we already have that nick,
+				which is no doubt going to be very, very common.*/
+				if (Worker == SeenRoot)
+				{
+					if (Worker->Next)
+					{
+						SeenRoot = Worker->Next;
+						SeenRoot->Prev = NULL;
+						free(Worker);
+						Worker = SeenRoot;
+					}
+					else
+					{
+						free(SeenRoot);
+						SeenRoot = NULL;
+					}
+				}
+				else
+				{
+					if (Worker->Next) Worker->Next->Prev = Worker->Prev;
+					Worker->Prev->Next = Worker->Next;
+					free(Worker);
+				}
+						
+				CMD_UpdateSeenDB(Time, Nick, Channel, LastMessage);
+				return;
+			}
+		}
+		
+		for (Worker = SeenRoot; Worker->Next; Worker = Worker->Next);
+		
+		Worker->Next = malloc(sizeof(struct _SeenDB));
+		memset(Worker->Next, 0, sizeof(struct _SeenDB));
+		Worker->Next->Prev = Worker;
+		
+		Worker = Worker->Next;
+	}
+	
+	Worker->Time = Time;
+	
+	strncpy(Worker->Nick, Nick, sizeof Worker->Nick - 1);
+	Worker->Nick[sizeof(Worker->Nick) - 1] = '\0';
+	
+	strncpy(Worker->LastMessage, LastMessage, sizeof Worker->LastMessage - 1);
+	Worker->LastMessage[sizeof(Worker->LastMessage) - 1] = '\0';
+	
+	strncpy(Worker->Channel, Channel, sizeof Worker->Channel - 1);
+	Worker->Channel[sizeof Worker->Channel - 1] = '\0';
+}
+
+static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
+{
+	struct _SeenDB *Worker = SeenRoot;
+	char OutBuf[2048];
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Worker->Nick, Nick))
+		{
+			char TimeString[128];
+			struct tm TimeStruct;
+			
+			gmtime_r(&Worker->Time, &TimeStruct);
+			strftime(TimeString, sizeof TimeString, "%F %T UTC", &TimeStruct);
+			
+			snprintf(OutBuf, 2048, "I last saw %s at %s in %s; their most recent message is \"%s\".",
+					Worker->Nick, TimeString, Worker->Channel, Worker->LastMessage);
+			IRC_Message(SendTo, OutBuf);
+			return true;
+		}
+	}
+	
+	snprintf(OutBuf, sizeof OutBuf, "I'm afraid I don't remember anyone with the nick %s, sorry.", Nick);
+	IRC_Message(SendTo, OutBuf);
+	
+	return false;
+}
+
+void CMD_LoadSeenDB(void) /*Loads it from disk.*/
+{
+	FILE *Descriptor = fopen("seen.db", "r");
+	char *SeenDB, *TextWorker  = NULL;
+	struct stat FileStat;
+	char ATime[256], Nick[1024], Channel[1024], LastMessage[2048];
+	unsigned long Inc = 0;
+	
+	if (!Descriptor || SeenRoot != NULL  ||
+		stat("seen.db", &FileStat) != 0 ||
+		FileStat.st_size == 0)
+	{
+		if (Descriptor) fclose(Descriptor);
+		return;
+	}
+	
+	TextWorker = SeenDB = malloc(FileStat.st_size + 1);
+	fread(SeenDB, 1, FileStat.st_size, Descriptor);
+	fclose(Descriptor);
+	SeenDB[FileStat.st_size] = '\0';
+	
+	do
+	{
+		for (Inc = 0; TextWorker[Inc] != ' ' && Inc < sizeof ATime - 1; ++Inc)
+		{
+			ATime[Inc] = TextWorker[Inc];
+		}
+		ATime[Inc] = '\0';
+		
+		TextWorker += Inc + 1;
+		
+		for (Inc = 0; TextWorker[Inc] != ' ' && Inc < sizeof Nick - 1; ++Inc)
+		{
+			Nick[Inc] = TextWorker[Inc];
+		}
+		Nick[Inc] = '\0';
+		
+		TextWorker += Inc + 1;
+		
+		for (Inc = 0; TextWorker[Inc] != ' ' && Inc < sizeof Channel - 1; ++Inc)
+		{
+			Channel[Inc] = TextWorker[Inc];
+		}
+		Channel[Inc] = '\0';
+		
+		TextWorker += Inc + 1;
+		
+		for (Inc = 0; TextWorker[Inc] != '\n' && TextWorker[Inc] != '\0'; ++Inc)
+		{
+			LastMessage[Inc] = TextWorker[Inc];
+		}
+		LastMessage[Inc] = '\0';
+		
+		CMD_UpdateSeenDB(atol(ATime), Nick, Channel, LastMessage);
+	} while ((TextWorker = NextLine(TextWorker)));
+
+	free(SeenDB);
+}
+
+
+Bool CMD_SaveSeenDB(void)
+{
+	struct _SeenDB *Worker = SeenRoot, *Temp;
+	FILE *Descriptor = NULL;
+	char OutBuf[2048];
+	
+	if (!SeenRoot) return false;
+	
+	if (!(Descriptor = fopen("seen.db", "w"))) return false;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		snprintf(OutBuf, sizeof OutBuf, "%lu %s %s %s\n",
+				(unsigned long)Worker->Time, Worker->Nick, Worker->Channel, Worker->LastMessage);
+		fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
+	}
+	
+	fclose(Descriptor);
+	
+	for (Worker = SeenRoot; Worker; Worker = Temp)
+	{
+		Temp = Worker->Next;
+		free(Worker);
+	}
+		
+	return true;
 }

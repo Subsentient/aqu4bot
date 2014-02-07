@@ -19,6 +19,8 @@ static void SigHandler(int Signal)
 			puts("Caught SIGINT, shutting down.");
 			IRC_Quit(NULL);
 			IRC_ShutdownChannelTree();
+			Auth_ShutdownAdmin();
+			CMD_SaveSeenDB();
 			exit(0);
 			break;
 		default:
@@ -50,6 +52,9 @@ int main(int argc, char **argv)
 	{
 		return 1;
 	}
+	
+	/*Load the seen command data.*/
+	CMD_LoadSeenDB();
 	
 	/*The main IRC loop.*/
 	IRC_Loop();

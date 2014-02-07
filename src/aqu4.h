@@ -93,6 +93,9 @@ extern Bool CMD_ReadTellDB(const char *Target);
 extern unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky);
 extern Bool CMD_StickyDB(unsigned long StickyID, const char *Nick, const char *SendTo);
 extern Bool CMD_ListStickies(const char *SendTo);
+extern void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage);
+extern Bool CMD_SaveSeenDB(void);
+extern void CMD_LoadSeenDB(void);
 
 extern Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool BotOwner);
 extern Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *BotOwner);

@@ -32,10 +32,17 @@ void IRC_Loop(void)
 
 			case IMSG_PRIVMSG:
 			{
-				char MessageData[2048], *TC = NULL;
+				char MessageData[2048], *TC = NULL, Channel[1024];
+				unsigned long Inc = 0;
 				
 				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
 				IRC_GetMessageData(MessageBuf, MessageData);
+				
+				for (; MessageData[Inc] != ' ' && MessageData[Inc] && Inc < sizeof Channel - 1; ++Inc)
+				{
+					Channel[Inc] = MessageData[Inc];
+				}
+				Channel[Inc] = '\0';
 				
 				TC = strchr(MessageData, ' ') + 1;
 				
@@ -55,7 +62,15 @@ void IRC_Loop(void)
 				}
 				else
 				{
+					/*I don't feel like including time.h*/
+					time_t time(time_t*);
+										
 					CMD_ProcessCommand(MessageBuf);
+					
+					if (*Channel == '#' && strcmp(Nick, ServerInfo.Nick) != 0)
+					{
+						CMD_UpdateSeenDB(time(NULL), Nick, Channel, TC);
+					}
 				}
 				break;
 			}
@@ -106,6 +121,8 @@ void IRC_Loop(void)
 				{
 					IRC_Quit(NULL);
 					IRC_ShutdownChannelTree();
+					Auth_ShutdownAdmin();
+					CMD_SaveSeenDB();
 					exit(0);
 				}
 				break;
