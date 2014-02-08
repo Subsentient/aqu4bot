@@ -125,8 +125,11 @@ Bool Config_ReadConfig(void)
 			char Nick[1024], Ident[1024], Mask[1024];
 			Bool BotOwner = !strcmp(LineID, "BotOwner");
 			
-			IRC_BreakdownNick(LineData, Nick, Ident, Mask);
-			
+			if (!IRC_BreakdownNick(LineData, Nick, Ident, Mask))
+			{
+				fprintf(stderr, "Invalid vhost format, line %lu\n", LineNum);
+				return false;
+			}
 			
 			if (*Nick == '*') *Nick = '\0';
 			if (*Ident == '*') *Ident = '\0';

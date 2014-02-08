@@ -93,7 +93,7 @@ extern Bool IRC_DelChannelFromTree(const char *Channel);
 extern void IRC_ShutdownChannelTree(void);
 extern MessageType IRC_GetMessageType(const char *InStream_);
 extern Bool IRC_GetMessageData(const char *Message, char *OutData);
-extern void IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut);
+extern Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut);
 extern Bool IRC_GetStatusCode(const char *Message, int *OutNumber);
 
 extern void CMD_ProcessCommand(const char *InStream);

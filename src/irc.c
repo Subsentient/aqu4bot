@@ -35,7 +35,7 @@ void IRC_Loop(void)
 				char MessageData[2048], *TC = NULL, Channel[1024];
 				unsigned long Inc = 0;
 								
-				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				IRC_GetMessageData(MessageBuf, MessageData);
 				
 				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_PRIVMSG);
@@ -77,14 +77,14 @@ void IRC_Loop(void)
 				break;
 			}
 			case IMSG_NOTICE:
-				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_NOTICE);
 				
 				break;				
 			case IMSG_INVITE:
 			{
-				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				if (Auth_IsAdmin(Nick, Ident, Mask, NULL))
 				{
@@ -125,7 +125,7 @@ void IRC_Loop(void)
 			}
 			case IMSG_QUIT:
 			{				
-				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				if (!strcmp(Nick, ServerInfo.Nick))
 				{
@@ -140,14 +140,14 @@ void IRC_Loop(void)
 			case IMSG_JOIN:
 			{
 				
-				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				Log_WriteMsg(MessageBuf, IMSG_JOIN);
 				while (CMD_ReadTellDB(Nick));
 				break;
 			}
 			case IMSG_PART:
-				IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask);
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 
 				Log_WriteMsg(MessageBuf, IMSG_PART);
 				break;
@@ -433,7 +433,7 @@ Bool IRC_GetMessageData(const char *Message, char *OutData)
 	return true;
 }
 
-void IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
+Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
 {
 	char ComplexNick[1024], *Worker = ComplexNick;
 	unsigned long Inc = 0;
@@ -446,21 +446,37 @@ void IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char 
 	
 	if (*Worker == ':') ++Worker;
 	
-	for (Inc = 0; Worker[Inc] != '!'; ++Inc)
+	for (Inc = 0; Worker[Inc] != '!' &&  Worker[Inc] != ' ' && Worker[Inc] != '\0'; ++Inc)
 	{
 		NickOut[Inc] = Worker[Inc];
 	}
 	NickOut[Inc] = '\0';
 	
+	if (Worker[Inc] != '!')
+	{
+		*NickOut = 0;
+		*IdentOut = 0;
+		*MaskOut = 0;
+		return false;
+	}
+	
 	Worker += Inc + 1;
 	
 	if (*Worker == '~') ++Worker;
 	
-	for (Inc = 0; Worker[Inc] != '@'; ++Inc)
+	for (Inc = 0; Worker[Inc] != '@' && Worker[Inc] != ' ' && Worker[Inc] != '\0'; ++Inc)
 	{
 		IdentOut[Inc] = Worker[Inc];
 	}
 	IdentOut[Inc] = '\0';
+	
+	if (Worker[Inc] != '@')
+	{
+		*NickOut = 0;
+		*IdentOut = 0;
+		*MaskOut = 0;
+		return false;
+	}
 	
 	Worker += Inc + 1;
 	
@@ -469,6 +485,8 @@ void IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char 
 		MaskOut[Inc] = Worker[Inc];
 	}
 	MaskOut[Inc] = '\0';
+	
+	return true;
 }
 
 Bool IRC_GetStatusCode(const char *Message, int *OutNumber)

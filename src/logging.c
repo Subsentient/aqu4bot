@@ -27,7 +27,8 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 	
 	if (!Logging) return true;
 	
-	IRC_BreakdownNick(InStream, Nick, Ident, Mask);
+	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask) || !*Nick || !*Ident || !*Mask) return true;
+		
 	IRC_GetMessageData(InStream, Origin);
 	
 	if (*Origin != '#' && !LogPMs) return true;

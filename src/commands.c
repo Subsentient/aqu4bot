@@ -86,7 +86,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	snprintf(NickBasedPrefix, 1024, "%s: ", ServerInfo.Nick);
 	
 	/*Get the nick info from this user.*/
-	IRC_BreakdownNick(InStream, Nick, Ident, Mask);
+	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask)) return;
 	
 	if (!strcmp(Nick, ServerInfo.Nick)) return; /*Don't let us order ourselves.*/
 	
@@ -866,7 +866,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	unsigned long Inc = 0;
 	char Command[64], OutBuf[2048], Nick[1024], Ident[1024], Mask[1024];
 	
-	IRC_BreakdownNick(Message, Nick, Ident, Mask);
+	if (!IRC_BreakdownNick(Message, Nick, Ident, Mask)) return;
 	
 	for (; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof Command - 1; ++Inc)
 	{
