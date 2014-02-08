@@ -266,7 +266,13 @@ Bool IRC_Quit(const char *QuitMSG)
 		else Net_Write(SocketDescriptor, "QUIT :aqu4bot " BOT_VERSION " shutting down.\r\n");
 	}
 	
-	return Net_Disconnect(SocketDescriptor);
+	if (Net_Disconnect(SocketDescriptor))
+	{
+		SocketDescriptor = 0;
+		return true;
+	}
+	
+	return false;
 }
 
 void IRC_AddChannelToTree(const char *Channel)
