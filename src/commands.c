@@ -33,6 +33,8 @@ struct
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
 				"deletes it, but only if it's your sticky. For owners, sticky reset deletes all stickies.", REQARG },
 			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG },
+			{ "msg", "Sends a message to a nick/channel.", REQARG },
+			{ "memsg", "Sends a message to a nick/channel in /me format.", REQARG },
 			{ "chanctl", "Used for administrating channels. I must be OP in the channel for this to be useful. "
 				"See chanctl help for a list of subcommands and more.", REQARG },
 			{ "join", "Joins the specified channel. You must be at least admin for this. ", REQARG },
@@ -150,7 +152,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	if (!strcmp(CommandID, "help"))
 	{
 		char TmpBuf[2048];
-		const char *ArgRequired[3] = { "", " <optional_arg>", " <required_arg>" };
+		const char *ArgRequired[3] = { "", " <optional_arg(s)>", " <required_arg(s)>" };
 		
 		if (*Argument == '\0')
 		{
@@ -251,6 +253,50 @@ void CMD_ProcessCommand(const char *InStream_)
 		{
 			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo);
 		}
+	}
+	else if (!strcmp(CommandID, "msg") || !strcmp(CommandID, "memsg"))
+	{
+		char MsgTarget[1024], Msg[2048], *Worker = Argument;
+		unsigned long Inc = 0;
+		
+		if (!*Argument)
+		{
+			IRC_Message(SendTo, "This command requires an argument.");
+			return;
+		}
+		
+		for (; *Worker != ' ' && *Worker != '\0' && Inc < sizeof MsgTarget - 1; ++Worker, ++Inc)
+		{
+			MsgTarget[Inc] = *Worker;
+		}
+		MsgTarget[Inc] = '\0';
+		
+		if (*Worker == '\0')
+		{
+			IRC_Message(SendTo, "Both a nickname and a message are required, in that order.");
+			return;
+		}
+		
+		while (*Worker == ' ') ++Worker;
+		
+		for (Inc = 0; *Worker != '\0' && Inc < sizeof Msg - 1; ++Worker, ++Inc)
+		{
+			Msg[Inc] = *Worker;
+		}
+		Msg[Inc] = '\0';
+		
+		IRC_Message(SendTo, "Ok.");
+		
+		if (!strcmp(CommandID, "memsg"))
+		{
+			char OutBuf[2048];
+			
+			snprintf(OutBuf, sizeof OutBuf, "\01ACTION %s\01", Msg);
+			IRC_Message(MsgTarget, OutBuf);
+		}
+		else IRC_Message(MsgTarget, Msg);
+		
+		return;
 	}
 	else if (!strcmp(CommandID, "guessinggame"))
 	{
