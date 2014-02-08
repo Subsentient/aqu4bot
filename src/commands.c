@@ -11,6 +11,44 @@
 
 #include "aqu4.h"
 char CmdPrefix[1024] = "$";
+typedef enum { NOARG, OPTARG, REQARG } ArgMode;
+
+struct
+{
+	char CmdName[64];
+	char HelpString[256];
+	ArgMode AM;
+} CmdHelpList[] = 
+		{
+			{ "burrito", "Chucks a nasty, rotten burrito at someone.", REQARG },
+			{ "beer", "Gives someone a cold, Samuel Adams beer.", REQARG },
+			{ "wz", "Shows games in either the Warzone 2100 or Warzone 2100 Legacy game lobby."
+				" Passing 'legacy' as an argument chooses the Legacy server, otherwise it's the wz2100.net server.", OPTARG },
+			{ "guessinggame", "A simple number-guessing game where you guess from one to ten. "
+				"The first guess starts the game.", REQARG },
+			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG },
+			{ "time", "Displays the current time in either utc24, utc12, lt12, or lt24 times. Default is utc24.", OPTARG },
+			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG },
+			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG },
+			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
+				"deletes it, but only if it's your sticky. For owners, sticky reset deletes all stickies.", REQARG },
+			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG },
+			{ "chanctl", "Used for administrating channels. I must be OP in the channel for this to be useful. "
+				"See chanctl help for a list of subcommands and more.", REQARG },
+			{ "join", "Joins the specified channel. You must be at least admin for this. ", REQARG },
+			{ "part", "Leaves the specified channel. You must be at least admin for this."
+				" If no argument is specified and you are already in a channel, "
+				"it leaves the channel the command is issued from.", OPTARG },
+			{ "listchannels", "Lists the channels I am in. You must be at least admin.", REQARG },
+			{ "nickchange", "Changes my nickname to the selected nick. "
+				"Make sure the new nick is not taken before issuing this.", REQARG },
+			{ "netwrite", "Writes raw data to the IRC network. For example, 'PRIVMSG derp :Hee hee' "
+				"will send a private message to derp via raw IRC protocol.", REQARG },
+			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
+				"as my quit message.", OPTARG },
+			{ "help", "Prints help. If you specify an argument, then I'll give help for that command.", OPTARG },
+			{ { '\0' } } /*Terminator.*/
+		};
 
 static struct _RandomGame
 {
@@ -108,7 +146,55 @@ void CMD_ProcessCommand(const char *InStream_)
 	/*Get rid of trailing spaces.*/
 	for (--Inc; Argument[Inc] == ' ' && Inc + 1 > 0; --Inc) Argument[Inc] = '\0';
 	
-	if (!strcmp(CommandID, "burrito"))
+	if (!strcmp(CommandID, "help"))
+	{
+		char TmpBuf[2048];
+		const char *ArgRequired[3] = { "", " <optional_arg>", " <required_arg>" };
+		
+		if (*Argument == '\0')
+		{
+			if (*SendTo == '#')
+			{
+				IRC_Message(SendTo, "Sending this info to you via PM.");
+				SendTo = Nick;
+			}
+			
+			IRC_Message(SendTo, "I'm aqu4bot " BOT_VERSION ". Here's some command info.");
+			
+			for (Inc = 0; CmdHelpList[Inc].CmdName[0] != '\0'; ++Inc)
+			{
+				snprintf(TmpBuf, sizeof TmpBuf, "[%s%s%s]: %s", CmdPrefix, CmdHelpList[Inc].CmdName,
+						ArgRequired[CmdHelpList[Inc].AM], CmdHelpList[Inc].HelpString);
+				IRC_Message(SendTo, TmpBuf);
+			}
+			
+			IRC_Message(SendTo, "That's the whole list of commands.");
+		}
+		else
+		{
+			Bool Found = false;
+			
+			for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc)
+			{
+				if (!strcmp(Argument, CmdHelpList[Inc].CmdName))
+				{
+					snprintf(TmpBuf, sizeof TmpBuf, "[%s%s%s]: %s", CmdPrefix, CmdHelpList[Inc].CmdName,
+							ArgRequired[CmdHelpList[Inc].AM], CmdHelpList[Inc].HelpString);
+					IRC_Message(SendTo, TmpBuf);
+					Found = true;
+					break;
+				}
+			}
+			
+			if (!Found)
+			{
+				IRC_Message(SendTo, "No help found for that command. Does it exist?"
+							" Try an empty help command for a list of commands.");
+			}
+		}
+		return;
+	}
+	else if (!strcmp(CommandID, "burrito"))
 	{
 		char OutBuf[1024];
 		
