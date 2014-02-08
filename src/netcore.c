@@ -72,7 +72,8 @@ Bool Net_Write(int SockDescriptor, const char *InMsg)
 	
 	if (ShowOutput) printf("%s", InMsg), fflush(stdout);
 	
-	usleep(SendDelay * 100000); /*We wait a moment so we don't get kicked for flooding.*/
+	/*Means this is IRC.*/
+	if (SocketDescriptor == SockDescriptor) usleep(SendDelay * 100000); /*We wait a moment so we don't get kicked for flooding.*/
 	
 	return true;
 }
