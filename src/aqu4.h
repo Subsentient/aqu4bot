@@ -13,6 +13,9 @@
 #define WZSERVER_LEGACY "warzonelegacy.org"
 #define WZSERVER_LEGACY_PORT 9990
 
+#define ROOT_URL "http://universe2.us/"
+#define SOURCECODE_URL "http://github.com/Subsentient/aqu4bot/"
+
 /*This is how we do it.*/
 typedef signed char Bool;
 enum { false, true };

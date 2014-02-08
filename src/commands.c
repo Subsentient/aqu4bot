@@ -46,7 +46,8 @@ struct
 				"will send a private message to derp via raw IRC protocol.", REQARG },
 			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
 				"as my quit message.", OPTARG },
-			{ "help", "Prints help. If you specify an argument, then I'll give help for that command.", OPTARG },
+			{ "help", "Prints info about me. If you specify an argument, then I'll give help for that command.", OPTARG },
+			{ "commands", "Prints the list of commands I know.", NOARG },
 			{ { '\0' } } /*Terminator.*/
 		};
 
@@ -153,27 +154,14 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		if (*Argument == '\0')
 		{
-			if (*SendTo == '#')
-			{
-				IRC_Message(SendTo, "Sending this info to you via PM.");
-				SendTo = Nick;
-			}
-			
-			IRC_Message(SendTo, "I'm aqu4bot " BOT_VERSION ". Here's some command info.");
-			
-			for (Inc = 0; CmdHelpList[Inc].CmdName[0] != '\0'; ++Inc)
-			{
-				snprintf(TmpBuf, sizeof TmpBuf, "[%s%s%s]: %s", CmdPrefix, CmdHelpList[Inc].CmdName,
-						ArgRequired[CmdHelpList[Inc].AM], CmdHelpList[Inc].HelpString);
-				IRC_Message(SendTo, TmpBuf);
-			}
-			
-			IRC_Message(SendTo, "That's the whole list of commands.");
+			IRC_Message(SendTo, "I'm aqu4bot " BOT_VERSION
+						". I'm a bot written in pure C by Subsentient [" ROOT_URL "]. "
+						"My source code can be found at \"" SOURCECODE_URL "\". "
+						"Try the 'commands' command to get a list of what I can do, "
+						"or try 'help cmd' where 'cmd' is a particular command.");
 		}
 		else
 		{
-			Bool Found = false;
-			
 			for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc)
 			{
 				if (!strcmp(Argument, CmdHelpList[Inc].CmdName))
@@ -181,17 +169,46 @@ void CMD_ProcessCommand(const char *InStream_)
 					snprintf(TmpBuf, sizeof TmpBuf, "[%s%s%s]: %s", CmdPrefix, CmdHelpList[Inc].CmdName,
 							ArgRequired[CmdHelpList[Inc].AM], CmdHelpList[Inc].HelpString);
 					IRC_Message(SendTo, TmpBuf);
-					Found = true;
 					break;
 				}
 			}
 			
-			if (!Found)
+			if (*CmdHelpList[Inc].CmdName == '\0')
 			{
 				IRC_Message(SendTo, "No help found for that command. Does it exist?"
 							" Try an empty help command for a list of commands.");
 			}
 		}
+		return;
+	}
+	else if (!strcmp(CommandID, "commands"))
+	{
+		char *CommandList = NULL;
+		
+		if (*Argument)
+		{
+			IRC_Message(SendTo, "This command takes no argument.");
+			return;
+		}
+		
+		IRC_Message(SendTo, "Commands available:");
+		
+		/*Count number of commands.*/
+		for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc);
+		
+		CommandList = malloc((sizeof(CmdHelpList->CmdName) + 2) * Inc + 1);
+		*CommandList = '\0';
+		
+		for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc)
+		{
+			strcat(CommandList, CmdHelpList[Inc].CmdName);
+			strcat(CommandList, ", ");
+		}
+		
+		CommandList[strlen(CommandList) - 2] = '\0';
+		
+		IRC_Message(SendTo, CommandList);
+		free(CommandList);
 		return;
 	}
 	else if (!strcmp(CommandID, "burrito"))
