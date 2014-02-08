@@ -387,6 +387,12 @@ void CMD_ProcessCommand(const char *InStream_)
 	}
 	else if (!strcmp(CommandID, "chanctl"))
 	{
+		if (!IsAdmin)
+		{
+			IRC_Message(SendTo, "You are not authorized to use that command, you need to be an admin.");
+			return;
+		}
+		
 		if (*Argument == 0)
 		{
 			IRC_Message(SendTo, "No channel control applet name provided.");
