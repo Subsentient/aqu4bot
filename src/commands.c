@@ -259,6 +259,12 @@ void CMD_ProcessCommand(const char *InStream_)
 		char MsgTarget[1024], Msg[2048], *Worker = Argument;
 		unsigned long Inc = 0;
 		
+		if (!IsAdmin)
+		{
+			IRC_Message(SendTo, "You aren't authorized to use that command, you must be an admin.");
+			return;
+		}
+		
 		if (!*Argument)
 		{
 			IRC_Message(SendTo, "This command requires an argument.");
