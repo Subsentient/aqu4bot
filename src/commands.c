@@ -600,7 +600,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		TimeFunc(&CurrentTime, &TimeStruct);
-		strftime(TimeString + strlen(TimeString), sizeof TimeString - strlen(TimeString), TwelveHour ? "%a %F %I:%M:%S %p" : "%a %F %T", &TimeStruct);
+		strftime(TimeString + strlen(TimeString), sizeof TimeString - strlen(TimeString), TwelveHour ? "%a %Y-%m-%d %I:%M:%S %p" : "%a %Y-%m-%d %H:%M:%S", &TimeStruct);
 		
 		if (TimeFunc == gmtime_r) strcat(TimeString, " UTC");
 		else strcat(TimeString, " local time");
@@ -865,7 +865,7 @@ Bool CMD_ReadTellDB(const char *Target)
 
 			gmtime_r(&Time, &TimeStruct);
 			
-			strftime(TimeString, sizeof TimeString, "[%F | %T UTC]", &TimeStruct);
+			strftime(TimeString, sizeof TimeString, "[%Y-%m-%d | %H:%M:%S UTC]", &TimeStruct);
 			
 			snprintf(OutBuf, sizeof OutBuf, "%s You have a message from %s: %s", TimeString, Source, Message);
 			
@@ -1019,7 +1019,7 @@ Bool CMD_ListStickies(const char *SendTo)
 		Time = atol(ATime);
 		gmtime_r(&Time, &TimeStruct);
 		
-		strftime(TimeString, sizeof TimeString, "%T %F UTC", &TimeStruct);
+		strftime(TimeString, sizeof TimeString, "%H:%M:%S %Y-%m-%d UTC", &TimeStruct);
 		
 		snprintf(OutBuf, sizeof OutBuf, "Sticky ID: %s, created by \"%s\" at %s", StickyID_T, Owner, TimeString);
 		IRC_Message(SendTo, OutBuf);
@@ -1285,7 +1285,7 @@ Bool CMD_StickyDB(unsigned long StickyID, const char *Nick, const char *SendTo)
 				char TimeString[128], OutBuf[4096];
 				
 				gmtime_r(&Time, &TimeStruct);
-				strftime(TimeString, sizeof TimeString, "[%F | %T UTC]", &TimeStruct);
+				strftime(TimeString, sizeof TimeString, "[%Y-%m-%d | %H:%M:%S UTC]", &TimeStruct);
 				
 				snprintf(OutBuf, sizeof OutBuf, "%s Created by \"%s\": %s", TimeString, Owner, StickyData);
 				IRC_Message(SendTo, OutBuf);
@@ -1413,7 +1413,7 @@ static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 			struct tm TimeStruct;
 			
 			gmtime_r(&Worker->Time, &TimeStruct);
-			strftime(TimeString, sizeof TimeString, "%F %T UTC", &TimeStruct);
+			strftime(TimeString, sizeof TimeString, "%Y-%m-%d %H:%M:%S UTC", &TimeStruct);
 			
 			if (*Worker->Channel == '#')
 			{

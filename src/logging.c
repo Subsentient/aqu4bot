@@ -63,7 +63,7 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 	snprintf(Filename, sizeof Filename, "logs/%s.txt", *Origin == '#' ? Origin : Nick);
 	
 	gmtime_r(&Time, &TimeStruct);
-	strftime(TimeString, sizeof TimeString, "[%F %T UTC]", &TimeStruct);
+	strftime(TimeString, sizeof TimeString, "[%Y-%m-%d %H:%M:%S UTC]", &TimeStruct);
 
 	switch (MType)
 	{		
