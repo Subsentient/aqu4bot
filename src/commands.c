@@ -35,6 +35,7 @@ struct
 			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG },
 			{ "msg", "Sends a message to a nick/channel.", REQARG },
 			{ "memsg", "Sends a message to a nick/channel in /me format.", REQARG },
+			{ "noticemsg", "Sends a message as a notice.", REQARG },
 			{ "chanctl", "Used for administrating channels. I must be OP in the channel for this to be useful. "
 				"See chanctl help for a list of subcommands and more.", REQARG },
 			{ "join", "Joins the specified channel. You must be at least admin for this. ", REQARG },
@@ -85,7 +86,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	Bool IsAdmin = false, BotOwner = false;
 	char NickBasedPrefix[1024];
 	
-	snprintf(NickBasedPrefix, 1024, "%s: ", ServerInfo.Nick);
+	snprintf(NickBasedPrefix, 1024, "%s:", ServerInfo.Nick);
 	
 	/*Get the nick info from this user.*/
 	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask)) return;
@@ -122,6 +123,19 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strncmp(InStream, NickBasedPrefix, strlen(NickBasedPrefix)))
 	{
 		InStream += strlen(NickBasedPrefix);
+		
+		while (*InStream == ' ' || *InStream == '\t') ++InStream;
+		
+		if (!strcmp(InStream, "hi") || !strcmp(InStream, "hello"))
+		{
+			IRC_Message(SendTo, "Hiyah.");
+			return;
+		}
+		else if (*InStream == '\0')
+		{
+			IRC_Message(SendTo, "Umm, can I help you?");
+			return;
+		}
 	}
 	else if (*Target == '#') return; /*In a channel, we need to always use a prefix.*/
 	
@@ -254,7 +268,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo);
 		}
 	}
-	else if (!strcmp(CommandID, "msg") || !strcmp(CommandID, "memsg"))
+	else if (!strcmp(CommandID, "msg") || !strcmp(CommandID, "memsg") || !strcmp(CommandID, "noticemsg"))
 	{
 		char MsgTarget[1024], Msg[2048], *Worker = Argument;
 		unsigned long Inc = 0;
@@ -300,8 +314,17 @@ void CMD_ProcessCommand(const char *InStream_)
 			snprintf(OutBuf, sizeof OutBuf, "\01ACTION %s\01", Msg);
 			IRC_Message(MsgTarget, OutBuf);
 		}
-		else IRC_Message(MsgTarget, Msg);
-		
+		else 
+		{
+			if (!strcmp(CommandID, "noticemsg"))
+			{
+				IRC_Notice(MsgTarget, Msg);
+			}
+			else
+			{
+				IRC_Message(MsgTarget, Msg);
+			}
+		}
 		return;
 	}
 	else if (!strcmp(CommandID, "guessinggame"))
