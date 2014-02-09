@@ -286,6 +286,12 @@ void IRC_AddChannelToTree(const char *Channel)
 {
 	struct ChannelTree *Worker = Channels;
 
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Channel, Worker->Channel)) return;
+	}
+	Worker = Channels;
+	
 	if (Channels == NULL)
 	{
 		Worker = Channels = malloc(sizeof (struct ChannelTree));
