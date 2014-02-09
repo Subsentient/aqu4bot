@@ -31,7 +31,7 @@ struct
 			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG },
 			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG },
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
-				"deletes it, but only if it's your sticky. For owners, sticky reset deletes all stickies.", REQARG },
+				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies.", REQARG },
 			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG },
 			{ "msg", "Sends a message to a nick/channel.", REQARG },
 			{ "memsg", "Sends a message to a nick/channel in /me format.", REQARG },
