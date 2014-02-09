@@ -21,6 +21,7 @@ static void SigHandler(int Signal)
 			IRC_ShutdownChannelTree();
 			Auth_ShutdownAdmin();
 			CMD_SaveSeenDB();
+			Auth_ShutdownBlacklist();
 			exit(0);
 			break;
 		default:
@@ -55,6 +56,9 @@ int main(int argc, char **argv)
 	
 	/*Load the seen command data.*/
 	CMD_LoadSeenDB();
+	
+	/*Load the blacklist data.*/
+	Auth_BlacklistLoad();
 	
 	/*The main IRC loop.*/
 	IRC_Loop();

@@ -38,6 +38,8 @@ void IRC_Loop(void)
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				IRC_GetMessageData(MessageBuf, MessageData);
 				
+				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue; /*Says "you are not going to be listened to bud.*/
+				
 				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_PRIVMSG);
 				
 				for (; MessageData[Inc] != ' ' && MessageData[Inc] && Inc < sizeof Channel - 1; ++Inc)
@@ -79,12 +81,16 @@ void IRC_Loop(void)
 			case IMSG_NOTICE:
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
+				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue;
+				
 				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_NOTICE);
 				
 				break;				
 			case IMSG_INVITE:
 			{
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				
+				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue;
 				
 				if (Auth_IsAdmin(Nick, Ident, Mask, NULL))
 				{
@@ -133,6 +139,7 @@ void IRC_Loop(void)
 					IRC_ShutdownChannelTree();
 					Auth_ShutdownAdmin();
 					CMD_SaveSeenDB();
+					Auth_ShutdownBlacklist();
 					exit(0);
 				}
 				break;

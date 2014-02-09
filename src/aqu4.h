@@ -109,6 +109,13 @@ extern void CMD_LoadSeenDB(void);
 extern Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool BotOwner);
 extern Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *BotOwner);
 extern void Auth_ShutdownAdmin(void);
+extern Bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask);
+extern Bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask);
+extern Bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask);
+extern void Auth_ShutdownBlacklist(void);
+extern void Auth_BlacklistLoad(void);
+extern Bool Auth_BlacklistSave(void);
+extern void Auth_BlacklistSendList(const char *SendTo);
 
 extern Bool Log_WriteMsg(const char *InStream, MessageType MType);
 
@@ -120,6 +127,7 @@ extern struct ChannelTree *Channels;
 extern char CmdPrefix[1024];
 extern unsigned short SendDelay;
 extern Bool ShowOutput;
-extern struct AuthTree *AdminAuths;
 extern Bool Logging;
 extern Bool LogPMs;
+extern struct AuthTree *AdminAuths;
+

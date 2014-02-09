@@ -45,6 +45,9 @@ struct
 			{ "listchannels", "Lists the channels I am in. You must be at least admin.", REQARG },
 			{ "nickchange", "Changes my nickname to the selected nick. "
 				"Make sure the new nick is not taken before issuing this.", REQARG },
+			{ "blacklist", "Used by admins to blacklist users from using me. Requires a valid vhost as an argument.", REQARG },
+			{ "unblacklist", "Used by admins to unblacklist a user who has been barred from using me. Valid vhost required.", REQARG },
+			{ "listblacklist", "Lists currently recognized blacklisted vhosts.", NOARG },
 			{ "netwrite", "Writes raw data to the IRC network. For example, 'PRIVMSG derp :Hee hee' "
 				"will send a private message to derp via raw IRC protocol.", REQARG },
 			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
@@ -196,6 +199,71 @@ void CMD_ProcessCommand(const char *InStream_)
 			}
 		}
 		return;
+	}
+	else if (!strcmp(CommandID, "listblacklist"))
+	{
+		if (!Auth_IsAdmin(Nick, Ident, Mask, NULL))
+		{
+			IRC_Message(SendTo, "You must be an admin to use that command.");
+			return;
+		}
+		
+		if (*Argument)
+		{
+			IRC_Message(SendTo, "This command takes no argument.");
+			return;
+		}
+		
+		Auth_BlacklistSendList(SendTo);
+	}
+	else if (!strcmp(CommandID, "blacklist") || !strcmp(CommandID, "unblacklist"))
+	{
+		char NNick[1024], NIdent[1024], NMask[1024];
+		
+		if (!Auth_IsAdmin(Nick, Ident, Mask, NULL))
+		{
+			IRC_Message(SendTo, "You must be an admin to use that command.");
+			return;
+		}
+		
+		if (!*Argument)
+		{
+			IRC_Message(SendTo, "I need a vhost to blacklist.");
+			return;
+		}
+		
+		if (!IRC_BreakdownNick(Argument, NNick, NIdent, NMask))
+		{
+			IRC_Message(SendTo, "That doesn't seem to be a valid vhost.");
+			return;
+		}
+		
+		if (!strcmp(CommandID, "unblacklist"))
+		{
+			if (Auth_BlacklistDel(*NNick == '*' ? NULL : NNick, *NIdent == '*' ? NULL : NIdent, *NMask == '*' ? NULL :NMask))
+			{
+				IRC_Message(SendTo, "Unblacklisting successful.");
+				return;
+			}
+			else
+			{
+				IRC_Message(SendTo, "Unable to delete blacklist, it probably doesn't exist.");
+				return;
+			}
+		}
+		else
+		{
+			if (Auth_BlacklistAdd(*NNick != '*' ? NNick : NULL, *NIdent != '*' ? NIdent : NULL, *NMask != '*' ? NMask : NULL))
+			{
+				IRC_Message(SendTo, "Blacklisting successful.");
+				return;
+			}
+			else
+			{
+				IRC_Message(SendTo, "Unable to add blacklist! This is likely an error!");
+				return;
+			}
+		}
 	}
 	else if (!strcmp(CommandID, "commands"))
 	{
@@ -396,6 +464,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		IRC_ShutdownChannelTree();
 		Auth_ShutdownAdmin();
 		CMD_SaveSeenDB();
+		Auth_ShutdownBlacklist();
 		exit(0);
 	}
 	else if (!strcmp(CommandID, "seen"))
