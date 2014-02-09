@@ -177,10 +177,12 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	/*Now send them to the user.*/
 	for (Inc = 0; Inc < GamesAvailable; ++Inc)
 	{
-		snprintf(OutBuf, sizeof OutBuf, "[Game %d] Name: %s | Map: %s %s| Host: %s | Players: %d/%d %s| IP: %s | Version: %s",
+		snprintf(OutBuf, sizeof OutBuf, "[Game %d] \02Name\02: %s | \02Map\02: %s %s| \02Host\02: %s | "
+				"\02Players\02: %d/%d %s| \02IP\02: %s | \02Version\02: %s",
 				Inc + 1, GamesList[Inc].GameName, GamesList[Inc].Map, GamesList[Inc].Mods ? "(mods required) " : "",
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
-				GamesList[Inc].PrivateGame ? "(private) " : "", GamesList[Inc].NetSpecs.HostIP, GamesList[Inc].VersionString);
+				GamesList[Inc].PrivateGame ? "(private) " : "", GamesList[Inc].NetSpecs.HostIP,
+				GamesList[Inc].VersionString);
 		IRC_Message(SendTo, OutBuf);
 	}
 	
