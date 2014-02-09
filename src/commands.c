@@ -45,9 +45,9 @@ struct
 			{ "listchannels", "Lists the channels I am in. You must be at least admin.", REQARG },
 			{ "nickchange", "Changes my nickname to the selected nick. "
 				"Make sure the new nick is not taken before issuing this.", REQARG },
-			{ "blacklist", "Used by admins to blacklist users from using me. Requires a valid vhost as an argument.", REQARG },
-			{ "unblacklist", "Used by admins to unblacklist a user who has been barred from using me. Valid vhost required.", REQARG },
-			{ "listblacklist", "Lists currently recognized blacklisted vhosts.", NOARG },
+			{ "blacklist", "Used by admins to blacklist users from using me. 'blacklist set' is used to create a blacklist, "
+				"'blacklist unset' is used to unset them, and 'blacklist list' lists known blacklistings. "
+				"'set' and 'unset' require a valid vhost as an argument.", REQARG },
 			{ "netwrite", "Writes raw data to the IRC network. For example, 'PRIVMSG derp :Hee hee' "
 				"will send a private message to derp via raw IRC protocol.", REQARG },
 			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
@@ -200,25 +200,9 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		return;
 	}
-	else if (!strcmp(CommandID, "listblacklist"))
+	else if (!strcmp(CommandID, "blacklist"))
 	{
-		if (!Auth_IsAdmin(Nick, Ident, Mask, NULL))
-		{
-			IRC_Message(SendTo, "You must be an admin to use that command.");
-			return;
-		}
-		
-		if (*Argument)
-		{
-			IRC_Message(SendTo, "This command takes no argument.");
-			return;
-		}
-		
-		Auth_BlacklistSendList(SendTo);
-	}
-	else if (!strcmp(CommandID, "blacklist") || !strcmp(CommandID, "unblacklist"))
-	{
-		char NNick[1024], NIdent[1024], NMask[1024];
+		char Subcommand[32], *Worker = Argument;
 		
 		if (!Auth_IsAdmin(Nick, Ident, Mask, NULL))
 		{
@@ -228,41 +212,71 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		if (!*Argument)
 		{
-			IRC_Message(SendTo, "I need a vhost to blacklist.");
+			IRC_Message(SendTo, "I need a subcommand. See 'help blacklist'.");
 			return;
 		}
 		
-		if (!IRC_BreakdownNick(Argument, NNick, NIdent, NMask))
+		for (Inc = 0; Argument[Inc] != ' ' && Argument[Inc] != '\0' && Inc < sizeof Subcommand - 1; ++Inc)
 		{
-			IRC_Message(SendTo, "That doesn't seem to be a valid vhost.");
-			return;
+			Subcommand[Inc] = Argument[Inc];
 		}
+		Subcommand[Inc] = '\0';
+		Worker += Inc;
 		
-		if (!strcmp(CommandID, "unblacklist"))
+		if (!strcmp(Subcommand, "set") || !strcmp(Subcommand, "unset"))
 		{
-			if (Auth_BlacklistDel(*NNick == '*' ? NULL : NNick, *NIdent == '*' ? NULL : NIdent, *NMask == '*' ? NULL :NMask))
+				
+			char NNick[1024], NIdent[1024], NMask[1024];
+			
+			if (*Worker == '\0')
 			{
-				IRC_Message(SendTo, "Unblacklisting successful.");
+				IRC_Message(SendTo, "This command requires both a subcommand and an argument to the subcommand.");
 				return;
+			}
+			
+			while (*Worker == ' ') ++Worker;
+			
+			if (!IRC_BreakdownNick(Worker, NNick, NIdent, NMask))
+			{
+				IRC_Message(SendTo, "That doesn't seem to be a valid vhost.");
+				return;
+			}
+			
+			if (!strcmp(Subcommand, "unset"))
+			{
+				if (Auth_BlacklistDel(*NNick == '*' ? NULL : NNick, *NIdent == '*' ? NULL : NIdent, *NMask == '*' ? NULL :NMask))
+				{
+					IRC_Message(SendTo, "Unblacklisting successful.");
+					return;
+				}
+				else
+				{
+					IRC_Message(SendTo, "Unable to delete blacklist, it probably doesn't exist.");
+					return;
+				}
 			}
 			else
 			{
-				IRC_Message(SendTo, "Unable to delete blacklist, it probably doesn't exist.");
-				return;
+				if (Auth_BlacklistAdd(*NNick != '*' ? NNick : NULL, *NIdent != '*' ? NIdent : NULL, *NMask != '*' ? NMask : NULL))
+				{
+					IRC_Message(SendTo, "Blacklisting successful.");
+					return;
+				}
+				else
+				{
+					IRC_Message(SendTo, "Unable to add blacklist!");
+					return;
+				}
 			}
+		}
+		else if (!strcmp(Subcommand, "list"))
+		{
+			Auth_BlacklistSendList(SendTo);
 		}
 		else
 		{
-			if (Auth_BlacklistAdd(*NNick != '*' ? NNick : NULL, *NIdent != '*' ? NIdent : NULL, *NMask != '*' ? NMask : NULL))
-			{
-				IRC_Message(SendTo, "Blacklisting successful.");
-				return;
-			}
-			else
-			{
-				IRC_Message(SendTo, "Unable to add blacklist! This is likely an error!");
-				return;
-			}
+			IRC_Message(SendTo, "Invalid subcommand. Valid are set, unset, and list.");
+			return;
 		}
 	}
 	else if (!strcmp(CommandID, "commands"))
