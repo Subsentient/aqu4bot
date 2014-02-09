@@ -11,49 +11,51 @@
 
 #include "aqu4.h"
 char CmdPrefix[1024] = "$";
-typedef enum { NOARG, OPTARG, REQARG } ArgMode;
+enum ArgMode { NOARG, OPTARG, REQARG };
+enum HPerms { ANY, ADMIN, OWNER };
 
 struct
 {
 	char CmdName[64];
 	char HelpString[256];
-	ArgMode AM;
+	enum ArgMode AM;
+	enum HPerms P;
 } CmdHelpList[] = 
 		{
-			{ "burrito", "Chucks a nasty, rotten burrito at someone.", REQARG },
-			{ "beer", "Gives someone a cold, Samuel Adams beer.", REQARG },
+			{ "burrito", "Chucks a nasty, rotten burrito at someone.", REQARG, ANY },
+			{ "beer", "Gives someone a cold, Samuel Adams beer.", REQARG, ANY },
 			{ "wz", "Shows games in either the Warzone 2100 or Warzone 2100 Legacy game lobby."
-				" Passing 'legacy' as an argument chooses the Legacy server, otherwise it's the wz2100.net server.", OPTARG },
+				" Passing 'legacy' as an argument chooses the Legacy server, otherwise it's the wz2100.net server.", OPTARG, ANY },
 			{ "guessinggame", "A simple number-guessing game where you guess from one to ten. "
-				"The first guess starts the game.", REQARG },
-			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG },
-			{ "time", "Displays the current time in either utc24, utc12, lt12, or lt24 times. Default is utc24.", OPTARG },
-			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG },
-			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG },
+				"The first guess starts the game.", REQARG, ANY },
+			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG, ANY },
+			{ "time", "Displays the current time in either utc24, utc12, lt12, or lt24 times. Default is utc24.", OPTARG, ANY },
+			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG, ANY },
+			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG, ANY },
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
-				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies.", REQARG },
-			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG },
-			{ "msg", "Sends a message to a nick/channel.", REQARG },
-			{ "memsg", "Sends a message to a nick/channel in /me format.", REQARG },
-			{ "noticemsg", "Sends a message as a notice.", REQARG },
+				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies.", REQARG, ANY },
+			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG, ANY },
+			{ "msg", "Sends a message to a nick/channel.", REQARG, ADMIN },
+			{ "memsg", "Sends a message to a nick/channel in /me format.", REQARG, ADMIN },
+			{ "noticemsg", "Sends a message as a notice.", REQARG, ADMIN },
 			{ "chanctl", "Used for administrating channels. I must be OP in the channel for this to be useful. "
-				"See chanctl help for a list of subcommands and more.", REQARG },
-			{ "join", "Joins the specified channel. You must be at least admin for this. ", REQARG },
+				"See chanctl help for a list of subcommands and more.", REQARG, ADMIN },
+			{ "join", "Joins the specified channel. You must be at least admin for this. ", REQARG, ADMIN },
 			{ "part", "Leaves the specified channel. You must be at least admin for this."
 				" If no argument is specified and you are already in a channel, "
-				"it leaves the channel the command is issued from.", OPTARG },
-			{ "listchannels", "Lists the channels I am in. You must be at least admin.", REQARG },
+				"it leaves the channel the command is issued from.", OPTARG, ADMIN },
+			{ "listchannels", "Lists the channels I am in. You must be at least admin.", REQARG, ADMIN },
 			{ "nickchange", "Changes my nickname to the selected nick. "
-				"Make sure the new nick is not taken before issuing this.", REQARG },
+				"Make sure the new nick is not taken before issuing this.", REQARG, OWNER },
 			{ "blacklist", "Used by admins to blacklist users from using me. 'blacklist set' is used to create a blacklist, "
 				"'blacklist unset' is used to unset them, and 'blacklist list' lists known blacklistings. "
-				"'set' and 'unset' require a valid vhost as an argument.", REQARG },
+				"'set' and 'unset' require a valid vhost as an argument.", REQARG, ADMIN },
 			{ "netwrite", "Writes raw data to the IRC network. For example, 'PRIVMSG derp :Hee hee' "
-				"will send a private message to derp via raw IRC protocol.", REQARG },
+				"will send a private message to derp via raw IRC protocol.", REQARG, OWNER },
 			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
-				"as my quit message.", OPTARG },
-			{ "help", "Prints info about me. If you specify an argument, then I'll give help for that command.", OPTARG },
-			{ "commands", "Prints the list of commands I know.", NOARG },
+				"as my quit message.", OPTARG, OWNER },
+			{ "help", "Prints info about me. If you specify an argument, then I'll give help for that command.", OPTARG, ANY },
+			{ "commands", "Prints the list of commands I know.", NOARG, ANY },
 			{ { '\0' } } /*Terminator.*/
 		};
 
@@ -170,6 +172,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	{
 		char TmpBuf[2048];
 		const char *ArgRequired[3] = { "", " <optional_arg(s)>", " <required_arg(s)>" };
+		const char *PermStrings[3] = { "", "\02ADMINS:\02 ", "\02OWNERS:\02 " };
 		
 		if (*Argument == '\0')
 		{
@@ -185,8 +188,9 @@ void CMD_ProcessCommand(const char *InStream_)
 			{
 				if (!strcmp(Argument, CmdHelpList[Inc].CmdName))
 				{
-					snprintf(TmpBuf, sizeof TmpBuf, "[%s%s%s]: %s", CmdPrefix, CmdHelpList[Inc].CmdName,
-							ArgRequired[CmdHelpList[Inc].AM], CmdHelpList[Inc].HelpString);
+					snprintf(TmpBuf, sizeof TmpBuf, "%s[%s%s%s]: %s", PermStrings[CmdHelpList[Inc].P],
+							CmdPrefix, CmdHelpList[Inc].CmdName, ArgRequired[CmdHelpList[Inc].AM],
+							CmdHelpList[Inc].HelpString);
 					IRC_Message(SendTo, TmpBuf);
 					break;
 				}
@@ -282,6 +286,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strcmp(CommandID, "commands"))
 	{
 		char *CommandList = NULL;
+		const char *PermStars[3] = { "", "\0038*\003", "\0034**\003" };
 		
 		if (*Argument)
 		{
@@ -289,17 +294,18 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		IRC_Message(SendTo, "Commands available:");
+		IRC_Message(SendTo, "Commands with 1 star = admins only, 2 stars = owners only. \02Commands available\02:");
 		
 		/*Count number of commands.*/
 		for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc);
 		
-		CommandList = malloc((sizeof(CmdHelpList->CmdName) + 2) * Inc + 1);
+		CommandList = malloc((sizeof(CmdHelpList->CmdName) + 10) * Inc + 1);
 		*CommandList = '\0';
 		
 		for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc)
 		{
 			strcat(CommandList, CmdHelpList[Inc].CmdName);
+			strcat(CommandList, PermStars[CmdHelpList[Inc].P]);
 			strcat(CommandList, ", ");
 		}
 		
@@ -665,6 +671,8 @@ void CMD_ProcessCommand(const char *InStream_)
 		{
 			IRC_Message(SendTo, Worker->Channel);
 		}
+		
+		IRC_Message(SendTo, "End of list.");
 	}
 	else if (!strcmp(CommandID, "tell"))
 	{
