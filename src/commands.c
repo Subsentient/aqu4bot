@@ -63,6 +63,8 @@ struct
 			{ "listchannels", "Lists the channels I am in. You must be at least admin.", REQARG, ADMIN },
 			{ "nickchange", "Changes my nickname to the selected nick. "
 				"Make sure the new nick is not taken before issuing this.", REQARG, OWNER },
+			{ "admin", "Used to temporarily grant/remove bot admins. Cannot add owners. Changes must be made to"
+				" the configuration file to make added or deleted admins permanent.", REQARG, OWNER },
 			{ "blacklist", "Used by admins to blacklist users from using me. 'blacklist set' is used to create a blacklist, "
 				"'blacklist unset' is used to unset them, and 'blacklist list' lists known blacklistings. "
 				"'set' and 'unset' require a valid vhost as an argument.", REQARG, ADMIN },
@@ -264,7 +266,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			
 			if (!strcmp(Subcommand, "unset"))
 			{
-				if (Auth_BlacklistDel(*NNick == '*' ? NULL : NNick, *NIdent == '*' ? NULL : NIdent, *NMask == '*' ? NULL :NMask))
+				if (Auth_BlacklistDel(NNick, NIdent, NMask))
 				{
 					IRC_Message(SendTo, "Unblacklisting successful.");
 					return;
@@ -277,7 +279,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			}
 			else
 			{
-				if (Auth_BlacklistAdd(*NNick != '*' ? NNick : NULL, *NIdent != '*' ? NIdent : NULL, *NMask != '*' ? NMask : NULL))
+				if (Auth_BlacklistAdd(NNick, NIdent, NMask))
 				{
 					IRC_Message(SendTo, "Blacklisting successful.");
 					return;
@@ -370,6 +372,91 @@ void CMD_ProcessCommand(const char *InStream_)
 		else
 		{
 			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo);
+		}
+	}
+	else if (!strcmp(CommandID, "admin"))
+	{
+		char Subcommand[32], *Worker = Argument;
+		
+		if (!BotOwner)
+		{
+			IRC_Message(SendTo, "You must be one of my owners to use that command.");
+			return;
+		}
+		
+		if (!*Argument)
+		{
+			IRC_Message(SendTo, "This command requires you specify a sub-command.");
+			return;
+		}
+		
+		for (Inc = 0; Argument[Inc] != ' ' && Argument[Inc] != '\0' && Inc < sizeof Subcommand - 1; ++Inc)
+		{
+			Subcommand[Inc] = Argument[Inc];
+		}
+		Subcommand[Inc] = '\0';
+		
+		Worker += Inc;
+		
+		if (*Worker == '\0' && strcmp(Subcommand, "list") != 0)
+		{
+			IRC_Message(SendTo, "This subcommand requires an argument.");
+			return;
+		}
+		
+		while (*Worker == ' ') ++Worker;
+		
+		if (!strcmp(Subcommand, "list"))
+		{
+			if (*Worker)
+			{
+				IRC_Message(SendTo, "This command takes no argument.");
+				return;
+			}
+			
+			Auth_ListAdmins(SendTo);
+			return;
+		}
+		else if (!strcmp(Subcommand, "add") || !strcmp(Subcommand, "del"))
+		{
+			char NNick[1024], NIdent[1024], NMask[1024];
+			
+			if (!IRC_BreakdownNick(Worker, NNick, NIdent, NMask))
+			{
+				IRC_Message(SendTo, "Invalid vhost specified.");
+				return;
+			}
+			
+			if (!strcmp(Subcommand, "add"))
+			{
+				
+				if (Auth_AddAdmin(NNick, NIdent, NMask, false))
+				{
+					IRC_Message(SendTo, "Admin add successful.");
+				}
+				else
+				{
+					IRC_Message(SendTo, "Unable to add admin!");
+				}
+				return;
+			}
+			else
+			{
+				if (Auth_DelAdmin(NNick, NIdent, NMask, false))
+				{
+					IRC_Message(SendTo, "Admin deletion successful.");
+				}
+				else
+				{
+					IRC_Message(SendTo, "Failed to delete admin!");
+				}
+				return;
+			}
+		}
+		else
+		{
+			IRC_Message(SendTo, "Bad subcommand name.");
+			return;
 		}
 	}
 	else if (!strcmp(CommandID, "msg") || !strcmp(CommandID, "memsg") || !strcmp(CommandID, "noticemsg"))

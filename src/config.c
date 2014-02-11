@@ -147,12 +147,8 @@ Bool Config_ReadConfig(void)
 				fprintf(stderr, "Invalid vhost format, line %lu\n", LineNum);
 				return false;
 			}
-			
-			if (*Nick == '*') *Nick = '\0';
-			if (*Ident == '*') *Ident = '\0';
-			if (*Mask == '*') *Mask = '\0';
 
-			if (!Auth_AddAdmin(*Nick ? Nick : NULL, *Ident ? Ident : NULL, *Mask ? Mask : NULL, BotOwner))
+			if (!Auth_AddAdmin(Nick, Ident, Mask, BotOwner))
 			{
 				fprintf(stderr, "Failed to add admin, line %lu\n", LineNum);
 				return false;

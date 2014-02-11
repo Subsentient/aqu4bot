@@ -40,7 +40,7 @@ Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool B
 {
 	struct AuthTree *Worker = AdminAuths;
 	
-	if (!Nick && !Ident && !Mask) return false;
+	if (Auth_IsAdmin(Nick, Ident, Mask, NULL)) return false;
 	
 	if (!AdminAuths)
 	{
@@ -59,14 +59,72 @@ Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool B
 		Worker = Worker->Next;
 	}
 	
-	if (Nick) snprintf(Worker->Nick, sizeof Worker->Nick, "%s", Nick);
-	if (Ident) snprintf(Worker->Ident, sizeof Worker->Ident, "%s", Ident);
-	if (Mask) snprintf(Worker->Mask, sizeof Worker->Mask, "%s", Mask);
+	snprintf(Worker->Nick, sizeof Worker->Nick, "%s", Nick);
+	snprintf(Worker->Ident, sizeof Worker->Ident, "%s", Ident);
+	snprintf(Worker->Mask, sizeof Worker->Mask, "%s", Mask);
 	
 	if (BotOwner) Worker->BotOwner = BotOwner;
 	
 	return true;
 }
+
+Bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, Bool OwnersToo)
+{
+	struct AuthTree *Worker = AdminAuths;
+	Bool Success = false;
+	
+	if (!Nick && !Ident && !Mask) return false;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Worker->Nick, Nick) && !strcmp(Worker->Ident, Ident) && !strcmp(Worker->Mask, Mask))
+		{
+			if (Worker->BotOwner && !OwnersToo) continue;
+			
+			if (Worker == AdminAuths)
+			{
+				if (Worker->Next)
+				{
+					AdminAuths = Worker->Next;
+					AdminAuths->Prev = NULL;
+					free(Worker);
+				}
+				else
+				{
+					free(AdminAuths);
+					AdminAuths = NULL;
+				}
+			}
+			else
+			{
+				if (Worker->Next) Worker->Next->Prev = Worker->Prev;
+				Worker->Prev->Next = Worker->Next;
+				free(Worker);
+			}
+			Success = true;
+		}
+	}
+	return Success;
+}
+
+void Auth_ListAdmins(const char *SendTo)
+{
+	struct AuthTree *Worker = AdminAuths;
+	char OutBuf[2048];
+	int Count = 1;
+	
+	IRC_Message(SendTo, "List of admins:");
+	
+	for (; Worker; Worker = Worker->Next, ++Count)
+	{
+		snprintf(OutBuf, sizeof OutBuf, "[%d] (%s) %s!%s@%s", Count, 
+				Worker->BotOwner ? "\0034OWNER\003" : "\0038ADMIN\003", *Worker->Nick ? Worker->Nick : "*",
+				*Worker->Ident ? Worker->Ident : "*", *Worker->Mask ? Worker->Mask : "*");
+		IRC_Message(SendTo, OutBuf);
+	}
+	
+	IRC_Message(SendTo, "End of list.");
+}		
 
 void Auth_ShutdownAdmin(void)
 {
@@ -87,13 +145,11 @@ Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *B
 	
 	if (!AdminAuths) return false;
 	
-	if (!Nick || !Ident || !Mask) return false;
-	
 	for (; Worker; Worker = Worker->Next)
 	{	
-		if ((!*Worker->Nick || !strcmp(Nick, Worker->Nick)) &&
-			(!*Worker->Ident || !strcmp(Ident, Worker->Ident)) &&
-			(!*Worker->Mask || !strcmp(Mask, Worker->Mask)))
+		if ((Worker->Nick[0] == '*' || !strcmp(Nick, Worker->Nick)) &&
+			(Worker->Ident[0] == '*' ||!strcmp(Ident, Worker->Ident)) &&
+			(Worker->Mask[0] == '*' || !strcmp(Mask, Worker->Mask)))
 		{
 			if (BotOwner) *BotOwner = Worker->BotOwner;
 			return true;
@@ -115,9 +171,9 @@ Bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask)
 	
 	for (; Worker; Worker = Worker->Next)
 	{
-		if ((!Nick || !*Worker->Nick || !strcmp(Nick, Worker->Nick)) &&
-			(!Ident || !*Worker->Ident || !strcmp(Ident, Worker->Ident)) &&
-			(!Mask || !*Worker->Mask || !strcmp(Mask, Worker->Mask)))
+		if (!strcmp(Nick, Worker->Nick) &&
+			!strcmp(Ident, Worker->Ident) &&
+			!strcmp(Mask, Worker->Mask))
 		{
 			if (Worker == BLCore)
 			{
@@ -155,9 +211,9 @@ Bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask)
 	
 	for (; Worker; Worker = Worker->Next)
 	{
-		if ((!*Worker->Nick || !strcmp(Worker->Nick, Nick)) &&
-			(!*Worker->Ident || !strcmp(Worker->Ident, Ident)) &&
-			(!*Worker->Mask || !strcmp(Worker->Mask, Mask)))
+		if ((Worker->Nick[0] == '*' || !strcmp(Worker->Nick, Nick)) &&
+			(Worker->Ident[0] == '*' || !strcmp(Worker->Ident, Ident)) &&
+			(Worker->Mask[0] == '*' || !strcmp(Worker->Mask, Mask)))
 		{
 			return true;
 		}
@@ -170,9 +226,9 @@ Bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 {
 	struct Blacklist *Worker = BLCore;
 	
-	if (!Nick && !Ident && !Mask) return false;
+	if (Auth_IsAdmin(Nick, Ident, Mask, NULL)) return false;
 	
-	if (Auth_IsBlacklisted(Nick, Ident, Mask)) return true;
+	if (Auth_IsBlacklisted(Nick, Ident, Mask)) return false;
 	
 	if (!BLCore)
 	{
@@ -189,24 +245,17 @@ Bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 		Worker = Worker->Next;
 	}
 	
-	if (Nick)
-	{
-		strncpy(Worker->Nick, Nick, sizeof Worker->Nick - 1);
-		Worker->Nick[sizeof Worker->Nick - 1] = '\0';
-	}
-	
-	if (Ident)
-	{
-		strncpy(Worker->Ident, Ident, sizeof Worker->Ident - 1);
-		Worker->Ident[sizeof Worker->Ident - 1] = '\0';
-	}
-	
-	if (Mask)
-	{
-		strncpy(Worker->Mask, Mask, sizeof Worker->Mask - 1);
-		Worker->Mask[sizeof Worker->Mask - 1] = '\0';
-	}
-	
+
+	strncpy(Worker->Nick, Nick, sizeof Worker->Nick - 1);
+	Worker->Nick[sizeof Worker->Nick - 1] = '\0';
+
+	strncpy(Worker->Ident, Ident, sizeof Worker->Ident - 1);
+	Worker->Ident[sizeof Worker->Ident - 1] = '\0';
+
+	strncpy(Worker->Mask, Mask, sizeof Worker->Mask - 1);
+	Worker->Mask[sizeof Worker->Mask - 1] = '\0';
+
+
 	Auth_BlacklistSave();
 	return true;
 }
@@ -243,7 +292,7 @@ void Auth_BlacklistLoad(void)
 			continue;
 		}
 		
-		if (!Auth_BlacklistAdd(*Nick == '*' ? NULL : Nick, *Ident == '*' ? NULL : Ident, *Mask == '*' ? NULL : Mask))
+		if (!Auth_BlacklistAdd(Nick, Ident, Mask))
 		{
 			fprintf(stderr, "Unable to add blacklist %s!%s@%s", Nick, Ident, Mask);
 			continue;
@@ -269,8 +318,7 @@ Bool Auth_BlacklistSave(void)
 	
 	for (; Worker != NULL; Worker = Worker->Next)
 	{
-		snprintf(OutBuf, sizeof OutBuf, "%s!%s@%s\n", *Worker->Nick ? Worker->Nick : "*",
-				*Worker->Ident ? Worker->Ident : "*", *Worker->Mask ? Worker->Mask : "*");
+		snprintf(OutBuf, sizeof OutBuf, "%s!%s@%s\n", Worker->Nick, Worker->Ident, Worker->Mask);
 		fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
 	}
 	
@@ -299,8 +347,7 @@ void Auth_BlacklistSendList(const char *SendTo)
 	
 	for (Count = 1, Worker = BLCore; Worker; Worker = Worker->Next, ++Count)
 	{
-		snprintf(OutBuf, sizeof OutBuf, "[%d] %s!%s@%s", Count, *Worker->Nick ? Worker->Nick : "*",
-				*Worker->Ident ? Worker->Ident : "*", *Worker->Mask ? Worker->Mask : "*");
+		snprintf(OutBuf, sizeof OutBuf, "[%d] %s!%s@%s", Count, Worker->Nick, Worker->Ident, Worker->Mask);
 		IRC_Message(SendTo, OutBuf);
 	}
 	

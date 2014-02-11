@@ -123,7 +123,9 @@ extern Bool CMD_SaveSeenDB(void);
 extern void CMD_LoadSeenDB(void);
 
 extern Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool BotOwner);
+extern Bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, Bool OwnersToo);
 extern Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *BotOwner);
+extern void Auth_ListAdmins(const char *SendTo);
 extern void Auth_ShutdownAdmin(void);
 extern Bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask);
 extern Bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask);
