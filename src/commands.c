@@ -64,7 +64,8 @@ struct
 			{ "nickchange", "Changes my nickname to the selected nick. "
 				"Make sure the new nick is not taken before issuing this.", REQARG, OWNER },
 			{ "admin", "Used to temporarily grant/remove bot admins. Cannot add owners. Changes must be made to"
-				" the configuration file to make added or deleted admins permanent.", REQARG, OWNER },
+				" the configuration file to make added or deleted admins permanent. The subcommands are add/del, both "
+				"of which require a valid vhost, and list, which takes no argument.", REQARG, OWNER },
 			{ "blacklist", "Used by admins to blacklist users from using me. 'blacklist set' is used to create a blacklist, "
 				"'blacklist unset' is used to unset them, and 'blacklist list' lists known blacklistings. "
 				"'set' and 'unset' require a valid vhost as an argument.", REQARG, ADMIN },
