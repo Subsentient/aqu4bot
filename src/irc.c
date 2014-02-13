@@ -36,9 +36,33 @@ void IRC_Loop(void)
 	{
 		if (!Net_Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true))
 		{ /*No command should ever call Net_Read() besides us and the connecting stuff that comes before us.*/
+			int MaxTry = 0;
 			puts("\033[31mCONNECTION LOST\033[0m");
-			close(SocketDescriptor);
-			exit(1);
+			
+			do
+			{
+				if (SocketDescriptor) close(SocketDescriptor);
+				SocketDescriptor = 0;
+
+				puts("\033[32mAttempting to reconnect...\033[0m");
+				
+				if (IRC_Connect())
+				{
+					printf("\n\033[32mConnection reestablished after %d attempts.\033[0m\n", MaxTry + 1);
+					break;
+				}
+				else
+				{
+					printf("\n\033[31mReconnect attempt %d failed.\033[0m\n", MaxTry + 1);
+				}
+			} while (++MaxTry, MaxTry < 3);
+			
+			if (MaxTry == 3)
+			{
+				puts("\033[31m** After three attempts, cannot reconnect to IRC server! Shutting down. **\033[0m");
+				if (SocketDescriptor) close(SocketDescriptor);
+				exit(1);
+			}
 		}
 		
 		if (!strncmp(MessageBuf, "PING ", strlen("PING "))) IRC_Pong(MessageBuf); /*Respond to pings.*/
@@ -278,17 +302,16 @@ Error:
 
 Bool IRC_Quit(const char *QuitMSG)
 {
-	if (SocketDescriptor)
+	if (!SocketDescriptor) return false;
+
+	if (QuitMSG)
 	{
-		if (QuitMSG)
-		{
-			char OutBuf[2048];
-			
-			snprintf(OutBuf, sizeof OutBuf, "QUIT :%s\r\n", QuitMSG);
-			Net_Write(SocketDescriptor, OutBuf);
-		}
-		else Net_Write(SocketDescriptor, "QUIT :aqu4bot " BOT_VERSION " shutting down.\r\n");
+		char OutBuf[2048];
+		
+		snprintf(OutBuf, sizeof OutBuf, "QUIT :%s\r\n", QuitMSG);
+		Net_Write(SocketDescriptor, OutBuf);
 	}
+	else Net_Write(SocketDescriptor, "QUIT :aqu4bot " BOT_VERSION " shutting down.\r\n");
 	
 	if (Net_Disconnect(SocketDescriptor))
 	{

@@ -124,7 +124,7 @@ void Auth_ListAdmins(const char *SendTo)
 	}
 	
 	IRC_Message(SendTo, "End of list.");
-}		
+}
 
 void Auth_ShutdownAdmin(void)
 {
