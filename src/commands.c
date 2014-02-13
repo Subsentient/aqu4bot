@@ -341,7 +341,8 @@ void CMD_ProcessCommand(const char *InStream_)
 		if (*Argument == '\0') IRC_Message(SendTo, "The burrito command requires an argument.");
 		else
 		{
-			snprintf(OutBuf, sizeof OutBuf, "\01ACTION chucks a nasty, rotten burrito at %s\01", Argument);
+			snprintf(OutBuf, sizeof OutBuf, "\01ACTION chucks a nasty, rotten burrito at %s\01",
+					!strcmp(Argument, ServerInfo.Nick) ? Nick : Argument); /*Tell us to burrito ourselves will you?*/
 			IRC_Message(SendTo, OutBuf);
 		}
 	}
