@@ -806,6 +806,12 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
+		if (!strcmp(TellTarget, ServerInfo.Nick))
+		{
+			IRC_Message(SendTo, "You just told me just now!.");
+			return;
+		}
+		
 		strncpy(Message, Worker, sizeof Message - 1);
 		Message[sizeof Message - 1] = '\0';
 		
