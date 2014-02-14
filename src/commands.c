@@ -1190,14 +1190,15 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		
 		if (*Worker == '\0')
 		{
-			IRC_Message(SendTo, "You need to specify both a channel name and a new topic.");
-			return;
-		}
-		
-		if (*Worker != '#')
-		{
-			IRC_Message(SendTo, "Invalid channel name.");
-			return;
+			if (*SendTo == '#')
+			{
+				Worker = SendTo;
+			}
+			else
+			{
+				IRC_Message(SendTo, "You need to specify both a nickname and someone to invite.");
+				return;
+			}
 		}
 		
 		IRC_Message(SendTo, "Ok.");
@@ -1208,23 +1209,34 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 	else if (!strcmp(Command, "settopic"))
 	{
-		char ChannelName[1024];
+		char ChannelName[1024] = { '\0' };
 		const char *Worker = CmdStream;
 		
 		if (*CmdStream != '#')
 		{
-			IRC_Message(SendTo, "Invalid channel name.");
-			return;
+			if (*SendTo == '#')
+			{
+				strncpy(ChannelName, SendTo, sizeof ChannelName - 1);
+				ChannelName[sizeof ChannelName - 1] = '\0';
+			}
+			else
+			{
+				IRC_Message(SendTo, "Invalid channel name.");
+				return;
+			}
 		}
 		
-		for (Inc = 0; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof ChannelName - 1; ++Inc)
+		if (!*ChannelName)
 		{
-			ChannelName[Inc] = CmdStream[Inc];
-		}
-		ChannelName[Inc] = '\0';
-		Worker += Inc;
+			for (Inc = 0; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof ChannelName - 1; ++Inc)
+			{
+				ChannelName[Inc] = CmdStream[Inc];
+			}
+			ChannelName[Inc] = '\0';
+			Worker += Inc;
 		
-		while (*Worker == ' ') ++Worker;
+			while (*Worker == ' ') ++Worker;
+		}
 		
 		if (*Worker == '\0')
 		{
@@ -1245,24 +1257,37 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 			!strcmp(Command, "quiet") || !strcmp(Command, "unquiet"))
 	{
 		short Mode = 0;
-		char ChannelName[1024];
+		char ChannelName[1024] = { '\0' };
+		char CurMask[1024];
 		const char *Worker = CmdStream;
 		const char *Flag[] = { "+o", "-o", "+v", "-v", "+b", "-b", "+q", "-q" };
+		int TempDescriptor = 0;
 		
 		if (*CmdStream != '#')
 		{
-			IRC_Message(SendTo, "Invalid channel name.");
-			return;
+			if (*SendTo == '#')
+			{
+				strncpy(ChannelName, SendTo, sizeof ChannelName - 1);
+				ChannelName[sizeof ChannelName - 1] = '\0';
+			}
+			else
+			{
+				IRC_Message(SendTo, "Invalid channel name.");
+				return;
+			}
 		}
 		
-		for (Inc = 0; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof ChannelName - 1; ++Inc)
+		if (!*ChannelName)
 		{
-			ChannelName[Inc] = CmdStream[Inc];
+			for (Inc = 0; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof ChannelName - 1; ++Inc)
+			{
+				ChannelName[Inc] = CmdStream[Inc];
+			}
+			ChannelName[Inc] = '\0';
+			Worker += Inc;
+			
+			while (*Worker == ' ') ++Worker;
 		}
-		ChannelName[Inc] = '\0';
-		Worker += Inc;
-		
-		while (*Worker == ' ') ++Worker;
 		
 		if (*Worker == '\0')
 		{
@@ -1281,30 +1306,63 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		else if (!strcmp(Command, "quiet")) Mode = 6;
 		else if (!strcmp(Command, "unquiet")) Mode = 7;
 		
-		snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s\n", ChannelName, Flag[Mode], Worker);
-		Net_Write(SocketDescriptor, OutBuf);
+		do
+		{
+			while (*Worker == ' ') ++Worker;
+			
+			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof CurMask - 1; ++Inc)
+			{
+				CurMask[Inc] = Worker[Inc];
+			}
+			CurMask[Inc] = '\0';
+			Worker += Inc;
+			
+			snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s\n", ChannelName, Flag[Mode], CurMask);
+			
+			/*Hack to get past time-delay for message sending.*/
+			TempDescriptor = SocketDescriptor;
+			SocketDescriptor = 0;
+			
+			Net_Write(TempDescriptor, OutBuf);
+			
+			SocketDescriptor = TempDescriptor;
+			
+		} while (*Worker != '\0');
 		
 		return;
 	}
 	else if (!strcmp(Command, "kick"))
 	{
-		char ChannelName[1024];
+		char ChannelName[1024] = { '\0' };
+		char CurNick[1024];
 		const char *Worker = CmdStream;
+		int TempDescriptor = 0;
 		
 		if (*CmdStream != '#')
 		{
-			IRC_Message(SendTo, "Invalid channel name.");
-			return;
+			if (*SendTo == '#')
+			{
+				strncpy(ChannelName, SendTo, sizeof ChannelName - 1);
+				ChannelName[sizeof ChannelName - 1] = '\0';
+			}
+			else
+			{
+				IRC_Message(SendTo, "Invalid channel name.");
+				return;
+			}
 		}
 		
-		for (Inc = 0; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof ChannelName - 1; ++Inc)
+		if (!*ChannelName)
 		{
-			ChannelName[Inc] = CmdStream[Inc];
+			for (Inc = 0; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof ChannelName - 1; ++Inc)
+			{
+				ChannelName[Inc] = CmdStream[Inc];
+			}
+			ChannelName[Inc] = '\0';
+			Worker += Inc;
+			
+			while (*Worker == ' ') ++Worker;
 		}
-		ChannelName[Inc] = '\0';
-		Worker += Inc;
-		
-		while (*Worker == ' ') ++Worker;
 		
 		if (*Worker == '\0')
 		{
@@ -1313,8 +1371,29 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		}
 		
 		IRC_Message(SendTo, "Ok.");
-		snprintf(OutBuf, sizeof OutBuf, "KICK %s %s\r\n", ChannelName, Worker);
-		Net_Write(SocketDescriptor, OutBuf);
+		
+		do
+		{
+			while (*Worker == ' ') ++Worker;
+			
+			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof CurNick - 1; ++Inc)
+			{
+				CurNick[Inc] = Worker[Inc];
+			}
+			CurNick[Inc] = '\0';
+			Worker += Inc;
+			
+			snprintf(OutBuf, sizeof OutBuf, "KICK %s %s\r\n", ChannelName, CurNick);
+			
+			/*Sneaky trick to get past time-delay for sending to IRC.*/
+			TempDescriptor = SocketDescriptor;
+			SocketDescriptor = 0;
+			
+			Net_Write(TempDescriptor, OutBuf);
+			
+			SocketDescriptor = TempDescriptor;
+			
+		} while (*Worker != '\0');
 		
 		return;
 	}
