@@ -1329,6 +1329,8 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 			
 		} while (*Worker != '\0');
 		
+		usleep(SendDelay * 100000); /*Still, we have to wait in the end.*/
+
 		return;
 	}
 	else if (!strcmp(Command, "kick"))
@@ -1394,6 +1396,8 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 			SocketDescriptor = TempDescriptor;
 			
 		} while (*Worker != '\0');
+		
+		usleep(SendDelay * 100000); /*Still, we have to wait in the end.*/
 		
 		return;
 	}
