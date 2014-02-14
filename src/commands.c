@@ -26,7 +26,7 @@ along with aqu4bot.  If not, see <http://www.gnu.org/licenses/>.
 #include <sys/stat.h>
 
 #include "aqu4.h"
-char CmdPrefix[1024] = "$";
+char CmdPrefix[128] = "$";
 enum ArgMode { NOARG, OPTARG, REQARG };
 enum HPerms { ANY, ADMIN, OWNER };
 
@@ -34,7 +34,7 @@ struct StickySpec
 {
 	unsigned long ID;
 	time_t Time;
-	char Owner[1024];
+	char Owner[128];
 	char Data[2048];
 };
 
@@ -96,8 +96,8 @@ static struct _RandomGame
 static struct _SeenDB
 {
 	time_t Time;
-	char Nick[1024];
-	char Channel[1024];
+	char Nick[128];
+	char Channel[128];
 	char LastMessage[2048];
 	
 	struct _SeenDB *Next;
@@ -112,15 +112,15 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
 	monolithic function that does wayyyy too much.*/
-	char Nick[1024], Ident[1024], Mask[1024], Target[1024];
-	char CommandID[1024], Argument[1024];
+	char Nick[128], Ident[128], Mask[128], Target[128];
+	char CommandID[128], Argument[1024];
 	unsigned long Inc = 0;
 	const char *SendTo = NULL;
 	const char *InStream = InStream_;
 	Bool IsAdmin = false, BotOwner = false;
-	char NickBasedPrefix[1024];
+	char NickBasedPrefix[128];
 	
-	snprintf(NickBasedPrefix, 1024, "%s:", ServerInfo.Nick);
+	snprintf(NickBasedPrefix, sizeof NickBasedPrefix, "%s:", ServerInfo.Nick);
 	
 	/*Get the nick info from this user.*/
 	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask)) return;
@@ -259,7 +259,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		if (!strcmp(Subcommand, "set") || !strcmp(Subcommand, "unset"))
 		{
 				
-			char NNick[1024], NIdent[1024], NMask[1024];
+			char NNick[128], NIdent[128], NMask[128];
 			
 			if (*Worker == '\0')
 			{
@@ -431,7 +431,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		else if (!strcmp(Subcommand, "add") || !strcmp(Subcommand, "del"))
 		{
-			char NNick[1024], NIdent[1024], NMask[1024];
+			char NNick[128], NIdent[128], NMask[128];
 			
 			if (!IRC_BreakdownNick(Worker, NNick, NIdent, NMask))
 			{
@@ -642,7 +642,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			Net_Write(SocketDescriptor, Argument);
 			Net_Write(SocketDescriptor, "\r\n");
 		}
-	}
+	}																																																																																																																																																																																				else if (!strcmp(CommandID, "rat")) { const char WhiteRatImg[][128] =     {      "\00311,::,,,,,,:,,,,:,,::::::::::;:;;;;;i;:;,:;i::::;1i;\003", "\00311,,,;:,,,,,,:,:,:;1ii1iitt11tt111ii;iii;i;::i1i;;;i\003",      "\00311,,,,,:;:,,,,:;11iiii11tt11111i1i1ttti1:;i1;;;;:;;;\003",      "\00311,:;:,,,,:i:;ii;;;iiiifLtfCf111i;ii1111::::;::::;;i\003",      "\00311,:,,,,;;;;;ii;::;i1tft1111ffLt1;:::;i1i;;:i;::;;;:\003",      "\00311,,,:;;::;ii;;::::;i;;:::;;;;;i:::::::ii1i;;;::::::\003",      "\00311:::::::;ii;;:::::::::::::::::::::,::::;ii;;;;;::;:\003",      "\00311,,,::;;;ii::::::,::::::::::::::::::;;;i1i;;;;:::::\003",      "\00311:::::::;;;;;;:::,,::::::::::;:;;:::;;ii11i;::::;;:\003",      "\00311:::,,::;;;;i;::::::;;;;:::;;;;;ii;;;:;;;;;;:;;;;;;\003",      "\00311:::,,,,:::;;;:;ii:;::;::::;ii;iiit1i;;ii;::::::::;\003",      "\00311:,,,,,,,:;:;;ii1i;;;;;::::;;;;;;iiiii;;;::::::::;;\003",      "\00311,:,,,,,,,,,:::;:;;;:::::::::;;;;;;;;::;:::::::::::\003",      "\00311::,:,,::::::::::::::::::::::::::::;;:;:::::::::;;:\003",      "\00311,::,,,:,:::;:::::::::::,:,:::::::;:;ii;;::::::::::\003",      "\00311:::::::::;;;;;;:::::::,::,::::::::;i1t1;;;:::::::;\003",      "\00311:::::::::;;iii;::::,,,,,,,:::::::::;1t1;:::::::::;\003",      "\00311::::::;:::::11;::::,,,::,,::::::::::i1i;;;;::;;;;;\003",      "\00311::::;;::::::::,:,,,,,,:,,::::::::,,:,,,,,,:;;;::;:\003",      "\00311:::;;;;:,,,,,,,,,,,,,,:,:,,::::::,,:,,,,,,:;;;;;;;\003",      "\00311;::;:;i,,,,,,,,:,,,,,,,,,::::,,,,,,::,,,,,,:i;;;;;\003",      "\00311::::;;1,,,,,,,:::,,,,,,,::::,,,,,,::;:1Li:;;;;;iii\003",      "\00311i;:;::;;;iGG1:;;::,,,,,,:,,:,,,,,,:11i;:;;;:;;i;ii\003",      "\00311;;;;;;:;;;;;iiii1::,,,,,,,,:,,,,::;1t111i;;;;;iii;\003",      "\00311:;i;;:::;;i1t1iii;::,,,,,::::,,,,:;;1t1ii;;;i;;i;;\003",      "Remember \0033pr0t0\003. -Subsentient", ""     }; if (!IsAdmin) return; for (Inc = 0; *WhiteRatImg[Inc] != '\0'; ++Inc) IRC_Message(SendTo, WhiteRatImg[Inc]);      return;  }	
 	else if (!strcmp(CommandID, "whoami"))
 	{
 		char OutBuf[2048];
@@ -791,7 +791,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	}
 	else if (!strcmp(CommandID, "tell"))
 	{
-		char TellTarget[1024], Message[2048], *Worker = Argument;
+		char TellTarget[128], Message[2048], *Worker = Argument;
 		unsigned long TInc = 0;
 		
 		if (*Argument == '\0')
@@ -1010,7 +1010,7 @@ Bool CMD_ReadTellDB(const char *Target)
 		{ /*Found one.*/
 			struct tm TimeStruct;
 			time_t Time = atol(ATime);
-			char TimeString[1024], OutBuf[2048];
+			char TimeString[128], OutBuf[2048];
 
 			*ATime = '\0';
 
@@ -1118,7 +1118,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 	struct stat FileStat;
 	time_t Time = 0;
 	struct tm TimeStruct;
-	char TimeString[256], StickyID_T[32], ATime[1024], Owner[1024];
+	char TimeString[256], StickyID_T[32], ATime[1024], Owner[128];
 	char OutBuf[2048];
 	unsigned long StickyCount = 0, BigInc = 0;
 	if (!Descriptor || stat("sticky.db", &FileStat) != 0 || FileStat.st_size == 0)
@@ -1187,7 +1187,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo)
 {
 	unsigned long Inc = 0;
-	char Command[64], OutBuf[2048], Nick[1024], Ident[1024], Mask[1024];
+	char Command[64], OutBuf[2048], Nick[128], Ident[128], Mask[128];
 	
 	if (!IRC_BreakdownNick(Message, Nick, Ident, Mask)) return;
 	
@@ -1216,7 +1216,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 	else if (!strcmp(Command, "invite"))
 	{
-		char NickName[1024];
+		char NickName[128];
 		const char *Worker = CmdStream;
 		
 		for (Inc = 0; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof NickName - 1; ++Inc)
@@ -1249,7 +1249,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 	else if (!strcmp(Command, "settopic"))
 	{
-		char ChannelName[1024] = { '\0' };
+		char ChannelName[128] = { '\0' };
 		const char *Worker = CmdStream;
 		
 		if (*CmdStream != '#')
@@ -1297,8 +1297,8 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 			!strcmp(Command, "quiet") || !strcmp(Command, "unquiet"))
 	{
 		short Mode = 0;
-		char ChannelName[1024] = { '\0' };
-		char CurMask[1024];
+		char ChannelName[128] = { '\0' };
+		char CurMask[128];
 		const char *Worker = CmdStream;
 		const char *Flag[] = { "+o", "-o", "+v", "-v", "+b", "-b", "+q", "-q" };
 		int TempDescriptor = 0;
@@ -1375,8 +1375,8 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 	else if (!strcmp(Command, "kick"))
 	{
-		char ChannelName[1024] = { '\0' };
-		char CurNick[1024];
+		char ChannelName[128] = { '\0' };
+		char CurNick[128];
 		const char *Worker = CmdStream;
 		int TempDescriptor = 0;
 		
@@ -1461,7 +1461,7 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 	unsigned long Inc = 0;
 	FILE *Descriptor = fopen("sticky.db", "r");
 	struct stat FileStat;
-	char StickyID_T[32], ATime[32], Owner[1024], StickyData[2048];
+	char StickyID_T[32], ATime[32], Owner[128], StickyData[2048];
 	Bool Found = false;
 	struct StickySpec *OutSpec = OutSpec_;
 	
@@ -1645,12 +1645,12 @@ static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 			
 			if (*Worker->Channel == '#')
 			{
-				snprintf(OutBuf, 2048, "I last saw %s at %s in %s. Their most recent message is \"%s\"",
+				snprintf(OutBuf, sizeof OutBuf, "I last saw %s at %s in %s. Their most recent message is \"%s\"",
 						Worker->Nick, TimeString, Worker->Channel, Worker->LastMessage);
 			}
 			else
 			{
-				snprintf(OutBuf, 2048, "I last saw %s at %s in a private message to me. "
+				snprintf(OutBuf, sizeof OutBuf, "I last saw %s at %s in a private message to me. "
 						"Their most recent message was \"%s\"", Worker->Nick, TimeString, Worker->LastMessage);
 			}
 			
@@ -1670,7 +1670,7 @@ void CMD_LoadSeenDB(void) /*Loads it from disk.*/
 	FILE *Descriptor = fopen("seen.db", "r");
 	char *SeenDB, *TextWorker  = NULL;
 	struct stat FileStat;
-	char ATime[256], Nick[1024], Channel[1024], LastMessage[2048];
+	char ATime[256], Nick[128], Channel[128], LastMessage[2048];
 	unsigned long Inc = 0;
 	
 	if (!Descriptor || SeenRoot != NULL  ||

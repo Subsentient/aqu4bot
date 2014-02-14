@@ -35,10 +35,10 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 {
 	FILE *Descriptor = NULL;
 	char Filename[1024], OutBuf[2048], Origin[2048], Message[2048];
-	char Nick[1024], Ident[1024], Mask[1024], *Worker = Origin;
+	char Nick[128], Ident[128], Mask[128], *Worker = Origin;
 	time_t Time = time(NULL);
 	struct tm TimeStruct;
-	char TimeString[1024];
+	char TimeString[128];
 	struct stat DirStat;
 	
 	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask) || !*Nick || !*Ident || !*Mask) return true;

@@ -57,7 +57,7 @@ typedef enum
 
 struct ChannelTree
 {
-	char Channel[1024];
+	char Channel[128];
 	
 	struct ChannelTree *Next;
 	struct ChannelTree *Prev;
@@ -65,20 +65,20 @@ struct ChannelTree
 
 struct _ServerInfo
 {
-	char Hostname[1024];
-	char Nick[1024];
-	char Ident[1024];
-	char RealName[1024];
-	char NickservPwd[2048];
+	char Hostname[128];
+	char Nick[128];
+	char Ident[128];
+	char RealName[128];
+	char NickservPwd[256];
 	unsigned short PortNum;
 	Bool SetBotmode;
 };
 
 struct AuthTree
 {
-	char Nick[1024];
-	char Ident[1024];
-	char Mask[1024];
+	char Nick[128];
+	char Ident[128];
+	char Mask[128];
 	Bool BotOwner;
 	
 	struct AuthTree *Next;
@@ -140,7 +140,7 @@ extern Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char 
 extern int SocketDescriptor;
 extern struct _ServerInfo ServerInfo;
 extern struct ChannelTree *Channels;
-extern char CmdPrefix[1024];
+extern char CmdPrefix[128];
 extern unsigned short SendDelay;
 extern Bool ShowOutput;
 extern Bool Logging;

@@ -69,11 +69,11 @@ void IRC_Loop(void)
 		
 		switch (IRC_GetMessageType(MessageBuf))
 		{
-			char Nick[1024], Ident[1024], Mask[1024];
+			char Nick[128], Ident[128], Mask[128];
 
 			case IMSG_PRIVMSG:
 			{
-				char MessageData[2048], *TC = NULL, Channel[1024];
+				char MessageData[2048], *TC = NULL, Channel[128];
 				unsigned long Inc = 0;
 								
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
@@ -201,7 +201,7 @@ void IRC_Loop(void)
 				break;
 			case IMSG_NICK:
 			{
-				char NewNick[1024];
+				char NewNick[128];
 
 				IRC_GetMessageData(MessageBuf, NewNick);
 				
@@ -494,7 +494,7 @@ Bool IRC_GetMessageData(const char *Message, char *OutData)
 
 Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
 {
-	char ComplexNick[1024], *Worker = ComplexNick;
+	char ComplexNick[128], *Worker = ComplexNick;
 	unsigned long Inc = 0;
 	
 	for (; Message[Inc] != ' ' && Message[Inc] != '\0'; ++Inc)
@@ -571,6 +571,6 @@ void IRC_Pong(const char *Param)
 {
 	char OutBuf[2048];
 	
-	snprintf(OutBuf, 2048, "PONG%s\r\n", Param + strlen("PING"));
+	snprintf(OutBuf, sizeof OutBuf, "PONG%s\r\n", Param + strlen("PING"));
 	Net_Write(SocketDescriptor, OutBuf);
 }

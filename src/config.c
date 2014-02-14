@@ -139,7 +139,7 @@ Bool Config_ReadConfig(void)
 		}
 		else if (!strcmp(LineID, "BotOwner") || !strcmp(LineID, "Admin"))
 		{
-			char Nick[1024], Ident[1024], Mask[1024];
+			char Nick[128], Ident[128], Mask[128];
 			Bool BotOwner = !strcmp(LineID, "BotOwner");
 			
 			if (!IRC_BreakdownNick(LineData, Nick, Ident, Mask))

@@ -28,9 +28,9 @@ struct AuthTree *AdminAuths;
 
 static struct Blacklist
 {
-	char Nick[1024];
-	char Ident[1024];
-	char Mask[1024];
+	char Nick[128];
+	char Ident[128];
+	char Mask[128];
 	
 	struct Blacklist *Next;
 	struct Blacklist *Prev;
@@ -264,7 +264,7 @@ void Auth_BlacklistLoad(void)
 {
 	FILE *Descriptor = fopen("blacklist.db", "r");
 	char *BlacklistDB = NULL, *Worker = NULL;
-	char CurLine[2048], Nick[1024], Ident[1024], Mask[1024];
+	char CurLine[2048], Nick[128], Ident[128], Mask[128];
 	struct stat FileStat;
 	unsigned long Inc = 0;
 	
