@@ -41,13 +41,10 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 	char TimeString[1024];
 	struct stat DirStat;
 	
-	if (!Logging) return true;
-	
 	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask) || !*Nick || !*Ident || !*Mask) return true;
 		
 	IRC_GetMessageData(InStream, Origin);
 	
-	if (*Origin != '#' && !LogPMs) return true;
 	
 	if (MType != IMSG_JOIN && MType != IMSG_PART)
 	{
@@ -90,12 +87,13 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 				
 				if (Temp) *Temp = '\0';
 				
-				snprintf(OutBuf, sizeof OutBuf, "%s **%s %s**\n", TimeString, Nick, Message + strlen("\01ACTION "));
+				snprintf(OutBuf, sizeof OutBuf, "%s (%s) **%s %s**\n", TimeString,
+						*Origin == '#' ? Origin : Nick, Nick, Message + strlen("\01ACTION "));
 			}
-			else snprintf(OutBuf, sizeof OutBuf, "%s %s: %s\n", TimeString, Nick, Message);
+			else snprintf(OutBuf, sizeof OutBuf, "%s (%s) %s: %s\n", TimeString, *Origin == '#' ? Origin : Nick, Nick, Message);
 			break;
 		case IMSG_NOTICE:
-			snprintf(OutBuf, sizeof OutBuf, "%s %s (notice): %s\n", TimeString, Nick, Message);
+			snprintf(OutBuf, sizeof OutBuf, "%s (%s) %s (notice): %s\n", TimeString, *Origin == '#' ? Origin : Nick, Nick, Message);
 			break;
 		case IMSG_JOIN:
 			snprintf(OutBuf, sizeof OutBuf, "%s <%s joined %s>\n", TimeString, Nick, Origin);
@@ -115,8 +113,17 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 		return false;
 	}
 	
-	fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
-	fclose(Descriptor);
+	if (Logging && (*Origin == '#' || LogPMs))
+	{
+		fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
+		fclose(Descriptor);
+	}
+
+	if (!ShowOutput) /*Don't spit dual copies everywhere if we're in verbose.*/
+	{
+		OutBuf[strlen(OutBuf) - 1] = '\0';
+		puts(OutBuf);
+	}
 	
 	return true;
 }
