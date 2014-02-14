@@ -578,7 +578,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		for (Inc2 = strlen(Argument) - 1; &Argument[Inc2] != Argument - 1 && Inc1 < sizeof NewString - 1; ++Inc1, --Inc2)
+		for (Inc2 = strlen(Argument) - 1; Inc2 + 1 > 0 && Inc1 < sizeof NewString - 1; ++Inc1, --Inc2)
 		{
 			NewString[Inc1] = Argument[Inc2];
 		}
