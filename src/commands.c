@@ -30,6 +30,14 @@ char CmdPrefix[1024] = "$";
 enum ArgMode { NOARG, OPTARG, REQARG };
 enum HPerms { ANY, ADMIN, OWNER };
 
+struct StickySpec
+{
+	unsigned long ID;
+	time_t Time;
+	char Owner[1024];
+	char Data[2048];
+};
+
 struct
 {
 	char CmdName[64];
@@ -98,6 +106,8 @@ static struct _SeenDB
 
 static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo);
 static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo);
+static Bool CMD_ListStickies(const char *SendTo);
+static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete);
 
 void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
@@ -859,13 +869,43 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		else if (!strcmp(Mode, "read"))
 		{
-			if (!CMD_StickyDB(atol(Worker), NULL, SendTo)) IRC_Message(SendTo, "Sticky not found.");
+			struct StickySpec Sticky = { 0 };
+			struct tm TimeStruct;
+			char TimeString[256];
+			char OutBuf[2048];
+			
+			if (!CMD_StickyDB(atol(Worker), &Sticky, false))
+			{
+				IRC_Message(SendTo, "Sticky not found.");
+				return;
+			}
+			
+			gmtime_r(&Sticky.Time, &TimeStruct);
+			strftime(TimeString, sizeof TimeString, "%m/%d/%Y %H:%M:%S UTC", &TimeStruct);
+			
+			snprintf(OutBuf, sizeof OutBuf, "Created by \"%s\" at %s: %s", Sticky.Owner, TimeString, Sticky.Data);
+			IRC_Message(SendTo, OutBuf);
 		}
 		else if (!strcmp(Mode, "delete"))
 		{
-			if (!CMD_StickyDB(atol(Worker), Nick, NULL))
+			struct StickySpec Sticky = { 0 };
+			
+			if (!CMD_StickyDB(atol(Worker), &Sticky, false))
+			{
+				IRC_Message(SendTo, "Cannot find sticky to delete it!");
+				return;
+			}
+			
+			if (strcmp(Sticky.Owner, Nick) != 0 && !IsAdmin)
+			{
+				IRC_Message(SendTo, "I can't delete that sticky because you didn't create it.");
+				return;
+			}
+			
+			if (!CMD_StickyDB(atol(Worker), NULL, true))
 			{
 				IRC_Message(SendTo, "There was an error deleting the sticky. Does it exist, and do you own it?");
+				return;
 			}
 			else IRC_Message(SendTo, "Sticky deleted.");
 		}
@@ -1069,7 +1109,7 @@ unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 	return StickyID;
 }
 
-Bool CMD_ListStickies(const char *SendTo)
+static Bool CMD_ListStickies(const char *SendTo)
 {
 #define MAX_STICKIES_TO_LIST 10
 	unsigned long Inc = 0;
@@ -1415,7 +1455,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 }
 
-Bool CMD_StickyDB(unsigned long StickyID, const char *Nick, const char *SendTo)
+static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete)
 { /*If SendTo is NULL, we delete the sticky instead of reading it.*/
 	char *StickyDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	unsigned long Inc = 0;
@@ -1423,6 +1463,7 @@ Bool CMD_StickyDB(unsigned long StickyID, const char *Nick, const char *SendTo)
 	struct stat FileStat;
 	char StickyID_T[32], ATime[32], Owner[1024], StickyData[2048];
 	Bool Found = false;
+	struct StickySpec *OutSpec = OutSpec_;
 	
 	if (!Descriptor) return false;
 	
@@ -1472,26 +1513,19 @@ Bool CMD_StickyDB(unsigned long StickyID, const char *Nick, const char *SendTo)
 		
 		if (StickyID == atol(StickyID_T))
 		{
-			if (SendTo != NULL) /*Means we actually want the contents, not deleting.*/
+			if (!JustDelete) /*Means we actually want the contents, not deleting.*/
 			{			
-				time_t Time = atol(ATime);
-				struct tm TimeStruct;
-				char TimeString[128], OutBuf[4096];
+				OutSpec->ID = atol(StickyID_T);
+				OutSpec->Time = atol(ATime);
 				
-				gmtime_r(&Time, &TimeStruct);
-				strftime(TimeString, sizeof TimeString, "[%Y-%m-%d | %H:%M:%S UTC]", &TimeStruct);
+				strncpy(OutSpec->Owner, Owner, sizeof OutSpec->Owner - 1);
+				OutSpec->Owner[sizeof OutSpec->Owner - 1] = '\0';
 				
-				snprintf(OutBuf, sizeof OutBuf, "%s Created by \"%s\": %s", TimeString, Owner, StickyData);
-				IRC_Message(SendTo, OutBuf);
+				strncpy(OutSpec->Data, StickyData, sizeof OutSpec->Data - 1);
+				OutSpec->Data[sizeof OutSpec->Data - 1] = '\0';
 			}
 			else
 			{
-				if (strcmp(Nick, Owner) != 0)
-				{ /*Permission denied. Can't delete someone else's sticky.*/
-					free(StickyDB);
-					return false;
-				}
-				
 				if (*StartOfNextLine == '\n' && StartOfNextLine[1] != '\0' )
 				{
 					++StartOfNextLine;

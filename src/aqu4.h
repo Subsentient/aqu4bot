@@ -116,8 +116,6 @@ extern void CMD_ProcessCommand(const char *InStream);
 extern Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message);
 extern Bool CMD_ReadTellDB(const char *Target);
 extern unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky);
-extern Bool CMD_StickyDB(unsigned long StickyID, const char *Nick, const char *SendTo);
-extern Bool CMD_ListStickies(const char *SendTo);
 extern void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage);
 extern Bool CMD_SaveSeenDB(void);
 extern void CMD_LoadSeenDB(void);
