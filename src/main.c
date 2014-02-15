@@ -25,7 +25,8 @@ along with aqu4bot.  If not, see <http://www.gnu.org/licenses/>.
 #include "aqu4.h"
 
 Bool ShowOutput;
-
+int _argc;
+char **_argv;
 
 static void SigHandler(int Signal)
 {
@@ -47,6 +48,8 @@ static void SigHandler(int Signal)
 
 int main(int argc, char **argv)
 {
+	_argc = argc;
+	_argv = argv;
 	
 	signal(SIGINT, SigHandler);
 	

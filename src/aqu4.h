@@ -145,5 +145,7 @@ extern unsigned short SendDelay;
 extern Bool ShowOutput;
 extern Bool Logging;
 extern Bool LogPMs;
+extern int _argc;
+extern char **_argv;
 extern struct AuthTree *AdminAuths;
 

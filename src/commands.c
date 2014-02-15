@@ -81,6 +81,7 @@ struct
 				"will send a private message to derp via raw IRC protocol.", REQARG, OWNER },
 			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
 				"as my quit message.", OPTARG, OWNER },
+			{ "restart", "Tells me to restart myself.", NOARG, OWNER },
 			{ "help", "Prints info about me. If you specify an argument, then I'll give help for that command.", OPTARG, ANY },
 			{ "commands", "Prints the list of commands I know.", NOARG, ANY },
 			{ { '\0' } } /*Terminator.*/
@@ -586,21 +587,36 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		IRC_Message(SendTo, NewString);
 	}
-	else if (!strcmp(CommandID, "quit"))
+	else if (!strcmp(CommandID, "quit") || !strcmp(CommandID, "restart"))
 	{
+		Bool FullQuit = !strcmp(CommandID, "quit");
+		
 		if (!BotOwner)
 		{
 			IRC_Message(SendTo, "You aren't authorized to tell me to do that.");
 			return;
 		}
 		
-		IRC_Message(SendTo, "See you around.");
-		IRC_Quit(*Argument ? Argument : NULL);
+		IRC_Message(SendTo, FullQuit ? "See you around." : "Be right back.");
+		
+		if (FullQuit) IRC_Quit(*Argument ? Argument : NULL);
+		else IRC_Quit("aqu4bot is restarting...");
+		
 		IRC_ShutdownChannelTree();
 		Auth_ShutdownAdmin();
 		CMD_SaveSeenDB();
 		Auth_ShutdownBlacklist();
-		exit(0);
+		
+		if (FullQuit)
+		{
+			puts("Quitting because 'quit' command was received from owner.");
+			exit(0);
+		}
+		else
+		{
+			puts("Restarting because 'restart' command was received from owner.");
+			execvp(*_argv, _argv);
+		}
 	}
 	else if (!strcmp(CommandID, "seen"))
 	{
