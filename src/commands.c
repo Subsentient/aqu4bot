@@ -364,7 +364,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		if (*Argument == '\0') IRC_Message(SendTo, "The beer command requires an argument.");
 		else
 		{
-			snprintf(OutBuf, sizeof OutBuf, "\01ACTION gives %s a cold, Samuel Adams beer\01", Argument);
+			snprintf(OutBuf, sizeof OutBuf, "\01ACTION gives %s a cold can of beer\01", Argument);
 			IRC_Message(SendTo, OutBuf);
 		}
 	}
