@@ -58,7 +58,7 @@ Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescript
 	SocketStruct.sin_family = AF_INET;
 	SocketStruct.sin_port = htons(PortNum);
 	
-	if (connect(*SocketDescriptor_, (struct sockaddr *)&SocketStruct, sizeof SocketStruct) != 0)
+	if (connect(*SocketDescriptor_, (void*)&SocketStruct, sizeof SocketStruct) != 0)
 	{
 		
 		fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
