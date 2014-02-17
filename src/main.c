@@ -94,9 +94,16 @@ int main(int argc, char **argv)
 		}
 		else
 		{
+			FILE *Descriptor = fopen("aqu4bot.pid", "w");
 			setsid();
 			freopen("stdout.log", "a", stdout);
 			freopen("stderr.log", "a", stderr);
+			
+			if (Descriptor)
+			{
+				fprintf(Descriptor, "%lu", (unsigned long)getpid());
+				fclose(Descriptor);
+			}
 		}
 	}
 	
