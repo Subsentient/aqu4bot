@@ -616,6 +616,8 @@ void CMD_ProcessCommand(const char *InStream_)
 		{
 			puts("Restarting because 'restart' command was received from owner.");
 			execvp(*_argv, _argv);
+			fprintf(stderr, "Failed to restart! execvp() failed!");
+			exit(1);
 		}
 	}
 	else if (!strcmp(CommandID, "seen"))
