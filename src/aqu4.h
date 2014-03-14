@@ -2,19 +2,8 @@
 aqu4, daughter of pr0t0, half-sister to Johnsbot! Copyright 2014 Subsentient.
 
 This file is part of aqu4bot.
-
-aqu4bot is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-aqu4bot is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with aqu4bot.  If not, see <http://www.gnu.org/licenses/>.
+aqu4bot is public domain software.
+See the file UNLICENSE.TXT for more information.
 */
 
 #define BOT_VERSION "baking"
