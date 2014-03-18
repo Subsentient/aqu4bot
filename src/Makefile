@@ -11,6 +11,10 @@ all:
 	$(CC) netcore.c -c $(CFLAGS)
 	$(CC) wz.c -c $(CFLAGS)
 	
-	$(CC) $(CFLAGS) -o ../aqu4bot auth.o commands.o config.o irc.o logging.o main.o netcore.o wz.o
+	$(MAKE) -C substrings static
+
+	$(CC) $(CFLAGS) -o ../aqu4bot auth.o commands.o config.o irc.o logging.o main.o netcore.o wz.o substrings/libsubstrings.a
+
 clean:
 	rm -vf *.o
+	$(MAKE) -C substrings clean
