@@ -100,6 +100,12 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 			return false;
 	}
 	
+	/*Skip recording quits to disk because they just end up in the private message logs.*/
+	if (MType == IMSG_QUIT)
+	{
+		goto PrintConsole;
+	}
+	
 	if (!(Descriptor = fopen(Filename, "a")))
 	{
 		return false;
@@ -111,6 +117,7 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 		fclose(Descriptor);
 	}
 
+PrintConsole:
 	if (!ShowOutput) /*Don't spit dual copies everywhere if we're in verbose.*/
 	{
 		OutBuf[strlen(OutBuf) - 1] = '\0';
