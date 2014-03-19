@@ -11,7 +11,7 @@ See the file UNLICENSE.TXT for more information.
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
-
+#include <sys/stat.h>
 #include "aqu4.h"
 
 Bool ShowOutput;
@@ -28,6 +28,7 @@ static void SigHandler(int Signal)
 			IRC_ShutdownChannelTree();
 			Auth_ShutdownAdmin();
 			CMD_SaveSeenDB();
+			CMD_SaveUserModes();
 			Auth_ShutdownBlacklist();
 			exit(0);
 			break;
@@ -40,6 +41,7 @@ int main(int argc, char **argv)
 {
 	int Inc = 1;
 	Bool Background = false;
+	struct stat DirStat;
 	
 	_argc = argc;
 	_argv = argv;
@@ -63,7 +65,14 @@ int main(int argc, char **argv)
 		}
 	}
 		
-	puts("\033[36maqu4bot " BOT_VERSION " starting up.\033[0m\n");
+	puts("\033[36maqu4bot " BOT_VERSION " starting up.\033[0m\n"
+		"Compiled " __DATE__ " " __TIME__ "\n");
+		
+	if (stat("db", &DirStat) != 0 && mkdir("db", 0755) != 0)
+	{
+		fprintf(stderr, "Unable to create database directory 'db'! Cannot continue!\n");
+		exit(1);
+	}
 	
 	if (Background)
 	{
@@ -111,6 +120,9 @@ int main(int argc, char **argv)
 	
 	/*Load the blacklist data.*/
 	Auth_BlacklistLoad();
+	
+	/*Load user modes.*/
+	CMD_LoadUserModes();
 	
 	/*The main IRC loop.*/
 	IRC_Loop();

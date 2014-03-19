@@ -11,7 +11,9 @@ See the file UNLICENSE.TXT for more information.
 #include <stdlib.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <time.h>
 
+#include "substrings/substrings.h"
 #include "aqu4.h"
 
 struct _ServerInfo ServerInfo;
@@ -87,7 +89,7 @@ void IRC_Loop(void)
 					
 					if (!strcmp(TC, "\01VERSION\01"))
 					{
-						IRC_Notice(Nick, "\01VERSION aqu4bot " BOT_VERSION "\01");
+						IRC_Notice(Nick, "\01VERSION aqu4bot " BOT_VERSION ", compiled " __DATE__ " " __TIME__ "\01");
 					}
 					else if (!strncmp(TC, "\01PING", strlen("\01PING")))
 					{
@@ -95,10 +97,7 @@ void IRC_Loop(void)
 					}
 				}
 				else
-				{
-					/*I don't feel like including time.h*/
-					time_t time(time_t*);
-										
+				{										
 					CMD_ProcessCommand(MessageBuf);
 					
 					if (strcmp(Nick, ServerInfo.Nick) != 0)
@@ -169,6 +168,7 @@ void IRC_Loop(void)
 					IRC_ShutdownChannelTree();
 					Auth_ShutdownAdmin();
 					CMD_SaveSeenDB();
+					CMD_SaveUserModes();
 					Auth_ShutdownBlacklist();
 					exit(0);
 				}
@@ -178,10 +178,18 @@ void IRC_Loop(void)
 			}
 			case IMSG_JOIN:
 			{
+				const char *Search = SubStrings.CFind('#', 1, MessageBuf);
 				
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				Log_WriteMsg(MessageBuf, IMSG_JOIN);
+				
+				if (!Search) printf("Unable to process modes for join by %s!%s@%s to bad channel.", Nick, Ident, Mask);
+				else
+				{
+					CMD_ProcessUserModes(Nick, Ident, Mask, Search);
+				}
+				
 				while (CMD_ReadTellDB(Nick));
 				break;
 			}

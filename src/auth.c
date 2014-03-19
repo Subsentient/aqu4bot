@@ -12,6 +12,7 @@ See the file UNLICENSE.TXT for more information.
 #include <time.h>
 #include <sys/stat.h>
 #include "aqu4.h"
+#include "substrings/substrings.h"
 
 struct AuthTree *AdminAuths;
 
@@ -251,7 +252,7 @@ Bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 
 void Auth_BlacklistLoad(void)
 {
-	FILE *Descriptor = fopen("blacklist.db", "r");
+	FILE *Descriptor = fopen("db/blacklist.db", "r");
 	char *BlacklistDB = NULL, *Worker = NULL;
 	char CurLine[2048], Nick[128], Ident[128], Mask[128];
 	struct stat FileStat;
@@ -259,7 +260,7 @@ void Auth_BlacklistLoad(void)
 	
 	if (!Descriptor) return;
 	
-	if (stat("blacklist.db", &FileStat) != 0) return;
+	if (stat("db/blacklist.db", &FileStat) != 0) return;
 	
 	Worker = BlacklistDB = malloc(FileStat.st_size + 1);
 	
@@ -277,7 +278,7 @@ void Auth_BlacklistLoad(void)
 		
 		if (!IRC_BreakdownNick(CurLine, Nick, Ident, Mask))
 		{
-			fprintf(stderr, "Bad blacklist in blacklist.db");
+			fprintf(stderr, "Bad blacklist in db/blacklist.db");
 			continue;
 		}
 		
@@ -286,7 +287,7 @@ void Auth_BlacklistLoad(void)
 			fprintf(stderr, "Unable to add blacklist %s!%s@%s", Nick, Ident, Mask);
 			continue;
 		}
-	} while ((Worker = NextLine(Worker)));
+	} while ((Worker = SubStrings.Line.NextLine(Worker)));
 	
 	free(BlacklistDB);
 }
@@ -299,11 +300,11 @@ Bool Auth_BlacklistSave(void)
 	
 	if (!BLCore)
 	{
-		remove("blacklist.db");
+		remove("db/blacklist.db");
 		return true;
 	}
 	
-	if (!(Descriptor = fopen("blacklist.db", "w"))) return false;
+	if (!(Descriptor = fopen("db/blacklist.db", "w"))) return false;
 	
 	for (; Worker != NULL; Worker = Worker->Next)
 	{

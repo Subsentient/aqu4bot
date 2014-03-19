@@ -11,7 +11,7 @@ See the file UNLICENSE.TXT for more information.
 #include <string.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-
+#include "substrings/substrings.h"
 #include "aqu4.h"
 
 Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long MaxSize)
@@ -29,16 +29,6 @@ Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long Max
 	snprintf(OutStream, MaxSize, "%s", Worker);
 	
 	return true;
-}
-
-char *NextLine(const char *InStream)
-{	
-	if ((InStream = strchr(InStream, '\n')) == NULL) return NULL;
-	++InStream;
-	
-	if (*InStream == '\0') return NULL;
-	
-	return (char*)InStream;
 }
 	
 Bool Config_ReadConfig(void)
@@ -164,7 +154,7 @@ Bool Config_ReadConfig(void)
 			fprintf(stderr, "\033[31m*\033[0m Bad value in config, at line %lu.\n", LineNum);
 			continue;
 		}	
-	} while (++LineNum, (Worker = NextLine(Worker)));
+	} while (++LineNum, (Worker = SubStrings.Line.NextLine(Worker)));
 	
 	free(ConfigStream);
 	

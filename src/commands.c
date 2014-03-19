@@ -13,8 +13,9 @@ See the file UNLICENSE.TXT for more information.
 #include <ctype.h>
 #include <time.h>
 #include <sys/stat.h>
-
+#include "substrings/substrings.h"
 #include "aqu4.h"
+
 char CmdPrefix[128] = "$";
 enum ArgMode { NOARG, OPTARG, REQARG };
 enum HPerms { ANY, ADMIN, OWNER };
@@ -26,6 +27,19 @@ struct StickySpec
 	char Owner[128];
 	char Data[2048];
 };
+
+static struct UserModeSpec
+{
+	char Nick[128];
+	char Ident[128];
+	char Mask[128];
+	char Mode[128];
+	char Channel[128];
+	Bool FullVhost;
+	
+	struct UserModeSpec *Next;
+	struct UserModeSpec *Prev;
+} *UserModeRoot;
 
 struct
 {
@@ -594,6 +608,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		IRC_ShutdownChannelTree();
 		Auth_ShutdownAdmin();
 		CMD_SaveSeenDB();
+		CMD_SaveUserModes();
 		Auth_ShutdownBlacklist();
 		
 		if (FullQuit)
@@ -928,7 +943,7 @@ void CMD_ProcessCommand(const char *InStream_)
 				return;
 			}
 			
-			if (remove("sticky.db") == 0) IRC_Message(SendTo, "Sticky database reset.");
+			if (remove("db/sticky.db") == 0) IRC_Message(SendTo, "Sticky database reset.");
 			else IRC_Message(SendTo, "Cannot reset sticky database. Do any stickies exist?");
 		}	
 		else
@@ -940,7 +955,7 @@ void CMD_ProcessCommand(const char *InStream_)
 
 Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message)
 {
-	FILE *Descriptor = fopen("tell.db", "a");
+	FILE *Descriptor = fopen("db/tell.db", "a");
 	char OutBuffer[2048];
 	time_t Time = time(NULL);
 	
@@ -956,7 +971,7 @@ Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message
 
 Bool CMD_ReadTellDB(const char *Target)
 {
-	FILE *Descriptor = fopen("tell.db", "r");
+	FILE *Descriptor = fopen("db/tell.db", "r");
 	char *TellDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	char LineGroups[3][1024], Message[2048];
 	char *ATime = LineGroups[0], *Nick = LineGroups[1], *Source = LineGroups[2];
@@ -968,12 +983,12 @@ Bool CMD_ReadTellDB(const char *Target)
 	
 	if (!Descriptor) return false;
 	
-	if (stat("tell.db", &FileStat) != 0) return false;
+	if (stat("db/tell.db", &FileStat) != 0) return false;
 	
 	if (FileStat.st_size == 0)
 	{
 		fclose(Descriptor);
-		remove("tell.db");
+		remove("db/tell.db");
 		return false;
 	}
 	
@@ -1044,7 +1059,7 @@ Bool CMD_ReadTellDB(const char *Target)
 				*LineRoot = '\0';
 			}
 			
-			if ((Descriptor = fopen("tell.db", "w")))
+			if ((Descriptor = fopen("db/tell.db", "w")))
 			{
 				fwrite(TellDB,1, strlen(TellDB), Descriptor);
 				fclose(Descriptor);
@@ -1053,7 +1068,7 @@ Bool CMD_ReadTellDB(const char *Target)
 			Found = true;
 			break;	
 		}
-	} while ((Worker = NextLine(Worker)));
+	} while ((Worker = SubStrings.Line.NextLine(Worker)));
 
 	free(TellDB);
 	return Found;
@@ -1061,14 +1076,14 @@ Bool CMD_ReadTellDB(const char *Target)
 
 unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 {
-	FILE *Descriptor = fopen("sticky.db", "a+");
+	FILE *Descriptor = fopen("db/sticky.db", "a+");
 	char OutBuf[4096];
 	struct stat FileStat;
 	unsigned long StickyID = 0;
 	
 	if (!Descriptor) return 0;
 	
-	if (stat("sticky.db", &FileStat) != 0)
+	if (stat("db/sticky.db", &FileStat) != 0)
 	{
 		fclose(Descriptor);
 		return 0;
@@ -1102,7 +1117,7 @@ unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 			Temp = atol(Num);
 			
 			if (Temp > StickyID) StickyID = Temp;
-		} while ((Worker = NextLine(Worker)));
+		} while ((Worker = SubStrings.Line.NextLine(Worker)));
 		
 		++StickyID; /*Now one up it to make it unique.*/
 		free(StickyDB);
@@ -1120,7 +1135,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 {
 #define MAX_STICKIES_TO_LIST 10
 	unsigned long Inc = 0;
-	FILE *Descriptor = fopen("sticky.db", "r");
+	FILE *Descriptor = fopen("db/sticky.db", "r");
 	char *StickyDB = NULL, *Worker = NULL;
 	struct stat FileStat;
 	time_t Time = 0;
@@ -1128,10 +1143,10 @@ static Bool CMD_ListStickies(const char *SendTo)
 	char TimeString[256], StickyID_T[32], ATime[1024], Owner[128];
 	char OutBuf[2048];
 	unsigned long StickyCount = 0, BigInc = 0;
-	if (!Descriptor || stat("sticky.db", &FileStat) != 0 || FileStat.st_size == 0)
+	if (!Descriptor || stat("db/sticky.db", &FileStat) != 0 || FileStat.st_size == 0)
 	{
 		if (Descriptor) fclose(Descriptor);
-		remove("sticky.db");
+		remove("db/sticky.db");
 		IRC_Message(SendTo, "No stickies currently exist.");
 		return false;
 	}
@@ -1144,7 +1159,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 	
 	
 	/*Count the stickies.*/
-	do Worker = NextLine(Worker); while(++StickyCount, Worker);
+	do Worker = SubStrings.Line.NextLine(Worker); while(++StickyCount, Worker);
 	
 	snprintf(OutBuf, sizeof OutBuf, "Total of %lu stickies found", StickyCount);
 	IRC_Message(SendTo, OutBuf);
@@ -1181,7 +1196,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 		
 		snprintf(OutBuf, sizeof OutBuf, "Sticky ID: %s, created by \"%s\" at %s", StickyID_T, Owner, TimeString);
 		IRC_Message(SendTo, OutBuf);
-	} while (++BigInc, (Worker = NextLine(Worker)) && BigInc < MAX_STICKIES_TO_LIST);
+	} while (++BigInc, (Worker = SubStrings.Line.NextLine(Worker)) && BigInc < MAX_STICKIES_TO_LIST);
 	
 	if (BigInc == MAX_STICKIES_TO_LIST) IRC_Message(SendTo, "Cannot list any more stickies.");
 	else IRC_Message(SendTo, "End of sticky list.");
@@ -1207,7 +1222,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	
 	while (*CmdStream == ' ') ++CmdStream; /*Skip past any other spaces.*/
 	
-	if (*CmdStream == '\0' && strcmp(Command, "help") != 0)
+	if (*CmdStream == '\0' && strcmp(Command, "help") != 0 && strcmp(Command, "listpumodes") != 0)
 	{
 		IRC_Message(SendTo, "That command requires an argument.");
 		return;
@@ -1448,11 +1463,88 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		
 		return;
 	}
+	else if (!strcmp(Command, "addpumode") || !strcmp(Command, "delpumode"))
+	{
+		char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128];
+		Bool FullVhost = IRC_BreakdownNick(CmdStream, Nick, Ident, Mask);
+		const char *Worker = CmdStream;
+		char OutBuf[1024];
+		
+		if (!FullVhost)
+		{
+			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof Nick - 1; ++Inc)
+			{ /*Just a nick.*/
+				Nick[Inc] = Worker[Inc];
+			}
+			Nick[Inc] = '\0';
+		}
+		
+		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
+		{
+			IRC_Message(SendTo, "Missing/bad channel name.");
+			return;
+		}
+		
+		for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof Channel - 1; ++Inc)
+		{ /*Channel name*/
+			Channel[Inc] = Worker[Inc];
+		}
+		Channel[Inc] = '\0';
+		
+		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
+		{
+			IRC_Message(SendTo, "Missing/bad mode to set.");
+			return;
+		}
+		
+		SubStrings.Copy(Mode, Worker, sizeof Mode);
+		
+		
+		if (!strcmp(Command, "addpumode"))
+		{
+			const int TempDescriptor = SocketDescriptor;
+			
+			CMD_AddUserMode(Nick, Ident, Mask, Mode, Channel, FullVhost);
+
+			/*Now, set the mode.*/
+			if (FullVhost)
+			{
+				snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s!%s@%s\r\n", Channel, Mode, Nick, Ident, Mask);
+			}
+			else
+			{
+				snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s\r\n", Channel, Mode, Nick);
+			}
+			
+			SocketDescriptor = 0;
+			Net_Write(TempDescriptor, OutBuf);
+			SocketDescriptor = TempDescriptor;
+			
+			IRC_Message(SendTo, "Mode saved.");
+		}
+		else
+		{
+			if (CMD_DelUserMode(Nick, Ident, Mask, Mode, Channel))
+			{
+				IRC_Message(SendTo, "Mode deleted.");
+			}
+			else
+			{
+				IRC_Message(SendTo, "Specified mode does not exist.");
+			}
+		}
+		return;
+	}
+	else if (!strcmp(Command, "listpumodes"))
+	{
+		CMD_ListUserModes(SendTo);
+		return;
+	}
 	else if (!strcmp(Command, "help"))
 	{
 		IRC_Message(SendTo, "The following channel control commands are available:");
 		
-		IRC_Message(SendTo, "modeset, settopic, invite, op, deop, voice, unvoice, quiet, unquiet, ban, unban, and kick.");
+		IRC_Message(SendTo, "modeset, listpumodes, addpumode, delpumode, settopic, invite, op, deop, voice, unvoice, quiet, unquiet, ban, unban, and kick.");
 		return;
 	}
 	else
@@ -1466,7 +1558,7 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 { /*If SendTo is NULL, we delete the sticky instead of reading it.*/
 	char *StickyDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	unsigned long Inc = 0;
-	FILE *Descriptor = fopen("sticky.db", "r");
+	FILE *Descriptor = fopen("db/sticky.db", "r");
 	struct stat FileStat;
 	char StickyID_T[32], ATime[32], Owner[128], StickyData[2048];
 	Bool Found = false;
@@ -1474,7 +1566,7 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 	
 	if (!Descriptor) return false;
 	
-	if (stat("sticky.db", &FileStat) != 0)
+	if (stat("db/sticky.db", &FileStat) != 0)
 	{
 		fclose(Descriptor);
 		return false;
@@ -1547,7 +1639,7 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 					*LineRoot = '\0';
 				}
 				
-				if (!(Descriptor = fopen("sticky.db", "w")))
+				if (!(Descriptor = fopen("db/sticky.db", "w")))
 				{
 					free(StickyDB);
 					return false;
@@ -1560,7 +1652,7 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 			Found = true;
 			break;
 		}
-	} while ((Worker = NextLine(Worker)));
+	} while ((Worker = SubStrings.Line.NextLine(Worker)));
 	
 	free(StickyDB);
 	
@@ -1674,14 +1766,14 @@ static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 
 void CMD_LoadSeenDB(void) /*Loads it from disk.*/
 {
-	FILE *Descriptor = fopen("seen.db", "r");
+	FILE *Descriptor = fopen("db/seen.db", "r");
 	char *SeenDB, *TextWorker  = NULL;
 	struct stat FileStat;
 	char ATime[256], Nick[128], Channel[128], LastMessage[2048];
 	unsigned long Inc = 0;
 	
 	if (!Descriptor || SeenRoot != NULL  ||
-		stat("seen.db", &FileStat) != 0 ||
+		stat("db/seen.db", &FileStat) != 0 ||
 		FileStat.st_size == 0)
 	{
 		if (Descriptor) fclose(Descriptor);
@@ -1726,7 +1818,7 @@ void CMD_LoadSeenDB(void) /*Loads it from disk.*/
 		LastMessage[Inc] = '\0';
 		
 		CMD_UpdateSeenDB(atol(ATime), Nick, Channel, LastMessage);
-	} while ((TextWorker = NextLine(TextWorker)));
+	} while ((TextWorker = SubStrings.Line.NextLine(TextWorker)));
 
 	free(SeenDB);
 }
@@ -1740,7 +1832,7 @@ Bool CMD_SaveSeenDB(void)
 	
 	if (!SeenRoot) return false;
 	
-	if (!(Descriptor = fopen("seen.db", "w"))) return false;
+	if (!(Descriptor = fopen("db/seen.db", "w"))) return false;
 	
 	for (; Worker; Worker = Worker->Next)
 	{
@@ -1758,4 +1850,251 @@ Bool CMD_SaveSeenDB(void)
 	}
 		
 	return true;
+}
+
+void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel, Bool FullVhost)
+{
+	struct UserModeSpec *Worker = UserModeRoot;
+	
+	if (!Mode) return;
+	
+	if (!UserModeRoot)
+	{
+		Worker = UserModeRoot = malloc(sizeof(struct UserModeSpec));
+		memset(UserModeRoot, 0, sizeof(struct UserModeSpec));
+	}
+	else
+	{
+		while (Worker->Next) Worker = Worker->Next;
+		
+		Worker->Next = malloc(sizeof(struct UserModeSpec));
+		memset(Worker->Next, 0, sizeof(struct UserModeSpec));
+		
+		Worker->Next->Prev = Worker;
+		Worker = Worker->Next;
+	}
+	
+	SubStrings.Copy(Worker->Nick, Nick, sizeof Worker->Nick);
+	
+	if (FullVhost)
+	{
+		SubStrings.Copy(Worker->Ident, Ident, sizeof Worker->Ident);
+		SubStrings.Copy(Worker->Mask, Mask, sizeof Worker->Mask);
+		Worker->FullVhost = true;
+	}
+	
+	SubStrings.Copy(Worker->Mode, Mode, sizeof Worker->Mode);
+	SubStrings.Copy(Worker->Channel, Channel, sizeof Worker->Channel);
+}
+
+Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel)
+{
+	struct UserModeSpec *Worker = UserModeRoot;
+	
+	if (!UserModeRoot) return false;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if ((*Worker->Nick == '*' || SubStrings.Compare(Nick, Worker->Nick)) && (Worker->FullVhost ? ((*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident))
+			&& (*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask))) : 1) && SubStrings.Compare(Mode, Worker->Mode)
+			&& SubStrings.Compare(Channel, Worker->Channel))
+		{
+			if (Worker == UserModeRoot)
+			{
+				if (Worker->Next)
+				{
+					Worker->Next->Prev = NULL;
+					UserModeRoot = Worker->Next;
+					free(Worker);
+				}
+				else
+				{
+					free(UserModeRoot);
+					UserModeRoot = NULL;
+				}
+			}
+			else
+			{
+				if (Worker->Next) Worker->Next->Prev = Worker->Prev;
+				Worker->Prev->Next = Worker->Next;
+				free(Worker);
+			}
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+Bool CMD_LoadUserModes(void)
+{
+	struct stat FileStat;
+	char *Stream = NULL, *Worker = NULL;
+	FILE *Descriptor = fopen("db/usermodes.db", "r");
+	char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128], *MW;
+	char CurLine[1024];
+	unsigned long Inc = 0;
+	Bool FullVhost = false;
+	
+	if (!Descriptor) return true; /*Nothing to load.*/
+	
+	if (stat("db/usermodes.db", &FileStat) != 0) return false;
+	
+	Stream = malloc(FileStat.st_size + 1);
+	
+	fread(Stream, 1, FileStat.st_size, Descriptor);
+	Stream[FileStat.st_size] = '\0';
+	fclose(Descriptor);
+	
+	Worker = Stream;
+	do
+	{
+		for (; Worker[Inc] != '\n' && Worker[Inc] != '\0' && Inc < sizeof CurLine - 1; ++Inc)
+		{ /*Read in the line.*/
+			CurLine[Inc] = Worker[Inc];
+		}
+		CurLine[Inc] = '\0';
+		
+		if (!(FullVhost = IRC_BreakdownNick(CurLine, Nick, Ident, Mask)))
+		{ /*Just copy the nick if we aren't doing a full vhost.*/
+			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] !=  '\0' && Inc < sizeof Nick - 1; ++Inc)
+			{
+				Nick[Inc] = Worker[Inc];
+			}
+			Nick[Inc] = '\0';
+		}
+			
+		
+		if (!(MW = SubStrings.CFind(' ', 1, CurLine)) || !(MW = SubStrings.Line.WhitespaceJump(MW)))
+		{
+			fprintf(stderr, "Corrupted db/usermodes.db file!\n");
+			free(Stream);
+			return false;
+		}
+		
+		for (Inc = 0; MW[Inc] != ' ' && MW[Inc] != '\0' && Inc < sizeof Channel - 1; ++Inc)
+		{ /*Channel copy.*/
+			Channel[Inc] = MW[Inc];
+		}
+		Channel[Inc] = '\0';
+		
+		if (!(MW = SubStrings.Line.WhitespaceJump(MW)))
+		{
+			fprintf(stderr, "Corrupted db/usermodes.db file!\n");
+			free(Stream);
+			return false;
+		}
+		
+		SubStrings.Copy(Mode, MW, sizeof Mode);
+
+		CMD_AddUserMode(Nick, Ident, Mask, Mode, Channel, FullVhost);
+		
+	} while ((Worker = SubStrings.Line.NextLine(Worker)));
+	
+	free(Stream);
+	
+	return true;
+		
+}
+
+void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel)
+{
+	struct UserModeSpec *Worker = UserModeRoot;
+	char SendBuf[1024];
+	int TempDescriptor = SocketDescriptor;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if ((*Worker->Nick == '*' || SubStrings.Compare(Nick, Worker->Nick)) &&
+			(Worker->FullVhost ? (
+				(*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident)) &&
+				(*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask))
+				) : 1) &&
+			SubStrings.Compare(Channel, Worker->Channel))
+		{
+			if (Worker->FullVhost)
+			{
+				snprintf(SendBuf, sizeof SendBuf, "MODE %s %s %s!%s@%s\r\n", Worker->Channel, Worker->Mode, 
+						Worker->Nick, Worker->Ident, Worker->Mask);
+			}
+			else
+			{
+				snprintf(SendBuf, sizeof SendBuf, "MODE %s %s %s\r\n", Worker->Channel, Worker->Mode, Worker->Nick);
+			}
+			
+			SocketDescriptor = 0;
+			Net_Write(TempDescriptor, SendBuf);
+			SocketDescriptor = TempDescriptor;
+		}
+	}
+}
+
+Bool CMD_SaveUserModes(void)
+{
+	FILE *Descriptor = fopen("db/usermodes.db", "w");
+	struct UserModeSpec *Worker = UserModeRoot, *Del;
+	
+	if (!Descriptor) return false;
+	
+	if (!UserModeRoot)
+	{
+		fclose(Descriptor);
+		remove("db/usermodes.db");
+		return true;
+	}
+	
+	for (; Worker; Worker = Del)
+	{
+		Del = Worker->Next;
+		
+		if (Worker->FullVhost)
+		{
+			fprintf(Descriptor, "%s!%s@%s %s %s\n", Worker->Nick, Worker->Ident, Worker->Mask, Worker->Channel, Worker->Mode);
+		}
+		else
+		{
+			fprintf(Descriptor, "%s %s %s\n", Worker->Nick, Worker->Channel, Worker->Mode);
+		}
+		
+		free(Worker);
+	}
+	
+	UserModeRoot = NULL;
+	
+	fflush(Descriptor);
+	fclose(Descriptor);
+	return true;
+}
+
+void CMD_ListUserModes(const char *SendTo)
+{
+	struct UserModeSpec *Worker = UserModeRoot;
+	char OutBuf[1024];
+	int Inc = 0;
+	
+	if (!UserModeRoot)
+	{
+		IRC_Message(SendTo, "No user modes are saved.");
+		return;
+	}
+	
+	IRC_Message(SendTo, "List of user modes currently saved:");
+	
+	for (; Worker; Worker = Worker->Next, ++Inc)
+	{
+		if (Worker->FullVhost)
+		{
+			snprintf(OutBuf, sizeof OutBuf, "[%d] \002Target:\002 %s!%s@%s | \002Channel:\002 %s | \002Mode:\002 %s",
+					Inc, Worker->Nick, Worker->Ident, Worker->Mask, Worker->Channel, Worker->Mode);
+		}
+		else
+		{
+			snprintf(OutBuf, sizeof OutBuf, "[%d] \002Target:\002 %s | \002Channel:\002 %s | \002Mode:\002 %s",
+					Inc, Worker->Nick, Worker->Channel, Worker->Mode);
+		}
+		
+		IRC_Message(SendTo, OutBuf);
+	}
+	
+	IRC_Message(SendTo, "End of list.");
 }
