@@ -56,7 +56,8 @@ struct
 			{ "guessinggame", "A simple number-guessing game where you guess from one to ten. "
 				"The first guess starts the game.", REQARG, ANY },
 			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG, ANY },
-			{ "time", "Displays the current time in either utc24, utc12, lt12, or lt24 times. Default is utc24.", OPTARG, ANY },
+			{ "time", "Displays the current time in a specified timezone, or UTC if omitted or not found. "
+				"After the timezone, you can specify strftime()-style syntax for custom output.", OPTARG, ANY },
 			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG, ANY },
 			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG, ANY },
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
@@ -703,44 +704,43 @@ void CMD_ProcessCommand(const char *InStream_)
 	{
 		time_t CurrentTime = time(NULL);
 		struct tm TimeStruct;
-		char TimeString[256] = "Current time: ";
+		char TimeString[256] = { '\0' };
 		struct tm *(*TimeFunc)(const time_t *Timer, struct tm *Struct) = gmtime_r;
-		Bool TwelveHour = false;
+		char TZ[32] = { '\0' };
+		char TimeFormat[128] = "%a %Y-%m-%d %I:%M:%S %p";
 		
 		if (*Argument != '\0')
 		{
-			if (!strcmp(Argument, "lt12"))
+			const char *Worker = Argument;
+			
+			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof TZ - 1; ++Inc)
 			{
-				TimeFunc = localtime_r;
-				TwelveHour = true;
+				TZ[Inc] = Worker[Inc];
 			}
-			else if (!strcmp(Argument, "lt24"))
+			TZ[Inc] = '\0';
+			
+			if ((Worker = SubStrings.Line.WhitespaceJump(Worker)))
 			{
-				TimeFunc = localtime_r;
-				TwelveHour = false;
+				for (Inc = 0; Worker[Inc] != '\0' && Inc < sizeof TimeFormat - 1; ++Inc)
+				{
+					TimeFormat[Inc] = Worker[Inc];
+				}
+				TimeFormat[Inc] = '\0';
 			}
-			else if (!strcmp(Argument, "utc12"))
-			{
-				TimeFunc = gmtime_r;
-				TwelveHour = true;
-			}
-			else if (!strcmp(Argument, "utc24"))
-			{
-				TimeFunc = gmtime_r;
-				TwelveHour = false;
-			}
-			else
-			{
-				IRC_Message(SendTo, "Bad argument to time command.");
-				return;
-			}
+			
+			TimeFunc = localtime_r;
+			setenv("TZ", TZ, true);
+			tzset();
 		}
 		
 		TimeFunc(&CurrentTime, &TimeStruct);
-		strftime(TimeString + strlen(TimeString), sizeof TimeString - strlen(TimeString), TwelveHour ? "%a %Y-%m-%d %I:%M:%S %p" : "%a %Y-%m-%d %H:%M:%S", &TimeStruct);
+		
+		if (*TZ) unsetenv("TZ"); /*Restore to normalcy.*/
+		
+		strftime(TimeString, sizeof TimeString, TimeFormat, &TimeStruct);
 		
 		if (TimeFunc == gmtime_r) strcat(TimeString, " UTC");
-		else strcat(TimeString, " local time");
+		else strcat(TimeString, " "), strcat(TimeString, TZ);
 		
 		IRC_Message(SendTo, TimeString);
 	}
