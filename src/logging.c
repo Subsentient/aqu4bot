@@ -82,6 +82,9 @@ static Bool Log_ModeLog(const char *InStream)
 	}
 	Nick[Inc] = '\0';
 	
+	/*Do not log for ourselves.*/
+	if (SubStrings.Compare(Nick, ServerInfo.Nick)) return true;
+	
 	if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) return false;
 	if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) return false; /*Twice for the MODE command.*/
 	
