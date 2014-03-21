@@ -1730,11 +1730,25 @@ void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const ch
 static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 {
 	struct _SeenDB *Worker = SeenRoot;
-	char OutBuf[2048];
+	char OutBuf[2048], NickBuf[2][128];
+	unsigned long Inc = 0;
 	
 	for (; Worker; Worker = Worker->Next)
 	{
-		if (!strcmp(Worker->Nick, Nick))
+		
+		for (Inc = 0; Worker->Nick[Inc] != '\0' && Inc < sizeof NickBuf[0]; ++Inc)
+		{ /*Convert both to lower case for comparison*/
+			NickBuf[0][Inc] = tolower(Worker->Nick[Inc]);
+		}
+		NickBuf[0][Inc] = '\0';
+		for (Inc = 0; Nick[Inc] != '\0' && Inc < sizeof NickBuf[1]; ++Inc)
+		{
+			NickBuf[1][Inc] = tolower(Nick[Inc]);
+		}
+		NickBuf[1][Inc] = '\0';
+		
+		
+		if (!strcmp(NickBuf[0], NickBuf[1]))
 		{
 			char TimeString[128];
 			struct tm TimeStruct;
