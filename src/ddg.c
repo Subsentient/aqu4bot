@@ -17,7 +17,7 @@ See the file UNLICENSE.TXT for more information.
 #include "aqu4.h"
 
 Bool DDG_Query(const char *Search, const char *SendTo)
-{
+{ /*Results from DuckDuckGo. http://api.duckduckgo.com/ */
 	char Results[8192] = { '\0' };
 	int Counter = 1;
 	char *Worker = Results;
@@ -26,7 +26,7 @@ Bool DDG_Query(const char *Search, const char *SendTo)
 	char OutBuf[1024];
 	unsigned long Inc = 0;
 	
-	snprintf(Query, sizeof Query, "/?q=%s&format=json&pretty=1", Search);
+	snprintf(Query, sizeof Query, "/?q=%s&format=json&pretty=1&t=aqu4bot%%20IRC%%20bot", Search);
 	
 	if (!Net_GetHTTP("duckduckgo.com", Query, sizeof Results, Results))
 	{
@@ -69,7 +69,7 @@ Bool DDG_Query(const char *Search, const char *SendTo)
 		IRC_Message(SendTo, OutBuf);
 	}
 	
-	if (Counter == 0)
+	if (Counter == 1)
 	{
 		IRC_Message(SendTo, "No results found.");
 	}

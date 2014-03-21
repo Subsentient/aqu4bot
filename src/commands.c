@@ -59,7 +59,8 @@ struct
 			{ "time", "Displays the current time in a specified timezone, or UTC if omitted or not found. "
 				"After the timezone, you can specify strftime()-style syntax for custom output.", OPTARG, ANY },
 			{ "ddg", "Searches DuckDuckGo for three search results. "
-				"Many things return blank due to the limitations of DuckDuckGo's API.", REQARG, ANY },
+				"Many things return blank due to the limitations of DuckDuckGo's API. "
+				"You can find the API that the results come from at \"http://api.duckduckgo.com/\".", REQARG, ANY },
 			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG, ANY },
 			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG, ANY },
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
