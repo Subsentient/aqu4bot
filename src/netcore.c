@@ -7,12 +7,14 @@ See the file UNLICENSE.TXT for more information.
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "substrings/substrings.h"
 #include "aqu4.h"
 
 int SocketDescriptor;
@@ -119,4 +121,58 @@ Bool Net_Disconnect(int SockDescriptor)
 	if (!SockDescriptor) return false;
 	
 	return !close(SockDescriptor);
+}
+
+Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxData, char *OutStream)
+{ /*Retrieve a text-based HTTP page.*/
+#define HTTP_GET_1 "GET %s HTTP/1.0\r\n" /*We use 1.0 because 1.1 allows for the connection to stay open. That's bad for us.*/
+#define HTTP_GET_2 "Host: %s\r\n\r\n"
+#define HTTP_PORT 80
+
+	int SDesc = 0, Attempts = 0;
+	char OutCommand[2][128];
+	char *PageData = NULL, *Worker = NULL;
+	
+	do
+	{
+		if (Net_Connect(Hostname, HTTP_PORT, &SDesc)) break;
+	} while (++Attempts < 3);
+	
+	if (Attempts == 3) return false;
+	
+	snprintf(OutCommand[0], sizeof OutCommand[0], HTTP_GET_1, Filename);
+	snprintf(OutCommand[1], sizeof OutCommand[1], HTTP_GET_2, Hostname);
+	
+	PageData = calloc(MaxData, 1); /*We need it zeroed for a null terminator.*/
+	
+	if (!Net_Write(SDesc, OutCommand[0]) || !Net_Write(SDesc, OutCommand[1]))
+	{
+		free(PageData);
+		return false;
+	}
+	
+	if (!Net_Read(SDesc, PageData, MaxData, false))
+	{
+		free(PageData);
+		return false;
+	}
+	
+	if (!(Worker = SubStrings.Find("\r\n\r\n", 1, PageData)))
+	{ /*Skip past the page header.*/
+		free(PageData);
+		return false;
+	}
+	
+	Worker += sizeof "\r\n\r\n" - 1;
+	
+	/*Output the page.*/
+	SubStrings.Copy(OutStream, Worker, MaxData);
+	free(PageData);
+	
+	if (!Net_Disconnect(SDesc))
+	{
+		return false;
+	}
+	
+	return true;
 }
