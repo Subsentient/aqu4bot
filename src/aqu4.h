@@ -41,12 +41,17 @@ typedef enum
 	IMSG_KICK,
 	IMSG_KILL,
 	IMSG_NICK,
-	IMSG_INVITE
+	IMSG_INVITE,
+	IMSG_TOPIC,
+	IMSG_TOPICORIGIN
 } MessageType;
 
 struct ChannelTree
 {
 	char Channel[128];
+	char Topic[1024];
+	char TopicSetter[128];
+	unsigned long TopicSetTime;
 	
 	struct ChannelTree *Next;
 	struct ChannelTree *Prev;
@@ -127,6 +132,7 @@ extern Bool Auth_BlacklistSave(void);
 extern void Auth_BlacklistSendList(const char *SendTo);
 
 extern Bool Log_WriteMsg(const char *InStream, MessageType MType);
+extern Bool Log_CoreWrite(const char *InStream, const char *FileTitle);
 
 extern Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo);
 

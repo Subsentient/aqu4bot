@@ -15,20 +15,137 @@ See the file UNLICENSE.TXT for more information.
 #include <string.h>
 #include <time.h>
 
+#include "substrings/substrings.h"
 #include "aqu4.h"
 
 Bool Logging;
 Bool LogPMs;
 
-Bool Log_WriteMsg(const char *InStream, MessageType MType)
+
+/*Prototypes.*/
+static Bool Log_TopicLog(const char *InStream);
+static Bool Log_ModeLog(const char *InStream);
+
+Bool Log_CoreWrite(const char *InStream, const char *FileTitle)
 {
-	FILE *Descriptor = NULL;
-	char Filename[1024], OutBuf[2048], Origin[2048], Message[2048];
-	char Nick[128], Ident[128], Mask[128], *Worker = Origin;
+	char TimeString[128];
 	time_t Time = time(NULL);
 	struct tm TimeStruct;
-	char TimeString[128];
-	struct stat DirStat;
+	char OutBuf[1024];	
+	
+	gmtime_r(&Time, &TimeStruct);
+	strftime(TimeString, sizeof TimeString, "[%Y-%m-%d %H:%M:%S UTC]", &TimeStruct);
+	
+	snprintf(OutBuf, sizeof OutBuf, "%s %s\n", TimeString, InStream);
+	
+	if (Logging && (*FileTitle == '#' || LogPMs))
+	{
+		FILE *Descriptor = NULL;
+		char FileName[256] = "logs/";
+		struct stat DirStat;
+		
+		if (stat("logs", &DirStat) != 0)
+		{
+			if (mkdir("logs", 0755) != 0) return false;
+		}
+		
+		SubStrings.Cat(FileName, FileTitle, sizeof FileName);
+		SubStrings.Cat(FileName, ".txt", sizeof FileName);
+		
+		if (!(Descriptor = fopen(FileName, "a"))) return false;
+		
+		fwrite(OutBuf, 1, SubStrings.Length(OutBuf), Descriptor);
+		fflush(Descriptor);
+		fclose(Descriptor);
+	}
+	
+	if (!ShowOutput) /*Don't spit dual copies everywhere if we're in verbose.*/
+	{
+		OutBuf[SubStrings.Length(OutBuf) - 1] = '\0'; /*Delete newline.*/
+		puts(OutBuf);
+	}
+	
+	return true;
+}
+
+
+static Bool Log_ModeLog(const char *InStream)
+{
+	char Nick[128], Channel[128], Mode[256];
+	char OutBuf[1024];
+	const char *Worker = InStream + 1;
+	unsigned long Inc = 0;
+	
+	for (; Worker[Inc] != '!' && Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof Nick - 1; ++Inc)
+	{
+		Nick[Inc] = Worker[Inc];
+	}
+	Nick[Inc] = '\0';
+	
+	if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) return false;
+	if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) return false; /*Twice for the MODE command.*/
+	
+	for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof Channel - 1; ++Inc)
+	{
+		Channel[Inc] = Worker[Inc];
+	}
+	Channel[Inc] = '\0';
+	
+	if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) return false;
+	
+	if (*Worker == ':') ++Worker;
+	
+	for (Inc = 0; Worker[Inc] != '\0' && Inc < sizeof Mode - 1; ++Inc)
+	{
+		Mode[Inc] = Worker[Inc];
+	}
+	Mode[Inc] = '\0';
+	
+	snprintf(OutBuf, sizeof OutBuf, "<%s sets mode %s on %s>", Nick, Mode, Channel);
+	Log_CoreWrite(OutBuf, Channel);
+	
+	return true;
+}
+
+static Bool Log_TopicLog(const char *InStream)
+{
+	char Channel[128], Topic[1024], OutBuf[1024];
+	char *Worker = SubStrings.CFind('#', 1, InStream);
+	unsigned long Inc = 0;
+	
+	if (!Worker) return false;
+	
+	for (; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof Channel - 1; ++Inc)
+	{
+		Channel[Inc] = Worker[Inc];
+	}
+	Channel[Inc] = '\0';
+	
+	if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) return false;
+	
+	if (*Worker == ':') ++Worker;
+	
+	for (Inc = 0; Worker[Inc] != '\0' && Inc < sizeof Topic - 1; ++Inc)
+	{
+		Topic[Inc] = Worker[Inc];
+	}
+	Topic[Inc] = '\0';
+	
+	snprintf(OutBuf, sizeof OutBuf, "<Topic for %s is \"%s\">", Channel, Topic);
+	
+	Log_CoreWrite(OutBuf, Channel);
+	
+	return true;
+}
+	
+	
+Bool Log_WriteMsg(const char *InStream, MessageType MType)
+{
+	char OutBuf[2048], Origin[2048], Message[2048];
+	char Nick[128], Ident[128], Mask[128], *Worker = Origin;
+	
+	if (MType == IMSG_TOPIC) return Log_TopicLog(InStream);
+	else if (MType == IMSG_MODE) return Log_ModeLog(InStream);
 	
 	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask) || !*Nick || !*Ident || !*Mask) return true;
 		
@@ -56,16 +173,6 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 	{
 		if ((Worker = strstr(Message, " :"))) *Worker = '\0';
 	}
-	
-	if (stat("logs", &DirStat) != 0)
-	{
-		if (mkdir("logs", 0755) != 0) return false;
-	}
-	
-	snprintf(Filename, sizeof Filename, "logs/%s.txt", *Origin == '#' ? Origin : Nick);
-	
-	gmtime_r(&Time, &TimeStruct);
-	strftime(TimeString, sizeof TimeString, "[%Y-%m-%d %H:%M:%S UTC]", &TimeStruct);
 
 	switch (MType)
 	{		
@@ -76,53 +183,43 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 				
 				if (Temp) *Temp = '\0';
 				
-				snprintf(OutBuf, sizeof OutBuf, "%s (%s) **%s %s**\n", TimeString,
+				snprintf(OutBuf, sizeof OutBuf, "(%s) **%s %s**",
 						*Origin == '#' ? Origin : Nick, Nick, Message + strlen("\01ACTION "));
 			}
-			else snprintf(OutBuf, sizeof OutBuf, "%s (%s) %s: %s\n", TimeString, *Origin == '#' ? Origin : Nick, Nick, Message);
+			else snprintf(OutBuf, sizeof OutBuf, "(%s) %s: %s", *Origin == '#' ? Origin : Nick, Nick, Message);
 			break;
 		case IMSG_NOTICE:
-			snprintf(OutBuf, sizeof OutBuf, "%s (%s) %s (notice): %s\n", TimeString, *Origin == '#' ? Origin : Nick, Nick, Message);
+			snprintf(OutBuf, sizeof OutBuf, "(%s) %s (notice): %s", *Origin == '#' ? Origin : Nick, Nick, Message);
 			break;
 		case IMSG_JOIN:
-			snprintf(OutBuf, sizeof OutBuf, "%s <%s joined %s>\n", TimeString, Nick, Origin);
+			snprintf(OutBuf, sizeof OutBuf, "<%s joined %s>", Nick, Origin);
 			break;
 		case IMSG_PART:
-			snprintf(OutBuf, sizeof OutBuf, "%s <%s left %s>\n", TimeString, Nick, Origin);
+			snprintf(OutBuf, sizeof OutBuf, "<%s left %s>", Nick, Origin);
 			break;
 		case IMSG_KICK:
-			snprintf(OutBuf, sizeof OutBuf, "%s <%s was kicked from %s by %s>\n", TimeString, Message, Origin, Nick);
+			snprintf(OutBuf, sizeof OutBuf, "<%s was kicked from %s by %s>", Message, Origin, Nick);
 			break;
 		case IMSG_QUIT:
-			snprintf(OutBuf, sizeof OutBuf, "%s <%s has quit: %s>\n", TimeString, Nick, *Origin == ':' ? Origin + 1 : Origin);
-			break;
+		{ /*We don't want to actually log these, just print them to the console.*/
+			time_t Time = time(NULL);
+			struct tm TimeStruct;
+			const unsigned long Len = strlen(OutBuf);
+			
+			if (ShowOutput) return true; /*That means we are doing pure, verbose IRC printing, so don't show this.*/
+			
+			gmtime_r(&Time, &TimeStruct);
+			strftime(OutBuf, sizeof OutBuf, "[%Y-%m-%d %H:%M:%S UTC]", &TimeStruct);
+			snprintf(OutBuf + Len, sizeof OutBuf - Len, " <%s has quit: %s>", Nick, *Origin == ':' ? Origin + 1 : Origin);
+			puts(OutBuf);
+			
+			return true;
+		}
 		default:
 			return false;
 	}
-	
-	/*Skip recording quits to disk because they just end up in the private message logs.*/
-	if (MType == IMSG_QUIT)
-	{
-		goto PrintConsole;
-	}
-	
-	if (!(Descriptor = fopen(Filename, "a")))
-	{
-		return false;
-	}
-	
-	if (Logging && (*Origin == '#' || LogPMs))
-	{
-		fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
-		fclose(Descriptor);
-	}
 
-PrintConsole:
-	if (!ShowOutput) /*Don't spit dual copies everywhere if we're in verbose.*/
-	{
-		OutBuf[strlen(OutBuf) - 1] = '\0';
-		puts(OutBuf);
-	}
+	Log_CoreWrite(OutBuf, *Origin == '#' ? Origin : Nick);
 	
 	return true;
 }

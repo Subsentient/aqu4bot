@@ -206,6 +206,42 @@ void IRC_Loop(void)
 				
 				while (CMD_ReadTellDB(*NewNick == ':' ? NewNick + 1 : NewNick));
 			}
+			case IMSG_MODE:
+				Log_WriteMsg(MessageBuf, IMSG_MODE);
+				break;
+			case IMSG_TOPIC:
+			{
+				char TChannel[128], Topic[1024];
+				char *TWorker = SubStrings.CFind('#', 1, MessageBuf);
+				struct ChannelTree *Worker = Channels;
+				unsigned long Inc = 0;
+				
+				if (!TWorker) continue;
+				
+				for (; TWorker[Inc] != ' ' && TWorker[Inc] != '\0' && Inc < sizeof TChannel - 1; ++Inc)
+				{
+					TChannel[Inc] = TWorker[Inc];
+				}
+				TChannel[Inc] = '\0';
+				
+				if (!(TWorker = SubStrings.Line.WhitespaceJump(TWorker))) continue;
+				
+				if (*TWorker == ':') ++TWorker;
+				
+				SubStrings.Copy(Topic, TWorker, sizeof Topic);
+				
+				for (; Worker; Worker = Worker->Next)
+				{
+					if (!strcmp(TChannel, Worker->Channel))
+					{
+						SubStrings.Copy(Worker->Topic, Topic, sizeof Worker->Topic);
+						break;
+					}
+				}
+				
+				Log_WriteMsg(MessageBuf, IMSG_TOPIC);
+				break;
+			}
 			default:
 				break;
 		}
@@ -452,7 +488,7 @@ MessageType IRC_GetMessageType(const char *InStream_)
 	
 	if (InStream[0] != ':') return IMSG_INVALID;
 	
-	if ((InStream = strstr(InStream, " ")) == NULL) return IMSG_INVALID;
+	if ((InStream = strchr(InStream, ' ')) == NULL) return IMSG_INVALID;
 	++InStream;
 	
 	for (; InStream[Inc] != ' '  && InStream[Inc] != '\0' && Inc < sizeof Command - 1; ++Inc)
@@ -474,6 +510,8 @@ MessageType IRC_GetMessageType(const char *InStream_)
 	else if (!strcmp(Command, "KICK")) return IMSG_KICK;
 	else if (!strcmp(Command, "KILL")) return IMSG_KILL;
 	else if (!strcmp(Command, "INVITE")) return IMSG_INVITE;
+	else if (!strcmp(Command, "332") || !strcmp(Command, "TOPIC")) return IMSG_TOPIC;
+	else if (!strcmp(Command, "333")) return IMSG_TOPICORIGIN;
 	else return IMSG_UNKNOWN;
 }
 
