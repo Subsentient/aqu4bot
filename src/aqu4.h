@@ -135,7 +135,7 @@ extern void Auth_BlacklistSendList(const char *SendTo);
 extern Bool Log_WriteMsg(const char *InStream, MessageType MType);
 extern Bool Log_CoreWrite(const char *InStream, const char *FileTitle);
 
-extern Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo);
+extern Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, Bool WZLegacy);
 
 extern Bool DDG_Query(const char *Search, const char *SendTo);
 

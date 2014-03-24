@@ -381,7 +381,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		{
 			if (!strcmp(Argument, "legacy"))
 			{
-				WZ_GetGamesList(WZSERVER_LEGACY, WZSERVER_LEGACY_PORT, SendTo);
+				WZ_GetGamesList(WZSERVER_LEGACY, WZSERVER_LEGACY_PORT, SendTo, true);
 			}
 			else
 			{
@@ -391,7 +391,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		else
 		{
-			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo);
+			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo, false);
 		}
 	}
 	else if (!strcmp(CommandID, "ddg"))

@@ -134,13 +134,13 @@ static Bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct)
 	return true;
 }
 
-Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo)
+Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, Bool WZLegacy)
 {
 	GameStruct *GamesList = NULL;
 	int WZSocket = 0;
 	char OutBuf[2048];
-
 	uint32_t GamesAvailable = 0, Inc = 0;
+	uint32_t LastHosted = 0;
 	
 	if (!Net_Connect(Server, Port, &WZSocket))
 	{
@@ -163,18 +163,28 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	
 	GamesAvailable = ntohl(GamesAvailable);
 	
-	if (!GamesAvailable) IRC_Message(SendTo, "There are no games in the lobby at the moment.");
-	
 	/*Allocate space for them.*/
 	GamesList = malloc(sizeof(GameStruct) * GamesAvailable);
 
 	for (; Inc < GamesAvailable; ++Inc)
-	{
+	{ /*Receive the listings.*/
 		if (!WZ_RecvGameStruct(WZSocket, GamesList + Inc))
 		{
 			free(GamesList);
 			return false;
 		}
+	}
+	
+	/*If we're Legacy protocol, retrieve the time since last hosted.*/
+	if (WZLegacy)
+	{
+		if (!Net_Read(WZSocket, &LastHosted, sizeof(uint32_t), false))
+		{
+			free(GamesList);
+			return false;
+		}
+		
+		LastHosted = ntohl(LastHosted);
 	}
 	
 	Net_Disconnect(WZSocket);
@@ -193,7 +203,34 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	
 	if (GamesList) free(GamesList);
 	
-	if (GamesAvailable != 0) IRC_Message(SendTo, "End of games list.");
+	if (WZLegacy)
+	{ /*Legacy has something special.*/
+		if (!GamesAvailable)
+		{
+			snprintf(OutBuf, sizeof OutBuf, "No games are in the lobby at the moment. "
+					"The last game was hosted %lu seconds (%lu minutes) ago.",
+					(unsigned long)LastHosted, (unsigned long)LastHosted / 60);
+		}
+		else
+		{
+			snprintf(OutBuf, sizeof OutBuf, "End of games list. Game number %lu is the most recently hosted, "
+					"at %lu seconds (%lu minutes) ago.",
+					(unsigned long)Inc, (unsigned long)LastHosted, (unsigned long)LastHosted / 60);
+		}
+		IRC_Message(SendTo, OutBuf);
+	}
+	else
+	{
+		if (GamesAvailable)
+		{
+			IRC_Message(SendTo, "End of games list.");
+		}
+		else
+		{
+			IRC_Message(SendTo, "No games are in the lobby at the moment.");
+		}
+	}
+		
 	
 	return true;
 	
