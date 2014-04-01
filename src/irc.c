@@ -533,6 +533,8 @@ Bool IRC_GetMessageData(const char *Message, char *OutData)
 	
 	if (!(Worker = strchr(Worker, ' '))) return false;
 	++Worker;
+	
+	if (*Worker == ':') ++Worker; /*This might cause problems somewhere, but I hope not. Saves work fiddling with server specific stuff.*/
 		
 	strcpy(OutData, Worker);
 	return true;
