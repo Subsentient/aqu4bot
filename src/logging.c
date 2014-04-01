@@ -155,7 +155,7 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 	IRC_GetMessageData(InStream, Origin);
 	
 	
-	if (MType != IMSG_JOIN && MType != IMSG_QUIT && MType != IMSG_PART)
+	if (MType != IMSG_JOIN && MType != IMSG_QUIT && MType != IMSG_NICK && MType != IMSG_PART)
 	{
 		Worker = strchr(Worker, ' ');
 		*Worker++ = '\0';
@@ -202,6 +202,9 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 			break;
 		case IMSG_KICK:
 			snprintf(OutBuf, sizeof OutBuf, "<%s was kicked from %s by %s>", Message, Origin, Nick);
+			break;
+		case IMSG_NICK:
+			snprintf(OutBuf, sizeof OutBuf, "<%s is now known as %s>", Nick, Origin);
 			break;
 		case IMSG_QUIT:
 		{ /*We don't want to actually log these, just print them to the console.*/

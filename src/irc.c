@@ -204,6 +204,8 @@ void IRC_Loop(void)
 
 				IRC_GetMessageData(MessageBuf, NewNick);
 				
+				Log_WriteMsg(MessageBuf, IMSG_NICK);
+				
 				while (CMD_ReadTellDB(*NewNick == ':' ? NewNick + 1 : NewNick));
 			}
 			case IMSG_MODE:
