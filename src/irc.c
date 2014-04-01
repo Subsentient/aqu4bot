@@ -270,6 +270,15 @@ Bool IRC_Connect(void)
 	{
 		if (!Net_Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true)) goto Error;
 		
+		/*Some servers ping right after you connect. It's horrible, but true.*/
+		if (!strncmp("PING ", MessageBuf,  sizeof("PING ") - 1))
+		{
+			*strchr(MessageBuf, 'I') = 'O';
+			Net_Write(SocketDescriptor, MessageBuf);
+			Net_Write(SocketDescriptor, "\r\n");
+			continue;
+		}
+		
 		IRC_GetStatusCode(MessageBuf, &Code);
 		
 		if (Code == 0) continue;
