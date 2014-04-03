@@ -28,29 +28,41 @@ void IRC_Loop(void)
 		if (!Net_Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true))
 		{ /*No command should ever call Net_Read() besides us and the connecting stuff that comes before us.*/
 			int MaxTry = 0;
-			puts("\033[31mCONNECTION LOST\033[0m");
+			
+			Bot_SetTextColor(RED);
+			puts("CONNECTION LOST");
+			Bot_SetTextColor(ENDCOLOR);
 			
 			do
 			{
 				if (SocketDescriptor) close(SocketDescriptor);
 				SocketDescriptor = 0;
 
-				puts("\033[32mAttempting to reconnect...\033[0m");
+				Bot_SetTextColor(GREEN);
+				puts("Attempting to reconnect...");
+				Bot_SetTextColor(ENDCOLOR);
 				
 				if (IRC_Connect())
 				{
-					printf("\n\033[32mConnection reestablished after %d attempts.\033[0m\n", MaxTry + 1);
+					Bot_SetTextColor(GREEN);
+					printf("\nConnection reestablished after %d attempts.\n", MaxTry + 1);
+					Bot_SetTextColor(ENDCOLOR);
 					break;
 				}
 				else
 				{
-					printf("\n\033[31mReconnect attempt %d failed.\033[0m\n", MaxTry + 1);
+					Bot_SetTextColor(RED);
+					printf("\nReconnect attempt %d failed.\n", MaxTry + 1);
+					Bot_SetTextColor(ENDCOLOR);
 				}
 			} while (++MaxTry, MaxTry < 3);
 			
 			if (MaxTry == 3)
 			{
-				puts("\033[31m** After three attempts, cannot reconnect to IRC server! Shutting down. **\033[0m");
+				Bot_SetTextColor(RED);
+				puts("** After three attempts, cannot reconnect to IRC server! Shutting down. **");
+				Bot_SetTextColor(ENDCOLOR);
+				
 				if (SocketDescriptor) close(SocketDescriptor);
 				exit(1);
 			}

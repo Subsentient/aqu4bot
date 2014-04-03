@@ -84,6 +84,10 @@ struct AuthTree
 	struct AuthTree *Prev;
 };
 
+typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCOLOR = 0 } ConsoleColor;
+
+extern void Bot_SetTextColor(ConsoleColor Color);
+
 extern Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long MaxSize);
 extern Bool Config_ReadConfig(void);
 

@@ -230,9 +230,11 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	puts("\033[36maqu4bot " BOT_VERSION " (" BOT_OS ") starting up.\033[0m\n"
+	Bot_SetTextColor(CYAN);
+	puts("aqu4bot " BOT_VERSION " (" BOT_OS ") starting up.\n"
 		"Compiled " __DATE__ " " __TIME__ "\n");
-
+	Bot_SetTextColor(ENDCOLOR);
+	
 #ifdef WIN
 	if (stat("db", &DirStat) != 0 && mkdir("db") != 0)
 #else
@@ -297,4 +299,65 @@ int main(int argc, char **argv)
 	IRC_Loop();
 	
 	return 0;
+}
+
+
+void Bot_SetTextColor(ConsoleColor Color)
+{
+#ifndef WIN
+	printf("\033[%dm", Color);
+#else
+	BOOL (WINAPI *DoSetConsoleTextAttribute)(HANDLE, WORD) = NULL;
+	HANDLE WDescriptor = GetStdHandle(STD_OUTPUT_HANDLE);
+	static HMODULE kernel32 = (HMODULE)0xffffffff;
+	WORD WinColor = 0;
+	
+	if (kernel32 == 0)
+	{
+		return;
+	}
+	else if(kernel32 == (HMODULE)0xffffffff)
+	{
+		kernel32 = LoadLibrary("kernel32.dll");
+		
+		if (kernel32 == 0)
+		{
+			return;
+		}
+	}
+	
+	/*Not supported.*/
+	if (!(DoSetConsoleTextAttribute = (BOOL (WINAPI *)(HANDLE, WORD))GetProcAddress(kernel32, "SetConsoleTextAttribute"))) return;
+	
+	
+	switch (Color)
+	{
+		case BLACK:
+			WinColor = 0;
+			break;
+		case BLUE:
+			WinColor = 1;
+			break;
+		case GREEN:
+			WinColor = 2;
+			break;
+		case CYAN:
+			WinColor = 3;
+			break;
+		case RED:
+			WinColor = 4;
+			break;
+		case MAGENTA:
+			WinColor = 5;
+			break;
+		case YELLOW:
+			WinColor = 6;
+			break;
+		default: /*Everything else just becomes white.*/
+			WinColor = 7;
+			break;
+	}
+			
+	DoSetConsoleTextAttribute(WDescriptor, WinColor);
+#endif
 }

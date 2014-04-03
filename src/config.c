@@ -114,7 +114,11 @@ Bool Config_ReadConfig(void)
 				
 				if (!*Worker)
 				{
-					fprintf(stderr, "\033[31m* \033[0mBad channel prefix value \"%s\" in config, line %lu.\n", Prefix, LineNum);
+					Bot_SetTextColor(RED);
+					putc('*', stderr);
+					Bot_SetTextColor(ENDCOLOR);
+					
+					fprintf(stderr, " Bad channel prefix value \"%s\" in config, line %lu.\n", Prefix, LineNum);
 				}
 				else
 				{
@@ -128,7 +132,11 @@ Bool Config_ReadConfig(void)
 			}
 			else
 			{
-				fprintf(stderr, "\033[31m* \033[0mBad channel value \"%s\" in config, line %lu.\n", Chan, LineNum);
+				Bot_SetTextColor(RED);
+				putc('*', stderr);
+				Bot_SetTextColor(ENDCOLOR);
+				
+				fprintf(stderr, " Bad channel value \"%s\" in config, line %lu.\n", Chan, LineNum);
 			}
 		}
 		else if (!strcmp(LineID, "Prefix"))
@@ -175,7 +183,11 @@ Bool Config_ReadConfig(void)
 		}
 		else
 		{
-			fprintf(stderr, "\033[31m*\033[0m Bad value in config, at line %lu.\n", LineNum);
+			Bot_SetTextColor(RED);
+			putc('*', stderr);
+			Bot_SetTextColor(ENDCOLOR);
+			
+			fprintf(stderr, " Bad value in config, at line %lu.\n", LineNum);
 			continue;
 		}	
 	} while (++LineNum, (Worker = SubStrings.Line.NextLine(Worker)));
@@ -196,6 +208,7 @@ Bool Config_ReadConfig(void)
 Error:
 	fprintf(stderr, "Failed.\n\nEither your configuration file doesn't exist, "
 			"is unreadable, or is missing info.\nEnsure that you have specified at least "
-			"a hostname and a nickname in your \n" CONFIG_FILE " configuration file.\n");
+			"a hostname and a nickname in your \n" CONFIG_FILE " configuration file.\n"
+			"If you have no config file, try passing --genconfig to generate it.\n");
 	return false;
 }
