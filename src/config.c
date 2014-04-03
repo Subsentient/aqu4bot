@@ -104,16 +104,40 @@ Bool Config_ReadConfig(void)
 		}
 		else if (!strcmp(LineID, "Channel"))
 		{
-			if (LineData[0] == '#') IRC_AddChannelToTree(LineData);
-			else fprintf(stderr, "\033[31m* \033[0mBad channel value in config, line %lu.\n", LineNum);
+			char Chan[sizeof LineData], Prefix[sizeof Chan] = { 0 }, *Worker = Chan;
+			
+			memcpy(Chan, LineData, sizeof Chan);
+			
+			if ((Worker = SubStrings.CFind(',', 1, Chan)))
+			{ /*Copy in any prefixes.*/
+				*Worker++ = '\0';
+				
+				if (!*Worker)
+				{
+					fprintf(stderr, "\033[31m* \033[0mBad channel prefix value \"%s\" in config, line %lu.\n", Prefix, LineNum);
+				}
+				else
+				{
+					strncpy(Prefix, Worker, strlen(Worker) + 1);
+				}
+			}
+			
+			if (Chan[0] == '#')
+			{
+				IRC_AddChannelToTree(Chan, *Prefix ? Prefix : NULL);
+			}
+			else
+			{
+				fprintf(stderr, "\033[31m* \033[0mBad channel value \"%s\" in config, line %lu.\n", Chan, LineNum);
+			}
 		}
 		else if (!strcmp(LineID, "Prefix"))
 		{
-			if (!strcmp(LineData, "NONE")) CmdPrefix[0] = '\0';
+			if (!strcmp(LineData, "NONE")) GlobalCmdPrefix[0] = '\0';
 			else
 			{
-				strncpy(CmdPrefix, LineData, sizeof CmdPrefix - 1);
-				CmdPrefix[sizeof CmdPrefix - 1] = '\0';
+				strncpy(GlobalCmdPrefix, LineData, sizeof GlobalCmdPrefix - 1);
+				GlobalCmdPrefix[sizeof GlobalCmdPrefix - 1] = '\0';
 			}
 		}
 		else if (!strcmp(LineID, "BotOwner") || !strcmp(LineID, "Admin"))

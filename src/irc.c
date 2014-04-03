@@ -135,7 +135,7 @@ void IRC_Loop(void)
 					
 					IRC_Message(Nick, "Coming.");
 					
-					if (IRC_JoinChannel(TWorker)) IRC_AddChannelToTree(TWorker);
+					if (IRC_JoinChannel(TWorker)) IRC_AddChannelToTree(TWorker, NULL);
 				}
 				else
 				{
@@ -368,7 +368,7 @@ Bool IRC_Quit(const char *QuitMSG)
 	return false;
 }
 
-void IRC_AddChannelToTree(const char *Channel)
+void IRC_AddChannelToTree(const char *Channel, const char *Prefix)
 {
 	struct ChannelTree *Worker = Channels;
 
@@ -396,6 +396,12 @@ void IRC_AddChannelToTree(const char *Channel)
 		
 	strncpy(Worker->Channel, Channel, sizeof(Worker->Channel) - 1);
 	Worker->Channel[sizeof(Worker->Channel) - 1] = '\0';
+	
+	if (Prefix)
+	{
+		strncpy(Worker->CmdPrefix, Prefix, sizeof Worker->CmdPrefix - 1);
+		Worker->CmdPrefix[sizeof Worker->CmdPrefix - 1] = '\0';
+	}
 }
 
 Bool IRC_DelChannelFromTree(const char *Channel)

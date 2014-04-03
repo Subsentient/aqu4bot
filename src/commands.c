@@ -16,7 +16,7 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-char CmdPrefix[128] = "$";
+char GlobalCmdPrefix[128] = "$";
 enum ArgMode { NOARG, OPTARG, REQARG };
 enum HPerms { ANY, ADMIN, OWNER };
 
@@ -71,7 +71,8 @@ struct
 			{ "noticemsg", "Sends a message as a notice.", REQARG, ADMIN },
 			{ "chanctl", "Used for administrating channels. I must be OP in the channel for this to be useful. "
 				"See chanctl help for a list of subcommands and more.", REQARG, ADMIN },
-			{ "join", "Joins the specified channel. You must be at least admin for this. ", REQARG, ADMIN },
+			{ "join", "Joins the specified channel. You can also specify a command prefix for the channel, e.g. 'join #derp @'. "
+				"You must be at least admin for this. ", REQARG, ADMIN },
 			{ "part", "Leaves the specified channel. You must be at least admin for this."
 				" If no argument is specified and you are already in a channel, "
 				"it leaves the channel the command is issued from.", OPTARG, ADMIN },
@@ -126,7 +127,8 @@ void CMD_ProcessCommand(const char *InStream_)
 	const char *SendTo = NULL;
 	const char *InStream = InStream_;
 	Bool IsAdmin = false, BotOwner = false;
-	char NickBasedPrefix[128];
+	char NickBasedPrefix[128], CmdPrefix[sizeof GlobalCmdPrefix] = { '\0' };
+	struct ChannelTree *CWorker = Channels;
 	
 	snprintf(NickBasedPrefix, sizeof NickBasedPrefix, "%s:", ServerInfo.Nick);
 	
@@ -157,6 +159,27 @@ void CMD_ProcessCommand(const char *InStream_)
 	
 	/*Commands.*/
 	if (*InStream == ':') ++InStream;
+	
+	/*Figure out what prefix we need to use. Copy in the default in case nothing is set.*/
+	strncpy(CmdPrefix, GlobalCmdPrefix, sizeof CmdPrefix - 1);
+	CmdPrefix[sizeof CmdPrefix - 1] = '\0';
+	
+	if (*Target == '#')
+	{ /*If it's a channel, we might have a channel-specific prefix set.*/
+		for (; CWorker; CWorker = CWorker->Next)
+		{
+			if (!strcmp(CWorker->Channel, Target))
+			{
+				if (*CWorker->CmdPrefix)
+				{
+					strncpy(CmdPrefix, CWorker->CmdPrefix, sizeof CmdPrefix - 1);
+					CmdPrefix[sizeof CmdPrefix - 1] = '\0';
+				}
+				break;
+			}
+		}
+	}
+		
 	
 	if (*CmdPrefix && !strncmp(InStream, CmdPrefix, strlen(CmdPrefix)))
 	{
@@ -770,11 +793,18 @@ void CMD_ProcessCommand(const char *InStream_)
 		else if (*Argument != '#') IRC_Message(SendTo, "That's not a channel name.");
 		else
 		{
+			char *Prefix = SubStrings.CFind(' ', 1, Argument);
 			IRC_Message(SendTo, "Ok.");
-
+			
+			if (Prefix)
+			{
+				*Prefix++ = '\0';
+				while (*Prefix == ' ' || *Prefix == '\t') ++Prefix;
+			}
+			
 			if (IRC_JoinChannel(Argument))
 			{
-				IRC_AddChannelToTree(Argument);
+				IRC_AddChannelToTree(Argument, Prefix);
 				printf("Joined channel %s\n", Argument);
 			}
 		}

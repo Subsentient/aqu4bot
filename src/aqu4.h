@@ -49,8 +49,9 @@ typedef enum
 struct ChannelTree
 {
 	char Channel[128];
-	char Topic[1024];
+	char Topic[2048];
 	char TopicSetter[128];
+	char CmdPrefix[128];
 	unsigned long TopicSetTime;
 	
 	struct ChannelTree *Next;
@@ -97,7 +98,7 @@ extern Bool IRC_Message(const char *Target, const char *Message);
 extern Bool IRC_Notice(const char *Target, const char *Notice);
 extern Bool IRC_NickChange(const char *Nick);
 extern void IRC_Pong(const char *Param);
-extern void IRC_AddChannelToTree(const char *Channel);
+extern void IRC_AddChannelToTree(const char *Channel, const char *CmdPrefix);
 extern Bool IRC_DelChannelFromTree(const char *Channel);
 extern void IRC_ShutdownChannelTree(void);
 extern MessageType IRC_GetMessageType(const char *InStream_);
@@ -142,7 +143,7 @@ extern Bool DDG_Query(const char *Search, const char *SendTo);
 extern int SocketDescriptor;
 extern struct _ServerInfo ServerInfo;
 extern struct ChannelTree *Channels;
-extern char CmdPrefix[128];
+extern char GlobalCmdPrefix[128];
 extern unsigned short SendDelay;
 extern Bool ShowOutput;
 extern Bool Logging;
