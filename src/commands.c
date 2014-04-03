@@ -236,8 +236,9 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		if (*Argument == '\0')
 		{
-			IRC_Message(SendTo, "I'm aqu4bot " BOT_VERSION
-						". I'm a bot written in pure C by Subsentient [" ROOT_URL "]. "
+			IRC_Message(SendTo, "Hi, I'm aqu4bot, version \"" BOT_VERSION
+						"\", running on " BOT_OS ". "
+						"I'm a bot written in pure C by Subsentient [" ROOT_URL "]. "
 						"My source code can be found at \"" SOURCECODE_URL "\". "
 						"Try the 'commands' command to get a list of what I can do, "
 						"or try 'help cmd' where 'cmd' is a particular command.");
