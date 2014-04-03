@@ -10,9 +10,13 @@ See the file UNLICENSE.TXT for more information.
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef WIN
+#include <winsock2.h>
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#endif
 
 #include "substrings/substrings.h"
 #include "aqu4.h"
@@ -67,8 +71,11 @@ Bool Net_Write(int SockDescriptor, const char *InMsg)
 
 	do
 	{
+#ifdef WIN
+		Transferred = send(SockDescriptor, InMsg, (StringSize - TotalTransferred), 0);
+#else
 		Transferred = send(SockDescriptor, InMsg, (StringSize - TotalTransferred), MSG_NOSIGNAL);
-		
+#endif		
 		if (Transferred == -1) /*This is ugly I know, but it's converted implicitly, so shut up.*/
 		{
 			return false;
@@ -96,8 +103,7 @@ Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Boo
 	
 	do
 	{
-		Status = recv(SockDescriptor, &Byte, 1, 0);
-		
+		Status = recv(SockDescriptor, (void*)&Byte, 1, 0);
 		if (TextStream && Byte == '\n') break;
 		
 		*OutStream++ = Byte;
@@ -120,7 +126,11 @@ Bool Net_Disconnect(int SockDescriptor)
 {
 	if (!SockDescriptor) return false;
 	
+#ifdef WIN
+	return !closesocket(SockDescriptor);
+#else
 	return !close(SockDescriptor);
+#endif
 }
 
 Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxData, char *OutStream)

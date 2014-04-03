@@ -30,11 +30,11 @@ Bool Log_CoreWrite(const char *InStream, const char *FileTitle)
 {
 	char TimeString[128];
 	time_t Time = time(NULL);
-	struct tm TimeStruct;
+	struct tm *TimeStruct;
 	char OutBuf[1024];	
 	
-	gmtime_r(&Time, &TimeStruct);
-	strftime(TimeString, sizeof TimeString, "[%Y-%m-%d %H:%M:%S UTC]", &TimeStruct);
+	TimeStruct = gmtime(&Time);
+	strftime(TimeString, sizeof TimeString, "[%Y-%m-%d %H:%M:%S UTC]", TimeStruct);
 	
 	snprintf(OutBuf, sizeof OutBuf, "%s %s\n", TimeString, InStream);
 	
@@ -46,7 +46,11 @@ Bool Log_CoreWrite(const char *InStream, const char *FileTitle)
 		
 		if (stat("logs", &DirStat) != 0)
 		{
+#ifdef WIN
+			if (mkdir("logs") != 0) return false;
+#else
 			if (mkdir("logs", 0755) != 0) return false;
+#endif
 		}
 		
 		SubStrings.Cat(FileName, FileTitle, sizeof FileName);
@@ -209,13 +213,13 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 		case IMSG_QUIT:
 		{ /*We don't want to actually log these, just print them to the console.*/
 			time_t Time = time(NULL);
-			struct tm TimeStruct;
+			struct tm *TimeStruct;
 			const unsigned long Len = strlen(OutBuf);
 			
 			if (ShowOutput) return true; /*That means we are doing pure, verbose IRC printing, so don't show this.*/
 			
-			gmtime_r(&Time, &TimeStruct);
-			strftime(OutBuf, sizeof OutBuf, "[%Y-%m-%d %H:%M:%S UTC]", &TimeStruct);
+			TimeStruct = gmtime(&Time);
+			strftime(OutBuf, sizeof OutBuf, "[%Y-%m-%d %H:%M:%S UTC]", TimeStruct);
 			snprintf(OutBuf + Len, sizeof OutBuf - Len, " <%s has quit: %s>", Nick, *Origin == ':' ? Origin + 1 : Origin);
 			puts(OutBuf);
 			

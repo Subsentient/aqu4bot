@@ -12,6 +12,9 @@ See the file UNLICENSE.TXT for more information.
 #include <string.h>
 #include <signal.h>
 #include <sys/stat.h>
+#ifdef WIN
+#include <winsock2.h>
+#endif
 #include "aqu4.h"
 
 Bool ShowOutput;
@@ -40,9 +43,21 @@ static void SigHandler(int Signal)
 int main(int argc, char **argv)
 {
 	int Inc = 1;
-	Bool Background = false;
 	struct stat DirStat;
-	
+#ifndef WIN
+	Bool Background = false;
+#endif
+
+#ifdef WIN
+	WSADATA WSAData;
+
+    if (WSAStartup(MAKEWORD(1,1), &WSAData) != 0)
+    {
+        fprintf(stderr, "Unable to initialize WinSock2!");
+        exit(1);
+    }
+#endif
+
 	_argc = argc;
 	_argv = argv;
 	
@@ -54,10 +69,12 @@ int main(int argc, char **argv)
 		{
 			ShowOutput = true;
 		}
+#ifndef WIN
 		else if (!strcmp(argv[Inc], "--background"))
 		{
 			Background = true;
 		}
+#endif
 		else
 		{
 			fprintf(stderr, "Bad command line argument \"%s\".\n", argv[Inc]);
@@ -65,15 +82,19 @@ int main(int argc, char **argv)
 		}
 	}
 		
-	puts("\033[36maqu4bot " BOT_VERSION " starting up.\033[0m\n"
+	puts("\033[36maqu4bot " BOT_VERSION " (" BOT_OS ") starting up.\033[0m\n"
 		"Compiled " __DATE__ " " __TIME__ "\n");
-		
+
+#ifdef WIN
+	if (stat("db", &DirStat) != 0 && mkdir("db") != 0)
+#else
 	if (stat("db", &DirStat) != 0 && mkdir("db", 0755) != 0)
+#endif
 	{
 		fprintf(stderr, "Unable to create database directory 'db'! Cannot continue!\n");
 		exit(1);
 	}
-	
+#ifndef WIN
 	if (Background)
 	{
 		pid_t NewPID;
@@ -104,7 +125,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	
+#endif
 	if (!Config_ReadConfig())
 	{
 		return 1;

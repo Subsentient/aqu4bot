@@ -657,7 +657,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		else
 		{
 			puts("Restarting because 'restart' command was received from owner.");
-			execvp(*_argv, _argv);
+			execvp(*_argv, (void*)_argv);
 			fprintf(stderr, "Failed to restart! execvp() failed!");
 			exit(1);
 		}
@@ -740,9 +740,9 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strcmp(CommandID, "time"))
 	{
 		time_t CurrentTime = time(NULL);
-		struct tm TimeStruct;
+		struct tm *TimeStruct;
 		char TimeString[256] = { '\0' };
-		struct tm *(*TimeFunc)(const time_t *Timer, struct tm *Struct) = gmtime_r;
+		struct tm *(*TimeFunc)(const time_t *Timer) = gmtime;
 		char TZ[32] = { '\0' };
 		char TimeFormat[128] = "%a %Y-%m-%d %I:%M:%S %p";
 		
@@ -765,18 +765,20 @@ void CMD_ProcessCommand(const char *InStream_)
 				TimeFormat[Inc] = '\0';
 			}
 			
-			TimeFunc = localtime_r;
+			TimeFunc = localtime;
+#ifndef WIN
 			setenv("TZ", TZ, true);
+#endif
 			tzset();
 		}
 		
-		TimeFunc(&CurrentTime, &TimeStruct);
-		
+		TimeStruct = TimeFunc(&CurrentTime);
+#ifndef WIN		
 		if (*TZ) unsetenv("TZ"); /*Restore to normalcy.*/
+#endif
+		strftime(TimeString, sizeof TimeString, TimeFormat, TimeStruct);
 		
-		strftime(TimeString, sizeof TimeString, TimeFormat, &TimeStruct);
-		
-		if (TimeFunc == gmtime_r) strcat(TimeString, " UTC");
+		if (TimeFunc == gmtime) strcat(TimeString, " UTC");
 		else strcat(TimeString, " "), strcat(TimeString, TZ);
 		
 		IRC_Message(SendTo, TimeString);
@@ -936,7 +938,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		else if (!strcmp(Mode, "read"))
 		{
 			struct StickySpec Sticky = { 0 };
-			struct tm TimeStruct;
+			struct tm *TimeStruct;
 			char TimeString[256];
 			char OutBuf[2048];
 			
@@ -946,8 +948,8 @@ void CMD_ProcessCommand(const char *InStream_)
 				return;
 			}
 			
-			gmtime_r(&Sticky.Time, &TimeStruct);
-			strftime(TimeString, sizeof TimeString, "%m/%d/%Y %H:%M:%S UTC", &TimeStruct);
+			TimeStruct = gmtime(&Sticky.Time);
+			strftime(TimeString, sizeof TimeString, "%m/%d/%Y %H:%M:%S UTC", TimeStruct);
 			
 			snprintf(OutBuf, sizeof OutBuf, "Created by \"%s\" at %s: %s", Sticky.Owner, TimeString, Sticky.Data);
 			IRC_Message(SendTo, OutBuf);
@@ -1074,15 +1076,15 @@ Bool CMD_ReadTellDB(const char *Target)
 		
 		if (!strcmp(TargetL, Nick))
 		{ /*Found one.*/
-			struct tm TimeStruct;
+			struct tm *TimeStruct;
 			time_t Time = atol(ATime);
 			char TimeString[128], OutBuf[2048];
 
 			*ATime = '\0';
 
-			gmtime_r(&Time, &TimeStruct);
+			TimeStruct = gmtime(&Time);
 			
-			strftime(TimeString, sizeof TimeString, "[%Y-%m-%d | %H:%M:%S UTC]", &TimeStruct);
+			strftime(TimeString, sizeof TimeString, "[%Y-%m-%d | %H:%M:%S UTC]", TimeStruct);
 			
 			snprintf(OutBuf, sizeof OutBuf, "%s You have a message from %s: %s", TimeString, Source, Message);
 			
@@ -1183,7 +1185,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 	char *StickyDB = NULL, *Worker = NULL;
 	struct stat FileStat;
 	time_t Time = 0;
-	struct tm TimeStruct;
+	struct tm *TimeStruct;
 	char TimeString[256], StickyID_T[32], ATime[1024], Owner[128];
 	char OutBuf[2048];
 	unsigned long StickyCount = 0, BigInc = 0;
@@ -1234,9 +1236,9 @@ static Bool CMD_ListStickies(const char *SendTo)
 		Owner[Inc] = '\0';
 		
 		Time = atol(ATime);
-		gmtime_r(&Time, &TimeStruct);
+		TimeStruct = gmtime(&Time);
 		
-		strftime(TimeString, sizeof TimeString, "%H:%M:%S %Y-%m-%d UTC", &TimeStruct);
+		strftime(TimeString, sizeof TimeString, "%H:%M:%S %Y-%m-%d UTC", TimeStruct);
 		
 		snprintf(OutBuf, sizeof OutBuf, "Sticky ID: %s, created by \"%s\" at %s", StickyID_T, Owner, TimeString);
 		IRC_Message(SendTo, OutBuf);
@@ -1795,10 +1797,10 @@ static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 		if (!strcmp(NickBuf[0], NickBuf[1]))
 		{
 			char TimeString[128];
-			struct tm TimeStruct;
+			struct tm *TimeStruct;
 			
-			gmtime_r(&Worker->Time, &TimeStruct);
-			strftime(TimeString, sizeof TimeString, "%Y-%m-%d %H:%M:%S UTC", &TimeStruct);
+			TimeStruct = gmtime(&Worker->Time);
+			strftime(TimeString, sizeof TimeString, "%Y-%m-%d %H:%M:%S UTC", TimeStruct);
 			
 			if (*Worker->Channel == '#')
 			{

@@ -21,6 +21,10 @@ See the file UNLICENSE.TXT for more information.
 #define ROOT_URL "http://universe2.us/"
 #define SOURCECODE_URL "http://github.com/Subsentient/aqu4bot/"
 
+#ifndef BOT_OS
+#define BOT_OS "UNIX"
+#endif
+
 /*This is how we do it.*/
 typedef signed char Bool;
 enum { false, true };

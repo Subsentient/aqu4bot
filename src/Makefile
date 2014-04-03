@@ -1,5 +1,13 @@
 CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0
 CC = gcc
+OUTFILE = aqu4bot
+OS = UNIX
+
+ifeq ($(OS),WIN)
+	CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\"
+	LDFLAGS = "-lws2_32"
+	OUTFILE = aqu4bot.exe
+endif
 
 all:
 	$(CC) auth.c -c $(CFLAGS)
@@ -14,7 +22,7 @@ all:
 	
 	$(MAKE) -C substrings static
 
-	$(CC) $(CFLAGS) -o ../aqu4bot auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o wz.o substrings/libsubstrings.a
+	$(CC) $(CFLAGS) -o ../$(OUTFILE) auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o wz.o substrings/libsubstrings.a $(LDFLAGS)
 
 clean:
 	rm -vf *.o

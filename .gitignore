@@ -2,3 +2,7 @@ aqu4bot.conf
 aqu4bot
 src/*.o
 src/*.gch
+src/substrings/libsubstrings*
+src/substrings/*.o
+src/substrings/*.a
+src/substrings/*.so
