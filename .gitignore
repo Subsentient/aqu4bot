@@ -1,5 +1,8 @@
 aqu4bot.conf
 aqu4bot
+aqu4bot.exe
+db
+logs
 src/*.o
 src/*.gch
 src/substrings/libsubstrings*
