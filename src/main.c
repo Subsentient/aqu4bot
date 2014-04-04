@@ -54,15 +54,13 @@ static void SigHandler(int Signal)
 
 static Bool Main_GenConfig(void)
 {
-	FILE *Descriptor = fopen("aqu4bot-generated.conf", "wb"); /*Write in binary to keep Windows from meddling.*/
+	FILE *Descriptor = NULL;
 	char LineBuf[4096], CurChan[128], *Worker = LineBuf;
+	char FileBuf[16384] = { '\0' }; /*16K max config size for generator. Should be ridiculously more than enough.*/
 	register unsigned long Inc = 0;
 	char Nick[128], Ident[128], Mask[128];
-	if (!Descriptor)
-	{
-		fprintf(stderr, "I can't open aqu4bot.conf for writing in the current directory!");
-		return false;
-	}
+	char OutBuf[sizeof LineBuf + 128], OutPath[256];
+	struct stat FileStat;
 	
 	puts("Generating a config file as per your request.\n"
 		"I'll need some information from you now.\n");
@@ -71,27 +69,32 @@ static Bool Main_GenConfig(void)
 	
 	fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
 	
-	fprintf(Descriptor, "Hostname=%s\n", LineBuf);
+	snprintf(OutBuf, sizeof OutBuf, "Hostname=%s\n", LineBuf);
+	SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 	
 	printf("What is the port number of the IRC server?\n--> ");
 	
 	fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
-	fprintf(Descriptor, "PortNum=%s\n", LineBuf);
+	snprintf(OutBuf, sizeof OutBuf, "PortNum=%s\n", LineBuf);
+	SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 	
 	printf("What nickname do you want to give the bot?\n--> ");
 	
 	fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
-	fprintf(Descriptor, "Nick=%s\n", LineBuf);
+	snprintf(OutBuf, sizeof OutBuf, "Nick=%s\n", LineBuf);
+	SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 	
 	printf("What ident do you want to give the bot?\n--> ");
 	
 	fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
-	fprintf(Descriptor, "Ident=%s\n", LineBuf);
+	snprintf(OutBuf, sizeof OutBuf, "Ident=%s\n", LineBuf);
+	SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 	
 	printf("What do you want the 'real name' of the bot to be?\n--> ");
 	
 	fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
-	fprintf(Descriptor, "RealName=%s\n", LineBuf);
+	snprintf(OutBuf, sizeof OutBuf, "RealName=%s\n", LineBuf);
+	SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 	
 	printf("Please enter a list of channels separated by spaces.\n"
 			"Put a comma followed by a prefix to specify a command prefix for that channel.\n--> ");
@@ -108,7 +111,8 @@ static Bool Main_GenConfig(void)
 			}
 			CurChan[Inc] = '\0';
 			
-			fprintf(Descriptor, "Channel=%s\n", CurChan);
+			snprintf(OutBuf, sizeof OutBuf, "Channel=%s\n", CurChan);
+			SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 			printf("Added channel %s\n", CurChan);			
 		} while ((Worker = SubStrings.Line.WhitespaceJump(Worker)));
 	}
@@ -116,27 +120,27 @@ static Bool Main_GenConfig(void)
 LLogging:
 	printf("Do you want to enable logging? Please enter y or n.\n--> ");
 	
-	*LineBuf = getchar();
-	if (*LineBuf == '\n') *LineBuf = getchar();
-	getchar();
+	fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
 	
 	switch (tolower(*LineBuf))
 	{
 		case 'y':
-			fprintf(Descriptor, "Logging=true\n");
+			snprintf(OutBuf, sizeof OutBuf, "Logging=true\n");
+			SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 		LLogPMs:
 			printf("Do you want to log private messages sent to the bot? Please enter y or n.\n--> ");
 			
-			*LineBuf = getchar();
-			if (*LineBuf == '\n') *LineBuf = getchar();
-			getchar();
+			fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
+			
 			switch (tolower(*LineBuf))
 			{
 				case 'y':
-					fprintf(Descriptor, "LogPMs=true\n");
+					snprintf(OutBuf, sizeof OutBuf, "LogPMs=true\n");
+					SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 					break;
 				case 'n':
-					fprintf(Descriptor, "LogPMs=false\n");
+					snprintf(OutBuf, sizeof OutBuf, "LogPMs=false\n");
+					SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 					break;
 				default:
 					putchar('\n');
@@ -146,7 +150,8 @@ LLogging:
 			
 			break;
 		case 'n':
-			fprintf(Descriptor, "Logging=false\n");
+			snprintf(OutBuf, sizeof OutBuf, "Logging=false\n");
+			SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 			break;
 		default:
 			goto LLogging;
@@ -166,32 +171,66 @@ OwnerGet:
 	
 	}
 
-	fprintf(Descriptor, "BotOwner=%s!%s@%s\n", Nick, Ident, Mask);
+	snprintf(OutBuf, sizeof OutBuf, "BotOwner=%s!%s@%s\n", Nick, Ident, Mask);
+	SubStrings.Cat(FileBuf, OutBuf, sizeof FileBuf);
 	
-	puts("\nWell, you now have a config file at aqu4bot-generated.conf.\n"
-		"Rename it to aqu4bot.conf to use it as your config file.\n"
-		"Want me to do that for you?");
-	Bot_SetTextColor(RED);
-	printf("WARNING: ");
-	Bot_SetTextColor(ENDCOLOR);
-	printf("This will overwrite your existing\n"
-		"config file, if you have one.\n--> ");
+	printf("A config file has been generated, but now we need a place to save it.\n"
+		"Enter a filename for the new config file. aqu4bot.conf is what it should be\n"
+		"named if you intend to use this config file.\n--> ");
 	
-	*LineBuf = getchar();
-	if (*LineBuf == '\n') *LineBuf = getchar();
-	getchar();
+	fgets(OutPath, sizeof OutPath, stdin); OutPath[strlen(OutPath) - 1] = '\0';
 	
-	if (tolower(*LineBuf) == 'y')
+	
+	if (stat(OutPath, &FileStat) == 0)
 	{
-		remove(CONFIG_FILE);
-		rename("aqu4bot-generated.conf", CONFIG_FILE);
-		puts("File renamed.");
+		Bot_SetTextColor(YELLOW);
+		printf("WARNING: ");
+		Bot_SetTextColor(ENDCOLOR);
+		
+		printf("The config file \"%s\" already exists! Overwrite it?\n"
+			"Please enter y or n\n--> ", OutPath);
+		
+		fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
+		
+		if (tolower(*LineBuf) != 'y')
+		{
+			puts("Aborting, not overwriting the config file.");
+			return false;
+		}
 	}
 	
-	fclose(Descriptor);
+	Bot_SetTextColor(YELLOW);
+	printf("Writing config file to \"%s\"...\n", OutPath);
+	Bot_SetTextColor(ENDCOLOR);
+	
+	if (!(Descriptor = fopen(OutPath, "wb")))
+	{
+		Bot_SetTextColor(RED);
+		puts("\nFailed to save config file!");
+		Bot_SetTextColor(ENDCOLOR);
+		
+		puts("Make sure it's a valid location,\nand that you have permission to write there.");
+		return false;
+	}
+	
+	/*Add a bit of help at the top of the file.*/
+	fprintf(Descriptor, "#aqu4bot config file generated with --genconfig option.\n\n"
+			"#Other options include:\n"
+			"#NickservPwd=Nickserv Password\n"
+			"#Prefix=$ (The global command prefix)\n"
+			"#SendDelay=8 (tenths of a second to wait between sending messages)\n"
+			"#SetBotmode=true/false (some networks request you set a special mode for your IRC bots.)\n"
+			"#Admin=nick!ident@mask (Add a less privileged admin who can administrate channels and other stuff,\n"
+			"#but not administrate the bot itself.)\n");
+	fwrite(FileBuf, 1, strlen(FileBuf), Descriptor);
+	
+	fflush(NULL); fclose(Descriptor);
+	
+	Bot_SetTextColor(GREEN);
+	puts("Done!");
+	Bot_SetTextColor(ENDCOLOR);
 	
 	return true;
-
 }
 
 int main(int argc, char **argv)
