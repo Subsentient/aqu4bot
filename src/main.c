@@ -358,7 +358,7 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-			FILE *Descriptor = fopen("aqu4bot.pid", "w");
+			FILE *Descriptor = fopen("aqu4bot.pid", "wb");
 			setsid();
 			freopen("stdout.log", "a", stdout);
 			freopen("stderr.log", "a", stderr);

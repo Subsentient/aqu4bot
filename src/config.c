@@ -33,7 +33,7 @@ Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long Max
 	
 Bool Config_ReadConfig(void)
 {
-	FILE *Descriptor = fopen(CONFIG_FILE, "r");
+	FILE *Descriptor = fopen(CONFIG_FILE, "rb");
 	char *ConfigStream = NULL, *Worker = NULL;
 	struct stat FileStat;
 	unsigned long Inc = 0, LineNum = 1;

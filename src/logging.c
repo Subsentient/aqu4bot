@@ -56,7 +56,7 @@ Bool Log_CoreWrite(const char *InStream, const char *FileTitle)
 		SubStrings.Cat(FileName, FileTitle, sizeof FileName);
 		SubStrings.Cat(FileName, ".txt", sizeof FileName);
 		
-		if (!(Descriptor = fopen(FileName, "a"))) return false;
+		if (!(Descriptor = fopen(FileName, "ab"))) return false;
 		
 		fwrite(OutBuf, 1, SubStrings.Length(OutBuf), Descriptor);
 		fflush(Descriptor);

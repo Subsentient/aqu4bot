@@ -252,7 +252,7 @@ Bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 
 void Auth_BlacklistLoad(void)
 {
-	FILE *Descriptor = fopen("db/blacklist.db", "r");
+	FILE *Descriptor = fopen("db/blacklist.db", "rb");
 	char *BlacklistDB = NULL, *Worker = NULL;
 	char CurLine[2048], Nick[128], Ident[128], Mask[128];
 	struct stat FileStat;
@@ -304,7 +304,7 @@ Bool Auth_BlacklistSave(void)
 		return true;
 	}
 	
-	if (!(Descriptor = fopen("db/blacklist.db", "w"))) return false;
+	if (!(Descriptor = fopen("db/blacklist.db", "wb"))) return false;
 	
 	for (; Worker != NULL; Worker = Worker->Next)
 	{

@@ -1002,7 +1002,7 @@ void CMD_ProcessCommand(const char *InStream_)
 
 Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message)
 {
-	FILE *Descriptor = fopen("db/tell.db", "a");
+	FILE *Descriptor = fopen("db/tell.db", "ab");
 	char OutBuffer[2048];
 	time_t Time = time(NULL);
 	
@@ -1018,7 +1018,7 @@ Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message
 
 Bool CMD_ReadTellDB(const char *Target)
 {
-	FILE *Descriptor = fopen("db/tell.db", "r");
+	FILE *Descriptor = fopen("db/tell.db", "rb");
 	char *TellDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	char LineGroups[3][1024], Message[2048];
 	char *ATime = LineGroups[0], *Nick = LineGroups[1], *Source = LineGroups[2];
@@ -1106,7 +1106,7 @@ Bool CMD_ReadTellDB(const char *Target)
 				*LineRoot = '\0';
 			}
 			
-			if ((Descriptor = fopen("db/tell.db", "w")))
+			if ((Descriptor = fopen("db/tell.db", "wb")))
 			{
 				fwrite(TellDB,1, strlen(TellDB), Descriptor);
 				fclose(Descriptor);
@@ -1123,7 +1123,7 @@ Bool CMD_ReadTellDB(const char *Target)
 
 unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 {
-	FILE *Descriptor = fopen("db/sticky.db", "a+");
+	FILE *Descriptor = fopen("db/sticky.db", "a+b");
 	char OutBuf[4096];
 	struct stat FileStat;
 	unsigned long StickyID = 0;
@@ -1182,7 +1182,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 {
 #define MAX_STICKIES_TO_LIST 10
 	unsigned long Inc = 0;
-	FILE *Descriptor = fopen("db/sticky.db", "r");
+	FILE *Descriptor = fopen("db/sticky.db", "rb");
 	char *StickyDB = NULL, *Worker = NULL;
 	struct stat FileStat;
 	time_t Time = 0;
@@ -1605,7 +1605,7 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 { /*If SendTo is NULL, we delete the sticky instead of reading it.*/
 	char *StickyDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	unsigned long Inc = 0;
-	FILE *Descriptor = fopen("db/sticky.db", "r");
+	FILE *Descriptor = fopen("db/sticky.db", "rb");
 	struct stat FileStat;
 	char StickyID_T[32], ATime[32], Owner[128], StickyData[2048];
 	Bool Found = false;
@@ -1686,7 +1686,7 @@ static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete
 					*LineRoot = '\0';
 				}
 				
-				if (!(Descriptor = fopen("db/sticky.db", "w")))
+				if (!(Descriptor = fopen("db/sticky.db", "wb")))
 				{
 					free(StickyDB);
 					return false;
@@ -1827,7 +1827,7 @@ static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 
 void CMD_LoadSeenDB(void) /*Loads it from disk.*/
 {
-	FILE *Descriptor = fopen("db/seen.db", "r");
+	FILE *Descriptor = fopen("db/seen.db", "rb");
 	char *SeenDB, *TextWorker  = NULL;
 	struct stat FileStat;
 	char ATime[256], Nick[128], Channel[128], LastMessage[2048];
@@ -1893,7 +1893,7 @@ Bool CMD_SaveSeenDB(void)
 	
 	if (!SeenRoot) return false;
 	
-	if (!(Descriptor = fopen("db/seen.db", "w"))) return false;
+	if (!(Descriptor = fopen("db/seen.db", "wb"))) return false;
 	
 	for (; Worker; Worker = Worker->Next)
 	{
@@ -1991,7 +1991,7 @@ Bool CMD_LoadUserModes(void)
 {
 	struct stat FileStat;
 	char *Stream = NULL, *Worker = NULL;
-	FILE *Descriptor = fopen("db/usermodes.db", "r");
+	FILE *Descriptor = fopen("db/usermodes.db", "rb");
 	char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128], *MW;
 	char CurLine[1024];
 	unsigned long Inc = 0;
@@ -2092,7 +2092,7 @@ void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask,
 
 Bool CMD_SaveUserModes(void)
 {
-	FILE *Descriptor = fopen("db/usermodes.db", "w");
+	FILE *Descriptor = fopen("db/usermodes.db", "wb");
 	struct UserModeSpec *Worker = UserModeRoot, *Del;
 	
 	if (!Descriptor) return false;
