@@ -27,6 +27,16 @@ static void SigHandler(int Signal)
 {
 	switch (Signal)
 	{
+		case SIGTERM:
+			puts("Caught SIGTERM, shutting down.");
+			IRC_Quit(NULL);
+			IRC_ShutdownChannelTree();
+			Auth_ShutdownAdmin();
+			CMD_SaveSeenDB();
+			CMD_SaveUserModes();
+			Auth_ShutdownBlacklist();
+			exit(0);
+			break;
 		case SIGINT:
 			puts("Caught SIGINT, shutting down.");
 			IRC_Quit(NULL);
@@ -42,16 +52,16 @@ static void SigHandler(int Signal)
 	}
 }
 
-static void Main_GenConfig(void)
+static Bool Main_GenConfig(void)
 {
-	FILE *Descriptor = fopen("aqu4bot-generated.conf", "w");
+	FILE *Descriptor = fopen("aqu4bot-generated.conf", "wb"); /*Write in binary to keep Windows from meddling.*/
 	char LineBuf[4096], CurChan[128], *Worker = LineBuf;
 	register unsigned long Inc = 0;
 	char Nick[128], Ident[128], Mask[128];
 	if (!Descriptor)
 	{
 		fprintf(stderr, "I can't open aqu4bot.conf for writing in the current directory!");
-		exit(1);
+		return false;
 	}
 	
 	puts("Generating a config file as per your request.\n"
@@ -159,11 +169,29 @@ OwnerGet:
 	fprintf(Descriptor, "BotOwner=%s!%s@%s\n", Nick, Ident, Mask);
 	
 	puts("\nWell, you now have a config file at aqu4bot-generated.conf.\n"
-		"Rename it to aqu4bot.conf to use it as your config file.");
+		"Rename it to aqu4bot.conf to use it as your config file.\n"
+		"Want me to do that for you?");
+	Bot_SetTextColor(RED);
+	printf("WARNING: ");
+	Bot_SetTextColor(ENDCOLOR);
+	printf("This will overwrite your existing\n"
+		"config file, if you have one.\n--> ");
 	
+	*LineBuf = getchar();
+	if (*LineBuf == '\n') *LineBuf = getchar();
+	getchar();
+	
+	if (tolower(*LineBuf) == 'y')
+	{
+		remove(CONFIG_FILE);
+		rename("aqu4bot-generated.conf", CONFIG_FILE);
+		puts("File renamed.");
+	}
 	
 	fclose(Descriptor);
-	exit(0);
+	
+	return true;
+
 }
 
 int main(int argc, char **argv)
@@ -178,16 +206,44 @@ int main(int argc, char **argv)
 	WSADATA WSAData;
 
     if (WSAStartup(MAKEWORD(1,1), &WSAData) != 0)
-    {
+    { /*Initialize winsock*/
         fprintf(stderr, "Unable to initialize WinSock2!");
         exit(1);
     }
+    
+    /*Our dialog box for questions.*/
+    
+    if (stat("aqu4bot.conf", &DirStat) != 0)
+    {
+		int MBReturn;
+		const char *WelcomeMsg = "Welcome to aqu4bot " BOT_VERSION " for Windows!\n"
+								"I can't find your " CONFIG_FILE " file, so would\n"
+								"you like to use the config file generator to create\n"
+								"a basic usable configuration?";
+		MBReturn = MessageBox(NULL, WelcomeMsg, "Welcome to aqu4bot " BOT_VERSION " for Windows!",
+				MB_ICONINFORMATION | MB_YESNO | MB_DEFBUTTON2);
+		
+		if (MBReturn == IDYES)
+		{
+			Main_GenConfig();
+			puts("Press any key to exit.");
+			getchar();
+			exit(0);
+		}
+		else
+		{
+			MessageBox(NULL, "Not launching the config generator.\nExiting because there is no config file.",
+					"aqu4bot", MB_ICONINFORMATION | MB_OK);
+			exit(0);
+		}
+	}
 #endif
 
 	_argc = argc;
 	_argv = argv;
 	
 	signal(SIGINT, SigHandler);
+	signal(SIGTERM, SigHandler);
 
 	for (; Inc < argc; ++Inc)
 	{
@@ -197,7 +253,7 @@ int main(int argc, char **argv)
 		}
 		else if (!strcmp(argv[Inc], "--genconfig"))
 		{ /*Config file builder.*/
-			Main_GenConfig();
+			exit(!Main_GenConfig());
 		}	
 #ifndef WIN
 		else if (!strcmp(argv[Inc], "--background"))
