@@ -208,18 +208,34 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 			snprintf(OutBuf, sizeof OutBuf, "<%s was kicked from %s by %s>", Message, Origin, Nick);
 			break;
 		case IMSG_NICK:
-			snprintf(OutBuf, sizeof OutBuf, "<%s is now known as %s>", Nick, Origin);
-			break;
-		case IMSG_QUIT:
-		{ /*We don't want to actually log these, just print them to the console.*/
+		{
 			time_t Time = time(NULL);
 			struct tm *TimeStruct;
-			const unsigned long Len = strlen(OutBuf);
+			unsigned long Len = 0;
 			
 			if (ShowOutput) return true; /*That means we are doing pure, verbose IRC printing, so don't show this.*/
 			
 			TimeStruct = gmtime(&Time);
+			
 			strftime(OutBuf, sizeof OutBuf, "[%Y-%m-%d %H:%M:%S UTC]", TimeStruct);
+			Len = strlen(OutBuf);
+			snprintf(OutBuf + Len, sizeof OutBuf - Len, " <%s is now known as %s>", Nick, Origin);
+			puts(OutBuf);
+			
+			return true;
+		}
+		case IMSG_QUIT:
+		{ /*We don't want to actually log these, just print them to the console.*/
+			time_t Time = time(NULL);
+			struct tm *TimeStruct;
+			unsigned long Len = 0;
+			
+			if (ShowOutput) return true;
+			
+			TimeStruct = gmtime(&Time);
+			
+			strftime(OutBuf, sizeof OutBuf, "[%Y-%m-%d %H:%M:%S UTC]", TimeStruct);
+			Len = strlen(OutBuf);
 			snprintf(OutBuf + Len, sizeof OutBuf - Len, " <%s has quit: %s>", Nick, *Origin == ':' ? Origin + 1 : Origin);
 			puts(OutBuf);
 			
