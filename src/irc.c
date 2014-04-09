@@ -511,16 +511,7 @@ Bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, con
 			}
 			else
 			{
-				struct _UserList *TW = UWorker;
-				
-				/*Check if it already exists.*/
-				for (; TW; TW = TW->Next)
-				{
-					if (!strcmp(Nick, TW->Nick) && (!FullUser || !TW->FullUser || (!strcmp(Ident, TW->Ident) && !strcmp(Mask, TW->Mask))))
-					{
-						return true; /*No need to worry anybody, it'd be the same result if it wasn't already here.*/
-					}
-				}
+				if (IRC_UserInChannelP(Worker, Nick)) return true; /*Same result, so just say OK.*/
 				
 				while (UWorker->Next) UWorker = UWorker->Next;
 				
