@@ -317,7 +317,7 @@ void IRC_Loop(void)
 						|| *NamesList == '$' || *NamesList == '%' || *NamesList == '^'
 						|| *NamesList == '&' || *NamesList == '*' || *NamesList == '+'
 						|| *NamesList == '=' || *NamesList == '-' || *NamesList == '('
-						|| *NamesList == ')' || *NamesList == '?') ++NamesList;
+						|| *NamesList == ')' || *NamesList == '?' || *NamesList == '~') ++NamesList;
 						
 					for (Inc = 0; NamesList[Inc] != ' ' && NamesList[Inc] != '\0' && Inc < sizeof Nick - 1; ++Inc)
 					{ /*We don't have full data on them yet, so just record nick.*/
