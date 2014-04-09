@@ -20,7 +20,7 @@ See the file UNLICENSE.TXT for more information.
 
 Bool Logging;
 Bool LogPMs;
-
+static Bool NoLogToConsole;
 
 /*Prototypes.*/
 static Bool Log_TopicLog(const char *InStream);
@@ -63,7 +63,7 @@ Bool Log_CoreWrite(const char *InStream, const char *FileTitle)
 		fclose(Descriptor);
 	}
 	
-	if (!ShowOutput) /*Don't spit dual copies everywhere if we're in verbose.*/
+	if (!ShowOutput && !NoLogToConsole) /*Don't spit dual copies everywhere if we're in verbose.*/
 	{
 		OutBuf[SubStrings.Length(OutBuf) - 1] = '\0'; /*Delete newline.*/
 		puts(OutBuf);
@@ -214,11 +214,11 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 			
 			if (MType == IMSG_QUIT)
 			{
-				snprintf(OutBuf, sizeof OutBuf, " <%s has quit: %s>", Nick, *Origin == ':' ? Origin + 1 : Origin);
+				snprintf(OutBuf, sizeof OutBuf, "<%s has quit: %s>", Nick, *Origin == ':' ? Origin + 1 : Origin);
 			}
 			else
 			{
-				snprintf(OutBuf, sizeof OutBuf, " <%s is now known as %s>", Nick, Origin);
+				snprintf(OutBuf, sizeof OutBuf, "<%s is now known as %s>", Nick, Origin);
 			}
 			
 			if (!Channels)
@@ -232,9 +232,11 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 				if (IRC_UserInChannelP(Worker, Nick))
 				{
 					Log_CoreWrite(OutBuf, Worker->Channel);
+					NoLogToConsole = true;
 				}
 			}
 			
+			NoLogToConsole = false;
 			return true;
 		}
 		default:
