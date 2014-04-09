@@ -708,7 +708,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	{
 		char OutBuf[2048];
 		
-		snprintf(OutBuf, sizeof OutBuf, "You are %s!~%s@%s, and you are %s%s.", Nick, Ident, Mask,
+		snprintf(OutBuf, sizeof OutBuf, "You are %s!%s@%s, and you are %s%s.", Nick, Ident, Mask,
 				IsAdmin ? "an admin" : "not an admin", BotOwner ? ", and an owner" : "");
 		IRC_Message(SendTo, OutBuf);
 	}
