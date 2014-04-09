@@ -171,7 +171,10 @@ void IRC_Loop(void)
 				break;
 			}
 			case IMSG_QUIT:
-			{				
+			{	
+				struct ChannelTree *Worker = Channels;
+				
+				
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				if (!strcmp(Nick, ServerInfo.Nick))
@@ -186,6 +189,14 @@ void IRC_Loop(void)
 				}
 				
 				Log_WriteMsg(MessageBuf, IMSG_QUIT);
+				
+				if (!Channels) continue;
+				
+				for (; Worker; Worker = Worker->Next)
+				{
+					IRC_DelUserFromChannelP(Worker, Nick);
+				}
+				
 				break;
 			}
 			case IMSG_JOIN:
@@ -193,6 +204,8 @@ void IRC_Loop(void)
 				const char *Search = SubStrings.CFind('#', 1, MessageBuf);
 				
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				
+				IRC_AddUserToChannel(Search, Nick, Ident, Mask, true);
 				
 				Log_WriteMsg(MessageBuf, IMSG_JOIN);
 				
@@ -206,19 +219,39 @@ void IRC_Loop(void)
 				break;
 			}
 			case IMSG_PART:
+			{
+				char *Search = SubStrings.CFind('#', 1, MessageBuf), *Two = Search;
+				
+				if ((Two = SubStrings.CFind(' ', 1, Two))) *Two = '\0';
+				
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 
+				IRC_DelUserFromChannel(Search, Nick);
+				
 				Log_WriteMsg(MessageBuf, IMSG_PART);
 				break;
+			}
 			case IMSG_NICK:
 			{
 				char NewNick[128];
-
+				struct ChannelTree *Worker = Channels;
+				
 				IRC_GetMessageData(MessageBuf, NewNick);
 				
 				Log_WriteMsg(MessageBuf, IMSG_NICK);
 				
 				while (CMD_ReadTellDB(*NewNick == ':' ? NewNick + 1 : NewNick));
+				
+				for (; Worker; Worker = Worker->Next)
+				{
+					if (IRC_UserInChannelP(Worker, Nick))
+					{
+						IRC_DelUserFromChannelP(Worker, Nick);
+						IRC_AddUserToChannel(Worker->Channel, Nick, Ident, Mask, true);
+					}
+				}
+				
+				break;
 			}
 			case IMSG_MODE:
 				Log_WriteMsg(MessageBuf, IMSG_MODE);
@@ -254,6 +287,44 @@ void IRC_Loop(void)
 				}
 				
 				Log_WriteMsg(MessageBuf, IMSG_TOPIC);
+				break;
+			}
+			case IMSG_NAMES:
+			{
+				char *NamesList = SubStrings.CFind('#', 1, MessageBuf);
+				char Channel[128], Nick[128];
+				unsigned long Inc = 0;
+				
+				if (!NamesList) continue;
+				
+				for (; NamesList[Inc] != ' ' && NamesList[Inc] != '\0'; ++Inc)
+				{
+					Channel[Inc] = NamesList[Inc];
+				}
+				Channel[Inc] = '\0';
+				
+				if (!(NamesList = SubStrings.Line.WhitespaceJump(NamesList))) continue;
+				
+				if (*NamesList == ':') ++NamesList;
+				
+				do
+				{
+					/*Some characters are used for OP and such.*/
+					if (*NamesList == '!' || *NamesList == '@' || *NamesList == '#'
+						|| *NamesList == '$' || *NamesList == '%' || *NamesList == '^'
+						|| *NamesList == '&' || *NamesList == '*' || *NamesList == '+'
+						|| *NamesList == '=' || *NamesList == '-' || *NamesList == '('
+						|| *NamesList == ')' || *NamesList == '?') ++NamesList;
+						
+					for (Inc = 0; NamesList[Inc] != ' ' && NamesList[Inc] != '\0' && Inc < sizeof Nick - 1; ++Inc)
+					{ /*We don't have full data on them yet, so just record nick.*/
+						Nick[Inc] = NamesList[Inc];
+					}
+					Nick[Inc] = '\0';
+					
+					IRC_AddUserToChannel(Channel, Nick, NULL, NULL, false);
+				} while ((NamesList = SubStrings.Line.WhitespaceJump(NamesList)));
+				
 				break;
 			}
 			default:
@@ -380,7 +451,192 @@ Bool IRC_Quit(const char *QuitMSG)
 	return false;
 }
 
-void IRC_AddChannelToTree(const char *Channel, const char *Prefix)
+Bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask, Bool FullUser)
+{
+	struct ChannelTree *Worker = Channels;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Channel, Worker->Channel))
+		{
+			struct _UserList *UWorker = Worker->UserList;
+	
+			if (!Worker->UserList)
+			{
+				UWorker = Worker->UserList = malloc(sizeof(struct _UserList));
+				memset(Worker->UserList, 0, sizeof(struct _UserList));
+			}
+			else
+			{
+				struct _UserList *TW = UWorker;
+				
+				/*Check if it already exists.*/
+				for (; TW; TW = TW->Next)
+				{
+					if (!strcmp(Nick, TW->Nick) && (!FullUser || !TW->FullUser || (!strcmp(Ident, TW->Ident) && !strcmp(Mask, TW->Mask))))
+					{
+						return true; /*No need to worry anybody, it'd be the same result if it wasn't already here.*/
+					}
+				}
+				
+				while (UWorker->Next) UWorker = UWorker->Next;
+				
+				UWorker->Next = malloc(sizeof(struct _UserList));
+				memset(UWorker->Next, 0, sizeof(struct _UserList));
+				UWorker->Next->Prev = UWorker;
+				
+				UWorker = UWorker->Next;
+			}
+			
+			SubStrings.Copy(UWorker->Nick, Nick, sizeof UWorker->Nick);
+
+			if ((UWorker->FullUser = FullUser))
+			{
+				SubStrings.Copy(UWorker->Ident, Ident, sizeof UWorker->Ident);
+				SubStrings.Copy(UWorker->Mask, Mask, sizeof UWorker->Mask);
+			}
+			return true;
+		}
+	}
+	
+	return false;
+}
+	
+Bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
+{
+	struct ChannelTree *Worker = Channels;
+	
+	if (!Channels) return false;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Channel, Worker->Channel))
+		{
+			struct _UserList *UWorker = Worker->UserList;
+			
+			for (; UWorker; UWorker = UWorker->Next)
+			{
+				if (!strcmp(UWorker->Nick, Nick))
+				{
+					if (UWorker == Worker->UserList)
+					{
+						if (UWorker->Next)
+						{
+							UWorker->Next->Prev = NULL;
+							Worker->UserList = UWorker->Next;
+							free(UWorker);
+							return true;
+						}
+						else
+						{
+							Worker->UserList = NULL;
+							free(UWorker);
+							return true;
+						}
+					}
+					else
+					{
+						if (UWorker->Next) UWorker->Next->Prev = UWorker->Prev;
+						UWorker->Prev->Next = UWorker->Next;
+						free(UWorker);
+						return true;
+					}
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+Bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick)
+{
+	struct _UserList *UWorker = Channel->UserList;
+			
+	for (; UWorker; UWorker = UWorker->Next)
+	{
+		if (!strcmp(UWorker->Nick, Nick))
+		{
+			if (UWorker == Channel->UserList)
+			{
+				if (UWorker->Next)
+				{
+					UWorker->Next->Prev = NULL;
+					Channel->UserList = UWorker->Next;
+					free(UWorker);
+					return true;
+				}
+				else
+				{
+					Channel->UserList = NULL;
+					free(UWorker);
+					return true;
+				}
+			}
+			else
+			{
+				if (UWorker->Next) UWorker->Next->Prev = UWorker->Prev;
+				UWorker->Prev->Next = UWorker->Next;
+				free(UWorker);
+				return true;
+			}
+		}
+	}
+	
+	return false;
+}
+
+void IRC_ShutdownChannelUsers(struct ChannelTree *const Channel)
+{
+	struct _UserList *UWorker = Channel->UserList, *Del;
+	
+	for (; UWorker; UWorker = Del)
+	{
+		Del = UWorker->Next;
+		free(UWorker);
+	}
+	Channel->UserList = NULL;
+}
+
+Bool IRC_UserInChannel(const char *const Channel, const char *const Nick)
+{
+	struct ChannelTree *Worker = Channels;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Worker->Channel, Channel))
+		{
+			struct _UserList *UWorker = Worker->UserList;
+			
+			for (; UWorker; UWorker = UWorker->Next)
+			{
+				if (!strcmp(Nick, UWorker->Nick))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+Bool IRC_UserInChannelP(const struct ChannelTree *const Channel, const char *const Nick)
+{
+	struct _UserList *UWorker = Channel->UserList;
+	
+	for (; UWorker; UWorker = UWorker->Next)
+	{
+		if (!strcmp(Nick, UWorker->Nick))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+void IRC_AddChannelToTree(const char *const Channel, const char *const Prefix)
 {
 	struct ChannelTree *Worker = Channels;
 
@@ -426,6 +682,8 @@ Bool IRC_DelChannelFromTree(const char *Channel)
 	{
 		if (!strcmp(Channel, Worker->Channel))
 		{
+			IRC_ShutdownChannelUsers(Worker);
+			
 			if (Worker->Prev == NULL)
 			{
 				if (Worker->Next)
@@ -462,6 +720,7 @@ void IRC_ShutdownChannelTree(void)
 	for (; Worker; Worker = Del)
 	{
 		Del = Worker->Next;
+		IRC_ShutdownChannelUsers(Worker);
 		free(Worker);
 	}
 	
@@ -541,6 +800,7 @@ MessageType IRC_GetMessageType(const char *InStream_)
 	else if (!strcmp(Command, "INVITE")) return IMSG_INVITE;
 	else if (!strcmp(Command, "332") || !strcmp(Command, "TOPIC")) return IMSG_TOPIC;
 	else if (!strcmp(Command, "333")) return IMSG_TOPICORIGIN;
+	else if (!strcmp(Command, "353") || !strcmp(Command, "NAMES")) return IMSG_NAMES;
 	else return IMSG_UNKNOWN;
 }
 

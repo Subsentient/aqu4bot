@@ -47,7 +47,8 @@ typedef enum
 	IMSG_NICK,
 	IMSG_INVITE,
 	IMSG_TOPIC,
-	IMSG_TOPICORIGIN
+	IMSG_TOPICORIGIN,
+	IMSG_NAMES
 } MessageType;
 
 struct ChannelTree
@@ -57,6 +58,17 @@ struct ChannelTree
 	char TopicSetter[128];
 	char CmdPrefix[128];
 	unsigned long TopicSetTime;
+	
+	struct _UserList
+	{
+		char Nick[128];
+		char Ident[128];
+		char Mask[128];
+		Bool FullUser;
+		
+		struct _UserList *Next;
+		struct _UserList *Prev;
+	} *UserList;
 	
 	struct ChannelTree *Next;
 	struct ChannelTree *Prev;
@@ -113,6 +125,12 @@ extern MessageType IRC_GetMessageType(const char *InStream_);
 extern Bool IRC_GetMessageData(const char *Message, char *OutData);
 extern Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut);
 extern Bool IRC_GetStatusCode(const char *Message, int *OutNumber);
+extern Bool IRC_AddUserToChannel(const char *Channel, const char *Nick, const char *Ident, const char *Mask, Bool FullUser);
+extern Bool IRC_DelUserFromChannel(const char *Channel, const char *Nick);
+extern Bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick);
+extern Bool IRC_UserInChannel(const char *Channel, const char *Nick);
+extern Bool IRC_UserInChannelP(const struct ChannelTree *Channel, const char *Nick);
+extern void IRC_ShutdownChannelUsers(struct ChannelTree *Channel);
 
 extern void CMD_ProcessCommand(const char *InStream);
 extern Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message);
