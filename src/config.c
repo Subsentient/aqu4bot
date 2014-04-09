@@ -10,6 +10,7 @@ See the file UNLICENSE.TXT for more information.
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <sys/stat.h>
 #include "substrings/substrings.h"
 #include "aqu4.h"
@@ -128,6 +129,9 @@ Bool Config_ReadConfig(void)
 			
 			if (Chan[0] == '#')
 			{
+				unsigned long Inc = 0;
+				for (; Chan[Inc] != '\0'; ++Inc) Chan[Inc] = tolower(Chan[Inc]);
+
 				IRC_AddChannelToTree(Chan, *Prefix ? Prefix : NULL);
 			}
 			else

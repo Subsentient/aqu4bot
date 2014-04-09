@@ -13,6 +13,7 @@ See the file UNLICENSE.TXT for more information.
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
 #include <time.h>
 
 #include "substrings/substrings.h"
@@ -26,12 +27,18 @@ static Bool NoLogToConsole;
 static Bool Log_TopicLog(const char *InStream);
 static Bool Log_ModeLog(const char *InStream);
 
-Bool Log_CoreWrite(const char *InStream, const char *FileTitle)
+Bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 {
 	char TimeString[128];
 	time_t Time = time(NULL);
 	struct tm *TimeStruct;
 	char OutBuf[1024];	
+	char FileTitle[256];
+	unsigned long Inc = 0;
+	
+	SubStrings.Copy(FileTitle, FileTitle_, sizeof FileTitle);
+	
+	for (; FileTitle[Inc] != '\0'; ++Inc) FileTitle[Inc] = tolower(FileTitle[Inc]);
 	
 	TimeStruct = gmtime(&Time);
 	strftime(TimeString, sizeof TimeString, "[%Y-%m-%d %H:%M:%S UTC]", TimeStruct);

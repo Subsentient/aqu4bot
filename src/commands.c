@@ -805,6 +805,8 @@ void CMD_ProcessCommand(const char *InStream_)
 				while (*Prefix == ' ' || *Prefix == '\t') ++Prefix;
 			}
 			
+			for (Inc = 0; Argument[Inc] != '\0'; ++Inc) Argument[Inc] = tolower(Argument[Inc]);
+			
 			if (IRC_JoinChannel(Argument))
 			{
 				IRC_AddChannelToTree(Argument, Prefix);
@@ -828,8 +830,14 @@ void CMD_ProcessCommand(const char *InStream_)
 			
 			if (IRC_LeaveChannel(*Argument ? Argument : Target))
 			{
-				IRC_DelChannelFromTree(*Argument ? Argument : Target);
-				printf("Left channel %s\n", *Argument ? Argument : Target);
+				char NTarg[sizeof Argument];
+				
+				SubStrings.Copy(NTarg, *Argument ? Argument : Target, sizeof NTarg);
+				
+				for (Inc = 0; NTarg[Inc] != '\0'; ++Inc) NTarg[Inc] = tolower(NTarg[Inc]);
+				
+				IRC_DelChannelFromTree(NTarg);
+				printf("Left channel %s\n", NTarg);
 			}
 		}
 	}
