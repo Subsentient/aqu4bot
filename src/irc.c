@@ -80,11 +80,8 @@ void IRC_Loop(void)
 				unsigned long Inc = 0;
 								
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				
 				IRC_GetMessageData(MessageBuf, MessageData);
-				
-				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue; /*Says "you are not going to be listened to bud.*/
-				
-				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_PRIVMSG);
 				
 				for (; MessageData[Inc] != ' ' && MessageData[Inc] && Inc < sizeof Channel - 1; ++Inc)
 				{
@@ -92,6 +89,12 @@ void IRC_Loop(void)
 				}
 				Channel[Inc] = '\0';
 				
+				IRC_CompleteChannelUser(Channel, Nick, Ident, Mask); /*In case we only have the nick available.*/
+				
+				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue; /*Says "you are not going to be listened to bud.*/
+				
+				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_PRIVMSG);
+								
 				TC = strchr(MessageData, ' ') + 1;
 				
 				if (*TC == ':') ++TC;
@@ -449,6 +452,31 @@ Bool IRC_Quit(const char *QuitMSG)
 	}
 	
 	return false;
+}
+
+void IRC_CompleteChannelUser(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask)
+{
+	struct ChannelTree *Worker = Channels;
+	
+	if (!Channels) return;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Channel, Worker->Channel))
+		{
+			struct _UserList *UWorker = Worker->UserList;
+			
+			for (; UWorker; UWorker = UWorker->Next)
+			{
+				if (!strcmp(Nick, UWorker->Nick) && !UWorker->FullUser)
+				{
+					SubStrings.Copy(UWorker->Ident, Ident, sizeof UWorker->Ident);
+					SubStrings.Copy(UWorker->Mask, Mask, sizeof UWorker->Mask);
+					UWorker->FullUser = true;
+				}
+			}
+		}
+	}
 }
 
 Bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask, Bool FullUser)
