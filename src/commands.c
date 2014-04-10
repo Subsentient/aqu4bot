@@ -122,7 +122,7 @@ void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
 	monolithic function that does wayyyy too much.*/
 	char Nick[128], Ident[128], Mask[128], Target[128];
-	char CommandID[128], Argument[1024];
+	char CommandID[128], Argument[4096];
 	unsigned long Inc = 0;
 	const char *SendTo = NULL;
 	const char *InStream = InStream_;
@@ -908,43 +908,33 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strcmp(CommandID, "tell"))
 	{
 		char TellTarget[128], Message[2048], *Worker = Argument;
-		unsigned long TInc = 0;
 		
-		if (*Argument == '\0')
+		if (!*Argument)
 		{
-			IRC_Message(SendTo, "The tell command requires an argument.");
+			IRC_Message(SendTo, "This command requires an argument.");
 			return;
 		}
 		
-		for (TInc = 0; Worker[TInc] != ' ' && Worker[TInc] != '\t' && Inc < sizeof TellTarget - 1; ++TInc)
+		for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof TellTarget; ++Inc)
 		{
-			TellTarget[TInc] = Worker[TInc];
+			TellTarget[Inc] = Worker[Inc];
 		}
-		TellTarget[TInc] = '\0';
+		TellTarget[Inc] = '\0';
 		
-		Worker += TInc;
-		
-		while (*Worker == ' ' || *Worker == '\t') ++Worker;
-		
-		if (*Worker == 0)
+		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker + Inc)))
 		{
-			IRC_Message(SendTo, "That's bad format for command tell.");
+			IRC_Message(SendTo, "Bad format for tell command.");
 			return;
 		}
 		
-		if (!strcmp(TellTarget, ServerInfo.Nick))
-		{
-			IRC_Message(SendTo, "You just told me just now!.");
-			return;
-		}
+		/*Copy in the message now.*/
+		SubStrings.Copy(Message, Worker, sizeof Message);
 		
-		strncpy(Message, Worker, sizeof Message - 1);
-		Message[sizeof Message - 1] = '\0';
-		
+		/*Now send it.*/
 		CMD_AddToTellDB(TellTarget, Nick, Message);
 		
-		IRC_Message(SendTo, "I'll tell 'em next time I see 'em.");
-
+		IRC_Message(SendTo, "I'll tell them in a PM next time I see 'em.");
+		return;
 	}
 	else if (!strcmp(CommandID, "sticky"))
 	{
