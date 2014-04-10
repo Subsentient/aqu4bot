@@ -22,6 +22,7 @@ struct ChannelTree *Channels;
 void IRC_Loop(void)
 { /*Most of the action is triggered here.*/
 	char MessageBuf[2048];
+	char Nick[128], Ident[128], Mask[128];
 	
 	while (1)
 	{
@@ -72,8 +73,6 @@ void IRC_Loop(void)
 		
 		switch (IRC_GetMessageType(MessageBuf))
 		{
-			char Nick[128], Ident[128], Mask[128];
-
 			case IMSG_PRIVMSG:
 			{
 				char MessageData[2048], *TC = NULL, Channel[128];
@@ -197,7 +196,7 @@ void IRC_Loop(void)
 				}
 				
 				Log_WriteMsg(MessageBuf, IMSG_QUIT);
-				
+				 
 				if (!Channels) continue;
 				
 				for (; Worker; Worker = Worker->Next)
@@ -249,6 +248,8 @@ void IRC_Loop(void)
 			{
 				char NewNick[128];
 				struct ChannelTree *Worker = Channels;
+				
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				IRC_GetMessageData(MessageBuf, NewNick);
 				
@@ -536,6 +537,11 @@ Bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, con
 Bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
 {
 	struct ChannelTree *Worker = Channels;
+	char InNick[128], OutNick[128];
+	unsigned long Inc = 0;
+	
+	SubStrings.Copy(InNick, Nick, sizeof InNick);
+	for (; InNick[Inc] != '\0'; ++Inc) InNick[Inc] = tolower(InNick[Inc]);
 	
 	if (!Channels) return false;
 	
@@ -547,7 +553,10 @@ Bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
 			
 			for (; UWorker; UWorker = UWorker->Next)
 			{
-				if (!strcmp(UWorker->Nick, Nick))
+				SubStrings.Copy(OutNick, UWorker->Nick, sizeof OutNick);
+				for (Inc = 0; OutNick[Inc] != '\0'; ++Inc) OutNick[Inc] = tolower(OutNick[Inc]);
+				
+				if (!strcmp(InNick, OutNick))
 				{
 					if (UWorker == Worker->UserList)
 					{
@@ -583,10 +592,18 @@ Bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
 Bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick)
 {
 	struct _UserList *UWorker = Channel->UserList;
-			
+	char InNick[128], OutNick[128];
+	unsigned long Inc = 0;
+	
+	SubStrings.Copy(InNick, Nick, sizeof InNick);
+	for (; InNick[Inc] != '\0'; ++Inc) InNick[Inc] = tolower(InNick[Inc]);
+	
 	for (; UWorker; UWorker = UWorker->Next)
 	{
-		if (!strcmp(UWorker->Nick, Nick))
+		SubStrings.Copy(OutNick, UWorker->Nick, sizeof OutNick);
+		for (Inc = 0; OutNick[Inc] != '\0'; ++Inc) OutNick[Inc] = tolower(OutNick[Inc]);
+		
+		if (!strcmp(InNick, OutNick))		
 		{
 			if (UWorker == Channel->UserList)
 			{
