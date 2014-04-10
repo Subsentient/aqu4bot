@@ -265,6 +265,45 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		return;
 	}
+#ifdef DEBUG
+	else if (!strcmp(CommandID, "dumpchanneldb"))
+	{
+		struct ChannelTree *Worker = Channels;
+		struct _UserList *UWorker = NULL;
+		char OutBuf[1024];
+		
+		if (!IsOwner)
+		{
+			IRC_Message(SendTo, "You must be an owner for that.");
+			return;
+		}
+		
+		IRC_Message(SendTo, "Dumping channel database contents.");
+		
+		for (; Worker; Worker = Worker->Next)
+		{
+			if (!*Argument || !strcmp(Argument, Worker->Channel))
+			{
+				for (UWorker = Worker->UserList; UWorker; UWorker = UWorker->Next)
+				{
+					if (UWorker->FullUser)
+					{
+						snprintf(OutBuf, sizeof OutBuf, "%s: %s!%s@%s", Worker->Channel, UWorker->Nick, UWorker->Ident, UWorker->Mask);
+					}
+					else
+					{
+						snprintf(OutBuf, sizeof OutBuf, "%s: %s", Worker->Channel, UWorker->Nick);
+					}
+					
+					IRC_Message(SendTo, OutBuf);
+				}
+			}
+		}
+		
+		IRC_Message(SendTo, "End of list.");
+		return;
+	}
+#endif
 	else if (!strcmp(CommandID, "blacklist"))
 	{
 		char Subcommand[32], *Worker = Argument;

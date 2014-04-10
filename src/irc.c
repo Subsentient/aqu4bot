@@ -261,7 +261,7 @@ void IRC_Loop(void)
 					if (IRC_UserInChannelP(Worker, Nick))
 					{
 						IRC_DelUserFromChannelP(Worker, Nick);
-						IRC_AddUserToChannel(Worker->Channel, Nick, Ident, Mask, true);
+						IRC_AddUserToChannel(Worker->Channel, *NewNick == ':' ? NewNick + 1 : NewNick, Ident, Mask, true);
 					}
 				}
 				
