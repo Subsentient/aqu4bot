@@ -90,7 +90,7 @@ void IRC_Loop(void)
 				}
 				Channel[Inc] = '\0';
 				
-				IRC_CompleteChannelUser(Channel, Nick, Ident, Mask); /*In case we only have the nick available.*/
+				IRC_CompleteChannelUser(Nick, Ident, Mask); /*In case we only have the nick available.*/
 				
 				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue; /*Says "you are not going to be listened to bud.*/
 				
@@ -469,26 +469,23 @@ Bool IRC_Quit(const char *QuitMSG)
 	return false;
 }
 
-void IRC_CompleteChannelUser(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask)
+void IRC_CompleteChannelUser(const char *const Nick, const char *const Ident, const char *const Mask)
 {
 	struct ChannelTree *Worker = Channels;
+	struct _UserList *UWorker = NULL;
 	
 	if (!Channels) return;
 	
 	for (; Worker; Worker = Worker->Next)
 	{
-		if (!strcmp(Channel, Worker->Channel))
+		for (UWorker = Worker->UserList; UWorker; UWorker = UWorker->Next)
 		{
-			struct _UserList *UWorker = Worker->UserList;
-			
-			for (; UWorker; UWorker = UWorker->Next)
+			if (!UWorker->FullUser && !strcmp(Nick, UWorker->Nick))
 			{
-				if (!strcmp(Nick, UWorker->Nick) && !UWorker->FullUser)
-				{
-					SubStrings.Copy(UWorker->Ident, Ident, sizeof UWorker->Ident);
-					SubStrings.Copy(UWorker->Mask, Mask, sizeof UWorker->Mask);
-					UWorker->FullUser = true;
-				}
+				SubStrings.Copy(UWorker->Ident, Ident, sizeof UWorker->Ident);
+				SubStrings.Copy(UWorker->Mask, Mask, sizeof UWorker->Mask);
+				UWorker->FullUser = true;
+				break;
 			}
 		}
 	}

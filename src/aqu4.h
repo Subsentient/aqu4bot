@@ -127,7 +127,7 @@ extern Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut
 extern Bool IRC_GetStatusCode(const char *Message, int *OutNumber);
 extern Bool IRC_AddUserToChannel(const char *Channel, const char *Nick, const char *Ident, const char *Mask, Bool FullUser);
 extern Bool IRC_DelUserFromChannel(const char *Channel, const char *Nick);
-extern void IRC_CompleteChannelUser(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask);
+extern void IRC_CompleteChannelUser(const char *const Nick, const char *const Ident, const char *const Mask);
 extern Bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick);
 extern Bool IRC_UserInChannel(const char *Channel, const char *Nick);
 extern Bool IRC_UserInChannelP(const struct ChannelTree *Channel, const char *Nick);
