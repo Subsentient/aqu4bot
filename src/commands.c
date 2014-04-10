@@ -272,7 +272,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		struct _UserList *UWorker = NULL;
 		char OutBuf[1024];
 		
-		if (!IsOwner)
+		if (!BotOwner)
 		{
 			IRC_Message(SendTo, "You must be an owner for that.");
 			return;
