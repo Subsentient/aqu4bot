@@ -44,7 +44,7 @@ static struct UserModeSpec
 struct
 {
 	char CmdName[64];
-	char HelpString[256];
+	char HelpString[512];
 	enum ArgMode AM;
 	enum HPerms P;
 } CmdHelpList[] = 
@@ -64,7 +64,8 @@ struct
 			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG, ANY },
 			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG, ANY },
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
-				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies.", REQARG, ANY },
+				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies. "
+				"sticky list lists the names of the owners and times of creation for all stickies.", REQARG, ANY },
 			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG, ANY },
 			{ "msg", "Sends a message to a nick/channel.", REQARG, ADMIN },
 			{ "memsg", "Sends a message to a nick/channel in /me format.", REQARG, ADMIN },
