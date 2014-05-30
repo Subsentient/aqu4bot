@@ -206,10 +206,10 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 			snprintf(OutBuf, sizeof OutBuf, "(%s) %s (notice): %s", *Origin == '#' ? Origin : Nick, Nick, Message);
 			break;
 		case IMSG_JOIN:
-			snprintf(OutBuf, sizeof OutBuf, "<%s joined %s>", Nick, Origin);
+			snprintf(OutBuf, sizeof OutBuf, "<%s!%s@%s joined %s>", Nick, Ident, Mask, Origin);
 			break;
 		case IMSG_PART:
-			snprintf(OutBuf, sizeof OutBuf, "<%s left %s>", Nick, Origin);
+			snprintf(OutBuf, sizeof OutBuf, "<%s!%s@%s left %s>", Nick, Ident, Mask, Origin);
 			break;
 		case IMSG_KICK:
 			snprintf(OutBuf, sizeof OutBuf, "<%s was kicked from %s by %s>", Message, Origin, Nick);
@@ -221,7 +221,7 @@ Bool Log_WriteMsg(const char *InStream, MessageType MType)
 			
 			if (MType == IMSG_QUIT)
 			{
-				snprintf(OutBuf, sizeof OutBuf, "<%s has quit: %s>", Nick, *Origin == ':' ? Origin + 1 : Origin);
+				snprintf(OutBuf, sizeof OutBuf, "<%s!%s@%s has quit: %s>", Nick, Ident, Mask, *Origin == ':' ? Origin + 1 : Origin);
 			}
 			else
 			{
