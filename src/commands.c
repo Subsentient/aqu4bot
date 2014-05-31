@@ -58,6 +58,8 @@ struct
 			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG, ANY },
 			{ "time", "Displays the current time in a specified timezone, or UTC if omitted or not found. "
 				"After the timezone, you can specify strftime()-style syntax for custom output.", OPTARG, ANY },
+			{ "title", "Displays the title of an http webpage. Pages must be prefixed with http:// and https is unsupported.",
+				REQARG, ANY },
 			{ "ddg", "Searches DuckDuckGo for three search results. "
 				"Many things return blank due to the limitations of DuckDuckGo's API. "
 				"You can find the API that the results come from at \"http://api.duckduckgo.com/\".", REQARG, ANY },
@@ -467,6 +469,70 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		DDG_Query(Argument, SendTo);
+		return;
+	}
+	else if (!strcmp(CommandID, "title"))
+	{
+		char *Worker = Argument;
+		char Server[512] = { '\0' }, Page[2048] = { '\0' };
+		char RecvBuffer[16384], PageTitle[2048], *EndTerminator = NULL;
+		char OutBuf[2048];
+		
+		if (!(Worker = SubStrings.Find("http://", 1, Worker)))
+		{
+			IRC_Message(SendTo, "You need to provide a valid http link. https is not supported.");
+			return;
+		}
+		
+		Worker += sizeof "http://" - 1;
+		for (Inc = 0; Worker[Inc] != '/' && Worker[Inc] != '\0' && Inc < sizeof Server - 1; ++Inc)
+		{ /*Copy in the server hostname.*/
+			Server[Inc] = Worker[Inc];
+		}
+		Server[Inc] = '\0';
+		
+		/*If they didn't provide a slash, get one.*/
+		if (Worker[Inc] == '\0') strcpy(Page, "/");
+		else
+		{ /*Copy in the page link.*/
+			Worker += Inc;
+			for (Inc = 0; Worker[Inc] != '\0' && Inc < sizeof Page - 1; ++Inc)
+			{
+				Page[Inc] = Worker[Inc];
+			}
+			Page[Inc] = '\0';
+		}
+		
+		if (!Net_GetHTTP(Server, Page, sizeof RecvBuffer, RecvBuffer))
+		{ /*Download the first 16K*/
+			IRC_Message(SendTo, "Failed to connect to retrieve page title.");
+			return;
+		}
+		
+		if (!(Worker = SubStrings.Find("<title>", 1, RecvBuffer)) && !(Worker = SubStrings.Find("<TITLE>", 1, RecvBuffer)))
+		{ /*Find the title.*/
+			IRC_Message(SendTo, "No title found.");
+			return;
+		}
+		
+		Worker += sizeof "<title>" - 1;
+		
+		if (!(EndTerminator = SubStrings.Find("</title>", 1, Worker)) &&
+			!(EndTerminator = SubStrings.Find("</TITLE>", 1, Worker)))
+		{
+			IRC_Message(SendTo, "Found a <title> but no </title>!");
+			return;
+		}
+		
+		for (Inc = 0; Worker + Inc != EndTerminator && Worker[Inc] != '\0' && Inc < sizeof PageTitle - 1; ++Inc)
+		{ /*Copy in the title.*/
+			PageTitle[Inc] = Worker[Inc];
+		}
+		PageTitle[Inc] = '\0';
+		
+		snprintf(OutBuf, sizeof OutBuf, "Title for page %s: \"%s\"", Argument, PageTitle);
+		IRC_Message(SendTo, OutBuf);
+		
 		return;
 	}
 	else if (!strcmp(CommandID, "admin"))
