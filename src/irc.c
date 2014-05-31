@@ -361,7 +361,7 @@ Bool IRC_Connect(void)
 	
 	printf("Connecting to \"%s:%hu\"... ", ServerInfo.Hostname, ServerInfo.PortNum), fflush(stdout);
 	
-	if (!Net_Connect(ServerInfo.Hostname, ServerInfo.PortNum, &SocketDescriptor)) goto Error;
+	if (!Net_Connect(ServerInfo.Hostname, ServerInfo.PortNum, &SocketDescriptor, false)) goto Error;
 	
 	snprintf(UserString, sizeof UserString, "USER %s 8 * :%s\r\n", ServerInfo.Ident, ServerInfo.RealName);
 	snprintf(NickString, sizeof NickString, "NICK %s\r\n", ServerInfo.Nick);
