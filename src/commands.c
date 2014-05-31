@@ -58,7 +58,7 @@ struct
 			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG, ANY },
 			{ "time", "Displays the current time in a specified timezone, or UTC if omitted or not found. "
 				"After the timezone, you can specify strftime()-style syntax for custom output.", OPTARG, ANY },
-			{ "title", "Displays the title of an http webpage. Pages must be prefixed with http:// and https is unsupported.",
+			{ "title", "Displays the title of an http webpage. Domains must be prefixed with http:// or have no prefix, and https is unsupported.",
 				REQARG, ANY },
 			{ "ddg", "Searches DuckDuckGo for three search results. "
 				"Many things return blank due to the limitations of DuckDuckGo's API. "
@@ -478,13 +478,15 @@ void CMD_ProcessCommand(const char *InStream_)
 		char RecvBuffer[16384], PageTitle[2048], *EndTerminator = NULL;
 		char OutBuf[2048];
 		
-		if (!(Worker = SubStrings.Find("http://", 1, Worker)))
+		if (!*Argument)
 		{
 			IRC_Message(SendTo, "You need to provide a valid http link. https is not supported.");
 			return;
 		}
 		
-		Worker += sizeof "http://" - 1;
+		if ((Worker = SubStrings.Find("http://", 1, Worker))) Worker += sizeof "http://" - 1;
+		else Worker = Argument;
+		
 		for (Inc = 0; Worker[Inc] != '/' && Worker[Inc] != '\0' && Inc < sizeof Server - 1; ++Inc)
 		{ /*Copy in the server hostname.*/
 			Server[Inc] = Worker[Inc];
