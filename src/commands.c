@@ -526,7 +526,8 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		for (Inc = 0; Worker + Inc != EndTerminator && Worker[Inc] != '\0' && Inc < sizeof PageTitle - 1; ++Inc)
+		for (Inc = 0; Worker + Inc != EndTerminator && Worker[Inc] != '\n' && Worker[Inc] != '\r' && 
+			Worker[Inc] != '\0' && Inc < sizeof PageTitle - 1; ++Inc)
 		{ /*Copy in the title.*/
 			PageTitle[Inc] = Worker[Inc];
 		}
