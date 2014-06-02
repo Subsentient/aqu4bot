@@ -729,6 +729,17 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
+		if (strchr(Argument, '\1') != NULL)
+		{ /*Don't let them do sneaky things to make aqu4bot print /me messages.*/
+			char OutBuf[256];
+			
+			snprintf(OutBuf, sizeof OutBuf, "\1ACTION dropkicks a cinderblock at %s's head\01", Nick);
+			
+			IRC_Message(SendTo, OutBuf);
+			IRC_Message(SendTo, "You sneaky thing.");
+			return;
+		}
+			
 		for (Inc2 = strlen(Argument) - 1; Inc2 + 1 > 0 && Inc1 < sizeof NewString - 1; ++Inc1, --Inc2)
 		{
 			NewString[Inc1] = Argument[Inc2];
