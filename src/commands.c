@@ -526,12 +526,17 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		for (Inc = 0; Worker + Inc != EndTerminator && Worker[Inc] != '\n' && Worker[Inc] != '\r' && 
-			Worker[Inc] != '\0' && Inc < sizeof PageTitle - 1; ++Inc)
+		for (Inc = 0; Worker + Inc != EndTerminator && Worker[Inc] != '\0' && Inc < sizeof PageTitle - 1; ++Inc)
 		{ /*Copy in the title.*/
 			PageTitle[Inc] = Worker[Inc];
 		}
 		PageTitle[Inc] = '\0';
+		
+		
+		/*Replace all newlines and carriage returns.*/
+		SubStrings.Replace(PageTitle, sizeof PageTitle, "\r\n", " ");
+		SubStrings.Replace(PageTitle, sizeof PageTitle, "\n", " ");
+		SubStrings.Replace(PageTitle, sizeof PageTitle, "\r", " ");
 		
 		snprintf(OutBuf, sizeof OutBuf, "Title for page %s: \"%s\"", Argument, PageTitle);
 		IRC_Message(SendTo, OutBuf);
