@@ -2034,6 +2034,8 @@ Bool CMD_SaveSeenDB(void)
 void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel, Bool FullVhost)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
+	int Inc = 0;
+	char WChannel[128];
 	
 	if (!Mode) return;
 	
@@ -2063,20 +2065,35 @@ void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 	}
 	
 	SubStrings.Copy(Worker->Mode, Mode, sizeof Worker->Mode);
-	SubStrings.Copy(Worker->Channel, Channel, sizeof Worker->Channel);
+	
+	for (; Channel[Inc] != '\0' && Inc < sizeof WChannel - 1; ++Inc)
+	{ /*We always store the channel as lowercase.*/
+		WChannel[Inc] = tolower(Channel[Inc]);
+	}
+	WChannel[Inc] = '\0';
+	
+	SubStrings.Copy(Worker->Channel, WChannel, sizeof Worker->Channel);
 }
 
 Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
+	char WChannel[128];
+	int Inc = 0;
 	
 	if (!UserModeRoot) return false;
+	
+	for (; Channel[Inc] != '\0' && Inc < sizeof WChannel - 1; ++Inc)
+	{ /*Convert incoming to lowercase.*/
+		WChannel[Inc] = tolower(Channel[Inc]);
+	}
+	WChannel[Inc] = '\0';
 	
 	for (; Worker; Worker = Worker->Next)
 	{
 		if ((*Worker->Nick == '*' || SubStrings.Compare(Nick, Worker->Nick)) && (Worker->FullVhost ? ((*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident))
 			&& (*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask))) : 1) && SubStrings.Compare(Mode, Worker->Mode)
-			&& SubStrings.Compare(Channel, Worker->Channel))
+			&& SubStrings.Compare(WChannel, Worker->Channel))
 		{
 			if (Worker == UserModeRoot)
 			{
@@ -2179,8 +2196,15 @@ Bool CMD_LoadUserModes(void)
 void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
-	char SendBuf[1024];
-	int TempDescriptor = SocketDescriptor;
+	char SendBuf[1024], WChannel[128];
+	int TempDescriptor = SocketDescriptor, Inc = 0;
+	
+	for (; Channel[Inc] != '\0' && Inc < sizeof WChannel - 1; ++Inc)
+	{ /*Convert incoming to lowercase.*/
+		WChannel[Inc] = tolower(Channel[Inc]);
+	}
+	WChannel[Inc] = '\0';
+	
 	
 	for (; Worker; Worker = Worker->Next)
 	{
@@ -2189,7 +2213,7 @@ void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask,
 				(*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident)) &&
 				(*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask))
 				) : 1) &&
-			SubStrings.Compare(Channel, Worker->Channel))
+			SubStrings.Compare(WChannel, Worker->Channel))
 		{
 			if (Worker->FullVhost)
 			{
