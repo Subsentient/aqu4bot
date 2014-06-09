@@ -140,8 +140,9 @@ extern unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky);
 extern void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage);
 extern Bool CMD_SaveSeenDB(void);
 extern void CMD_LoadSeenDB(void);
-extern void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel, Bool FullVhost);
-extern Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel);
+extern void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode,
+							const char *Target, const char *Channel);
+extern Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel);
 extern Bool CMD_LoadUserModes(void);
 extern Bool CMD_SaveUserModes(void);
 extern void CMD_ListUserModes(const char *SendTo);

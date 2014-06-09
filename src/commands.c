@@ -34,8 +34,8 @@ static struct UserModeSpec
 	char Ident[128];
 	char Mask[128];
 	char Mode[128];
+	char Target[384];
 	char Channel[128];
-	Bool FullVhost;
 	
 	struct UserModeSpec *Next;
 	struct UserModeSpec *Prev;
@@ -1635,23 +1635,37 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 	else if (!strcmp(Command, "addpumode") || !strcmp(Command, "delpumode"))
 	{
-		char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128];
-		Bool FullVhost = IRC_BreakdownNick(CmdStream, Nick, Ident, Mask);
+		char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128], ModeTarget[384];
+		Bool ValidVhost = IRC_BreakdownNick(CmdStream, Nick, Ident, Mask); /*The first mask is for the target we match against.*/
 		const char *Worker = CmdStream;
 		char OutBuf[1024];
 		
-		if (!FullVhost)
+		if (!ValidVhost)
 		{
-			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof Nick - 1; ++Inc)
-			{ /*Just a nick.*/
-				Nick[Inc] = Worker[Inc];
-			}
-			Nick[Inc] = '\0';
+			IRC_Message(SendTo, "Invalid user vhost specified.");
+			return;
+		}
+		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
+		{ /*Jump to the mode target we send to the server.*/
+			IRC_Message(SendTo, "Missing/bad mode target provided.");
+			return;
 		}
 		
+		for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof ModeTarget - 1; ++Inc)
+		{ /*The target that we actually send to the IRC server.*/
+			ModeTarget[Inc] = Worker[Inc];
+		}
+		ModeTarget[Inc] = '\0';
+		
 		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
-		{
+		{ /*Jump to channel.*/
 			IRC_Message(SendTo, "Missing/bad channel name.");
+			return;
+		}
+		
+		if (*Worker != '#')
+		{
+			IRC_Message(SendTo, "Channel field is not a channel.");
 			return;
 		}
 		
@@ -1674,17 +1688,10 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		{
 			const int TempDescriptor = SocketDescriptor;
 			
-			CMD_AddUserMode(Nick, Ident, Mask, Mode, Channel, FullVhost);
+			CMD_AddUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel);
 
 			/*Now, set the mode.*/
-			if (FullVhost)
-			{
-				snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s!%s@%s\r\n", Channel, Mode, Nick, Ident, Mask);
-			}
-			else
-			{
-				snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s\r\n", Channel, Mode, Nick);
-			}
+			snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s\r\n", Channel, Mode, ModeTarget);
 			
 			SocketDescriptor = 0;
 			Net_Write(TempDescriptor, OutBuf);
@@ -1694,7 +1701,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 		}
 		else
 		{
-			if (CMD_DelUserMode(Nick, Ident, Mask, Mode, Channel))
+			if (CMD_DelUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel))
 			{
 				IRC_Message(SendTo, "Mode deleted.");
 			}
@@ -2036,11 +2043,11 @@ Bool CMD_SaveSeenDB(void)
 	return true;
 }
 
-void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel, Bool FullVhost)
+void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode,
+					const char *Target, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	int Inc = 0;
-	char WChannel[128];
 	
 	if (!Mode) return;
 	
@@ -2061,26 +2068,20 @@ void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 	}
 	
 	SubStrings.Copy(Worker->Nick, Nick, sizeof Worker->Nick);
-	
-	if (FullVhost)
-	{
-		SubStrings.Copy(Worker->Ident, Ident, sizeof Worker->Ident);
-		SubStrings.Copy(Worker->Mask, Mask, sizeof Worker->Mask);
-		Worker->FullVhost = true;
-	}
-	
+	SubStrings.Copy(Worker->Ident, Ident, sizeof Worker->Ident);
+	SubStrings.Copy(Worker->Mask, Mask, sizeof Worker->Mask);
+	SubStrings.Copy(Worker->Target, Target, sizeof Worker->Target);
 	SubStrings.Copy(Worker->Mode, Mode, sizeof Worker->Mode);
 	
-	for (; Channel[Inc] != '\0' && Inc < sizeof WChannel - 1; ++Inc)
+	for (; Channel[Inc] != '\0' && Inc < sizeof Worker->Channel - 1; ++Inc)
 	{ /*We always store the channel as lowercase.*/
-		WChannel[Inc] = tolower(Channel[Inc]);
+		Worker->Channel[Inc] = tolower(Channel[Inc]);
 	}
-	WChannel[Inc] = '\0';
+	Worker->Channel[Inc] = '\0';
 	
-	SubStrings.Copy(Worker->Channel, WChannel, sizeof Worker->Channel);
 }
 
-Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Channel)
+Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	char WChannel[128];
@@ -2096,9 +2097,11 @@ Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 	
 	for (; Worker; Worker = Worker->Next)
 	{
-		if ((*Worker->Nick == '*' || SubStrings.Compare(Nick, Worker->Nick)) && (Worker->FullVhost ? ((*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident))
-			&& (*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask))) : 1) && SubStrings.Compare(Mode, Worker->Mode)
-			&& SubStrings.Compare(WChannel, Worker->Channel))
+		if ((*Worker->Nick == '*' || SubStrings.Compare(Nick, Worker->Nick)) &&
+			(*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident)) &&
+			(*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask)) &&
+			SubStrings.Compare(Mode, Worker->Mode) && SubStrings.Compare(WChannel, Worker->Channel) &&
+			SubStrings.Compare(Target, Worker->Target))
 		{
 			if (Worker == UserModeRoot)
 			{
@@ -2132,10 +2135,9 @@ Bool CMD_LoadUserModes(void)
 	struct stat FileStat;
 	char *Stream = NULL, *Worker = NULL;
 	FILE *Descriptor = fopen("db/usermodes.db", "rb");
-	char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128], *MW;
+	char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128], ModeTarget[384], *MW;
 	char CurLine[1024];
 	unsigned long Inc = 0;
-	Bool FullVhost = false;
 	
 	if (!Descriptor) return true; /*Nothing to load.*/
 	
@@ -2156,22 +2158,33 @@ Bool CMD_LoadUserModes(void)
 		}
 		CurLine[Inc] = '\0';
 		
-		if (!(FullVhost = IRC_BreakdownNick(CurLine, Nick, Ident, Mask)))
-		{ /*Just copy the nick if we aren't doing a full vhost.*/
-			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] !=  '\0' && Inc < sizeof Nick - 1; ++Inc)
-			{
-				Nick[Inc] = Worker[Inc];
-			}
-			Nick[Inc] = '\0';
+		if (!IRC_BreakdownNick(CurLine, Nick, Ident, Mask))
+		{
+			fprintf(stderr, "Corrupted db/usermodes.db file!\n");
+			free(Stream);
+			return false;
 		}
 			
-		
 		if (!(MW = SubStrings.CFind(' ', 1, CurLine)) || !(MW = SubStrings.Line.WhitespaceJump(MW)))
 		{
 			fprintf(stderr, "Corrupted db/usermodes.db file!\n");
 			free(Stream);
 			return false;
 		}
+		
+		for (Inc = 0; MW[Inc] != ' ' && MW[Inc] != '\0' && Inc < sizeof ModeTarget - 1; ++Inc)
+		{ /*Mode target copy.*/
+			ModeTarget[Inc] = MW[Inc];
+		}
+		ModeTarget[Inc] = '\0';
+		
+		if (!(MW = SubStrings.Line.WhitespaceJump(MW)))
+		{
+			fprintf(stderr, "Corrupted db/usermodes.db file!\n");
+			free(Stream);
+			return false;
+		}
+		
 		
 		for (Inc = 0; MW[Inc] != ' ' && MW[Inc] != '\0' && Inc < sizeof Channel - 1; ++Inc)
 		{ /*Channel copy.*/
@@ -2188,8 +2201,8 @@ Bool CMD_LoadUserModes(void)
 		
 		SubStrings.Copy(Mode, MW, sizeof Mode);
 
-		CMD_AddUserMode(Nick, Ident, Mask, Mode, Channel, FullVhost);
-		
+		CMD_AddUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel);
+	
 	} while ((Worker = SubStrings.Line.NextLine(Worker)));
 	
 	free(Stream);
@@ -2214,21 +2227,12 @@ void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask,
 	for (; Worker; Worker = Worker->Next)
 	{
 		if ((*Worker->Nick == '*' || SubStrings.Compare(Nick, Worker->Nick)) &&
-			(Worker->FullVhost ? (
-				(*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident)) &&
-				(*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask))
-				) : 1) &&
+			(*Worker->Ident == '*' || SubStrings.Compare(Ident, Worker->Ident)) &&
+			(*Worker->Mask == '*' || SubStrings.Compare(Mask, Worker->Mask)) &&
 			SubStrings.Compare(WChannel, Worker->Channel))
+			/*We don't check the target because that allows multiple entries that trigger on the same mask.*/
 		{
-			if (Worker->FullVhost)
-			{
-				snprintf(SendBuf, sizeof SendBuf, "MODE %s %s %s!%s@%s\r\n", Worker->Channel, Worker->Mode, 
-						Worker->Nick, Worker->Ident, Worker->Mask);
-			}
-			else
-			{
-				snprintf(SendBuf, sizeof SendBuf, "MODE %s %s %s\r\n", Worker->Channel, Worker->Mode, Worker->Nick);
-			}
+			snprintf(SendBuf, sizeof SendBuf, "MODE %s %s %s\r\n", Worker->Channel, Worker->Mode, Worker->Target);
 			
 			SocketDescriptor = 0;
 			Net_Write(TempDescriptor, SendBuf);
@@ -2255,14 +2259,7 @@ Bool CMD_SaveUserModes(void)
 	{
 		Del = Worker->Next;
 		
-		if (Worker->FullVhost)
-		{
-			fprintf(Descriptor, "%s!%s@%s %s %s\n", Worker->Nick, Worker->Ident, Worker->Mask, Worker->Channel, Worker->Mode);
-		}
-		else
-		{
-			fprintf(Descriptor, "%s %s %s\n", Worker->Nick, Worker->Channel, Worker->Mode);
-		}
+		fprintf(Descriptor, "%s!%s@%s %s %s %s\n", Worker->Nick, Worker->Ident, Worker->Mask, Worker->Target, Worker->Channel, Worker->Mode);
 		
 		free(Worker);
 	}
@@ -2290,16 +2287,9 @@ void CMD_ListUserModes(const char *SendTo)
 	
 	for (; Worker; Worker = Worker->Next, ++Inc)
 	{
-		if (Worker->FullVhost)
-		{
-			snprintf(OutBuf, sizeof OutBuf, "[%d] \002Target:\002 %s!%s@%s | \002Channel:\002 %s | \002Mode:\002 %s",
-					Inc, Worker->Nick, Worker->Ident, Worker->Mask, Worker->Channel, Worker->Mode);
-		}
-		else
-		{
-			snprintf(OutBuf, sizeof OutBuf, "[%d] \002Target:\002 %s | \002Channel:\002 %s | \002Mode:\002 %s",
-					Inc, Worker->Nick, Worker->Channel, Worker->Mode);
-		}
+		snprintf(OutBuf, sizeof OutBuf, "[%d] \002Activating mask:\002 %s!%s@%s | \002Target:\002 %s | \002Channel:\002 %s | \002Mode:\002 %s",
+				Inc, Worker->Nick, Worker->Ident, Worker->Mask, Worker->Target, Worker->Channel, Worker->Mode);
+
 		
 		IRC_Message(SendTo, OutBuf);
 	}
