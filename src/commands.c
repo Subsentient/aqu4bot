@@ -69,6 +69,8 @@ struct
 				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies. "
 				"sticky list lists the names of the owners and times of creation for all stickies.", REQARG, ANY },
 			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG, ANY },
+			{ "tail", "Reads the end of the log for the channel or user specified as the first argument. "
+				"The number of lines is optionally specified by the second argument, but the default is 10.", REQARG, ADMIN },
 			{ "msg", "Sends a message to a nick/channel.", REQARG, ADMIN },
 			{ "memsg", "Sends a message to a nick/channel in /me format.", REQARG, ADMIN },
 			{ "noticemsg", "Sends a message as a notice.", REQARG, ADMIN },
@@ -307,6 +309,70 @@ void CMD_ProcessCommand(const char *InStream_)
 		return;
 	}
 #endif
+	else if (!strcmp(CommandID, "tail"))
+	{
+		char InBuf[16384], *Worker = NULL;
+		int TInc = 0, NumLines = 10;
+		char LineBuf[1024];
+		char TailChannel[128];
+		
+		if (!IsAdmin)
+		{
+			IRC_Message(SendTo, "You must be an admin to do that.");
+			return;
+		}
+		
+		if (!*Argument)
+		{
+			IRC_Message(SendTo, "You must provide a channel or user name.");
+			return;
+		}
+		
+		for (Inc = 0; Argument[Inc] != '\0' && Argument[Inc] != ' ' && Inc < sizeof TailChannel - 1; ++Inc)
+		{ /*Lower case the channel.*/
+			TailChannel[Inc] = tolower(Argument[Inc]);
+		}
+		TailChannel[Inc] = '\0';
+		
+		Worker = Argument + Inc;
+		
+		if (*Worker == ' ')
+		{
+			char NumBuf[16];
+			
+			while (*Worker == ' ') ++Worker;
+			
+			SubStrings.Copy(NumBuf, Worker, sizeof NumBuf);
+			
+			NumLines = atoi(NumBuf);
+		}
+		
+		if (!Log_TailLog(TailChannel, NumLines, InBuf, sizeof InBuf))
+		{
+			IRC_Message(SendTo, "Unable to tail the log. Most likely the channel/user isn't logged.");
+			return;
+		}
+		
+		Worker = InBuf;
+		do
+		{
+			while (*Worker == '\r' || *Worker == '\n') ++Worker;
+			
+			if (*Worker == '\0') break;
+			
+			for (TInc = 0; Worker[TInc] != '\n' && Worker[TInc] != '\r' && Worker[TInc] != '\0' && TInc < sizeof LineBuf - 1; ++TInc)
+			{
+				LineBuf[TInc] = Worker[TInc];
+			}
+			LineBuf[TInc] = '\0';
+			
+			IRC_Message(SendTo, LineBuf);
+		} while ((Worker = strpbrk(Worker, "\r\n")));
+			
+		
+		IRC_Message(SendTo, "End of tail.");
+		return;
+	}
 	else if (!strcmp(CommandID, "blacklist"))
 	{
 		char Subcommand[32], *Worker = Argument;

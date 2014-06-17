@@ -9,6 +9,7 @@ See the file UNLICENSE.TXT for more information.
 /**This is a particularly small file.**/
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -27,6 +28,68 @@ static Bool NoLogToConsole;
 static Bool Log_TopicLog(const char *InStream);
 static Bool Log_ModeLog(const char *InStream);
 
+Bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const OutStream, const int Capacity)
+{
+	FILE *Descriptor = NULL;
+	char Filename[256], *Buf = NULL, *Worker = NULL;
+	struct stat FileStat;
+	unsigned long Inc = 0;
+	int Lines = 1;
+	
+	snprintf(Filename, sizeof Filename, "logs/%s.txt", ChannelOrNick);
+	
+	if (stat(Filename, &FileStat) != 0)
+	{
+		return false;
+	}
+	
+	if (FileStat.st_size == 0) return false;
+	
+	if (!(Descriptor = fopen(Filename, "r")))
+	{
+		return false;
+	}
+	
+	Buf = malloc(FileStat.st_size + 1);
+	
+	fread(Buf, 1, FileStat.st_size, Descriptor);
+	Buf[FileStat.st_size] = '\0';
+	
+	fclose(Descriptor);
+
+	/*Count the number of lines.*/
+	for (Worker = Buf; (Worker = strpbrk(Worker, "\r\n")); ++Lines)
+	{
+		while (*Worker == '\r' || *Worker == '\n') ++Worker;
+		
+		if (*Worker == '\0') break;
+	}
+	
+	
+	if (NumLinesToOut < Lines)
+	{	
+		/*Jump to the beginning of the lines we will present.*/
+		for (Worker = Buf; (Worker = strpbrk(Worker, "\r\n")) && Inc < (Lines - NumLinesToOut) - 1; ++Inc)
+		{
+			while (*Worker == '\r' || *Worker == '\n') ++Worker;
+		}
+		
+		if (*Worker == '\0')
+		{
+			free(Buf);
+			return false;
+		}
+	}
+	else Worker = Buf;
+	
+	/*Now copy it out.*/
+	strncpy(OutStream, Worker, Capacity - 1);
+	OutStream[Capacity - 1] = '\0';
+	
+	free(Buf);
+	return true;
+}
+			
 Bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 {
 	char TimeString[128];

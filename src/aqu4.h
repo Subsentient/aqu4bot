@@ -163,6 +163,7 @@ extern void Auth_BlacklistSendList(const char *SendTo);
 
 extern Bool Log_WriteMsg(const char *InStream, MessageType MType);
 extern Bool Log_CoreWrite(const char *InStream, const char *FileTitle);
+extern Bool Log_TailLog(const char *const ChannelOrNick, const int NumLinesToOut, char *const OutStream, const int Capacity);
 
 extern Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, Bool WZLegacy);
 
