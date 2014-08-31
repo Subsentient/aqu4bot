@@ -17,7 +17,6 @@ See the file UNLICENSE.TXT for more information.
 #include <netinet/in.h>
 #include <netdb.h>
 #endif
-#include <fcntl.h>
 
 #include "substrings/substrings.h"
 #include "aqu4.h"
@@ -25,13 +24,12 @@ See the file UNLICENSE.TXT for more information.
 int SocketDescriptor;
 unsigned short SendDelay = 8; /*Ten is one second.*/
 
-Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_, Bool Nonblock)
+Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_)
 {
 
 	char *FailMsg = "Failed to establish a connection to the server:";
 	struct sockaddr_in SocketStruct;
 	struct hostent *HostnameStruct;
-	int Counter = 0;
 	
 	memset(&SocketStruct, 0, sizeof(SocketStruct));
 	
@@ -55,36 +53,14 @@ Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescript
 	SocketStruct.sin_family = AF_INET;
 	SocketStruct.sin_port = htons(PortNum);
 	
-	if (Nonblock)
+	if (connect(*SocketDescriptor_, (void*)&SocketStruct, sizeof SocketStruct) != 0)
 	{
-		/*Set nonblocking for connect.*/
-		fcntl(*SocketDescriptor_, F_SETFL, O_NONBLOCK);
 		
-		for (; connect(*SocketDescriptor_, (void*)&SocketStruct, sizeof SocketStruct) != 0 && Counter < 50; ++Counter)
-		{ /*Five seconds.*/
-			usleep(100000);
-		}
-		
-		if (Counter == 5000)
-		{
-			fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
-			*SocketDescriptor_ = 0;
-			return false;
-		}
-		/*Set back to blocking.*/
-		fcntl(*SocketDescriptor_, F_SETFL, (fcntl(*SocketDescriptor_, F_GETFL) & ~O_NONBLOCK) );
+		fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
+		*SocketDescriptor_ = 0;
+		return false;
 	}
-	else
-	{
-		if (connect(*SocketDescriptor_, (void*)&SocketStruct, sizeof SocketStruct) != 0)
-		{
-			
-			fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
-			*SocketDescriptor_ = 0;
-			return false;
-		}
-	}
-	
+
 	return true;
 }
 
@@ -169,7 +145,7 @@ Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxDa
 	
 	do
 	{
-		if (Net_Connect(Hostname, HTTP_PORT, &SDesc, true)) break;
+		if (Net_Connect(Hostname, HTTP_PORT, &SDesc)) break;
 	} while (++Attempts < 3);
 	
 	if (Attempts == 3) return false;

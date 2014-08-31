@@ -146,7 +146,7 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	uint32_t GamesAvailable = 0, Inc = 0;
 	uint32_t LastHosted = 0;
 	
-	if (!Net_Connect(Server, Port, &WZSocket, false))
+	if (!Net_Connect(Server, Port, &WZSocket))
 	{
 		IRC_Message(SendTo, "Unable to connect to lobby server!");
 		return false;

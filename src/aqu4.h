@@ -103,7 +103,7 @@ extern void Bot_SetTextColor(ConsoleColor Color);
 extern Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long MaxSize);
 extern Bool Config_ReadConfig(void);
 
-extern Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_, Bool NonblockOnConnect);
+extern Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);
 extern Bool Net_Write(int SockDescriptor, const char *InMsg);
 extern Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Bool TextStream);
 extern Bool Net_Disconnect(int SockDescriptor);
