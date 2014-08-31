@@ -3,6 +3,8 @@ LDFLAGS = -lcurl
 CC = gcc
 OUTFILE = aqu4bot
 OS = UNIX
+AQ_CORE_OBJECTS = auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o curlcore.o wz.o
+AQ_OBJECTS = $(AQ_CORE_OBJECTS)
 
 ifeq ($(OS),WIN)
 	CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\" -DCURL_STATICLIB
@@ -10,6 +12,7 @@ ifeq ($(OS),WIN)
 	OUTFILE = aqu4bot.exe
 	RANLIB = i686-pc-mingw32-ranlib
 	CC = i686-pc-mingw32-gcc
+	AQ_OBJECTS = $(AQ_CORE_OBJECTS) aqu4bot-win.o
 endif
 
 all:
@@ -26,12 +29,11 @@ all:
 ifeq ($(OS),WIN)
 	$(MAKE) -C substrings static RANLIB=$(RANLIB) CC=$(CC)
 	i686-pc-mingw32-windres ../aqu4bot-win.rc -o aqu4bot-win.o
-	$(CC) $(CFLAGS) -o ../$(OUTFILE) auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o curlcore.o wz.o aqu4bot-win.o substrings/libsubstrings.a $(LDFLAGS)
 else
 	$(MAKE) -C substrings static
-	$(CC) $(CFLAGS) -o ../$(OUTFILE) auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o curlcore.o wz.o substrings/libsubstrings.a $(LDFLAGS)
 
 endif
+	$(CC) $(CFLAGS) -o ../$(OUTFILE) $(AQ_OBJECTS) substrings/libsubstrings.a $(LDFLAGS)
 
 clean:
 	rm -vf *.o
