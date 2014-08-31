@@ -571,7 +571,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			Page[Inc] = '\0';
 		}
 		
-		if (!Net_GetHTTP(Server, Page, sizeof RecvBuffer, RecvBuffer, 1))
+		if (!Net_GetHTTP(Server, Page, sizeof RecvBuffer, RecvBuffer))
 		{ /*Download the first 16K*/
 			IRC_Message(SendTo, "Failed to connect to retrieve page title.");
 			return;

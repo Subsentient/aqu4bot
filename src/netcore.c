@@ -31,6 +31,7 @@ Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescript
 	char *FailMsg = "Failed to establish a connection to the server:";
 	struct sockaddr_in SocketStruct;
 	struct hostent *HostnameStruct;
+	int Counter = 0;
 	
 	memset(&SocketStruct, 0, sizeof(SocketStruct));
 	
@@ -56,18 +57,15 @@ Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescript
 	
 	if (Nonblock)
 	{
-		int Counter = 0;
-
 		/*Set nonblocking for connect.*/
 		fcntl(*SocketDescriptor_, F_SETFL, O_NONBLOCK);
 		
-		/*Try 50 times.*/
 		for (; connect(*SocketDescriptor_, (void*)&SocketStruct, sizeof SocketStruct) != 0 && Counter < 50; ++Counter)
-		{
+		{ /*Five seconds.*/
 			usleep(100000);
 		}
 		
-		if (Counter == 50)
+		if (Counter == 5000)
 		{
 			fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
 			*SocketDescriptor_ = 0;
@@ -159,22 +157,22 @@ Bool Net_Disconnect(int SockDescriptor)
 #endif
 }
 
-Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxData, char *OutStream, int Attempts)
+Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxData, char *OutStream)
 { /*Retrieve a text-based HTTP page.*/
 #define HTTP_GET_1 "GET %s HTTP/1.0\r\n" /*We use 1.0 because 1.1 allows for the connection to stay open. That's bad for us.*/
 #define HTTP_GET_2 "Host: %s\r\n\r\n"
 #define HTTP_PORT 80
 
-	int SDesc = 0;
+	int SDesc = 0, Attempts = 0;
 	char OutCommand[2][128];
 	char *PageData = NULL, *Worker = NULL;
 	
 	do
 	{
 		if (Net_Connect(Hostname, HTTP_PORT, &SDesc, true)) break;
-	} while (--Attempts > 0);
+	} while (++Attempts < 3);
 	
-	if (Attempts == 0) return false;
+	if (Attempts == 3) return false;
 	
 	snprintf(OutCommand[0], sizeof OutCommand[0], HTTP_GET_1, Filename);
 	snprintf(OutCommand[1], sizeof OutCommand[1], HTTP_GET_2, Hostname);

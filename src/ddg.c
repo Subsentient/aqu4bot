@@ -28,7 +28,7 @@ Bool DDG_Query(const char *Search, const char *SendTo)
 	
 	snprintf(Query, sizeof Query, "/?q=%s&format=json&pretty=1&t=aqu4bot%%20IRC%%20bot", Search);
 	
-	if (!Net_GetHTTP("duckduckgo.com", Query, sizeof Results, Results, 2))
+	if (!Net_GetHTTP("duckduckgo.com", Query, sizeof Results, Results))
 	{
 		IRC_Message(SendTo, "Unable to retrieve results, can't download results!");
 		return false;

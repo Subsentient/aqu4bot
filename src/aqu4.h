@@ -107,7 +107,7 @@ extern Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketD
 extern Bool Net_Write(int SockDescriptor, const char *InMsg);
 extern Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Bool TextStream);
 extern Bool Net_Disconnect(int SockDescriptor);
-extern Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxData, char *OutStream, int Attempts);
+extern Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxData, char *OutStream);
 
 extern Bool IRC_Connect(void);
 extern void IRC_Loop(void);
