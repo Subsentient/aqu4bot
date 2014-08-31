@@ -540,7 +540,6 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strcmp(CommandID, "title"))
 	{
 		char *Worker = Argument;
-		char Server[512] = { '\0' }, Page[2048] = { '\0' };
 		char RecvBuffer[16384], PageTitle[2048], *EndTerminator = NULL;
 		char OutBuf[2048];
 		
@@ -553,25 +552,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		if ((Worker = SubStrings.Find("http://", 1, Worker))) Worker += sizeof "http://" - 1;
 		else Worker = Argument;
 		
-		for (Inc = 0; Worker[Inc] != '/' && Worker[Inc] != '\0' && Inc < sizeof Server - 1; ++Inc)
-		{ /*Copy in the server hostname.*/
-			Server[Inc] = Worker[Inc];
-		}
-		Server[Inc] = '\0';
-		
-		/*If they didn't provide a slash, get one.*/
-		if (Worker[Inc] == '\0') strcpy(Page, "/");
-		else
-		{ /*Copy in the page link.*/
-			Worker += Inc;
-			for (Inc = 0; Worker[Inc] != '\0' && Inc < sizeof Page - 1; ++Inc)
-			{
-				Page[Inc] = Worker[Inc];
-			}
-			Page[Inc] = '\0';
-		}
-		
-		if (!Net_GetHTTP(Server, Page, sizeof RecvBuffer, RecvBuffer))
+		if (!CurlCore_GetHTTP(Worker, RecvBuffer, sizeof RecvBuffer))
 		{ /*Download the first 16K*/
 			IRC_Message(SendTo, "Failed to connect to retrieve page title.");
 			return;

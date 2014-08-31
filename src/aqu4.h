@@ -98,17 +98,21 @@ struct AuthTree
 
 typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCOLOR = 0 } ConsoleColor;
 
+/*This function comes from main.c*/
 extern void Bot_SetTextColor(ConsoleColor Color);
 
+/*config.c*/
 extern Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long MaxSize);
 extern Bool Config_ReadConfig(void);
 
+/*netcore.c*/
 extern Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);
 extern Bool Net_Write(int SockDescriptor, const char *InMsg);
 extern Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Bool TextStream);
 extern Bool Net_Disconnect(int SockDescriptor);
 extern Bool Net_GetHTTP(const char *Hostname, const char *Filename, unsigned long MaxData, char *OutStream);
 
+/*irc.c*/
 extern Bool IRC_Connect(void);
 extern void IRC_Loop(void);
 extern Bool IRC_Quit(const char *QuitMSG);
@@ -133,6 +137,7 @@ extern Bool IRC_UserInChannel(const char *Channel, const char *Nick);
 extern Bool IRC_UserInChannelP(const struct ChannelTree *Channel, const char *Nick);
 extern void IRC_ShutdownChannelUsers(struct ChannelTree *Channel);
 
+/*commands.c*/
 extern void CMD_ProcessCommand(const char *InStream);
 extern Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message);
 extern Bool CMD_ReadTellDB(const char *Target);
@@ -148,6 +153,7 @@ extern Bool CMD_SaveUserModes(void);
 extern void CMD_ListUserModes(const char *SendTo);
 extern void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel);
 
+/*auth.c*/
 extern Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool BotOwner);
 extern Bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, Bool OwnersToo);
 extern Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *BotOwner);
@@ -161,14 +167,21 @@ extern void Auth_BlacklistLoad(void);
 extern Bool Auth_BlacklistSave(void);
 extern void Auth_BlacklistSendList(const char *SendTo);
 
+/*logging.c*/
 extern Bool Log_WriteMsg(const char *InStream, MessageType MType);
 extern Bool Log_CoreWrite(const char *InStream, const char *FileTitle);
 extern Bool Log_TailLog(const char *const ChannelOrNick, const int NumLinesToOut, char *const OutStream, const int Capacity);
 
+/*wz.c*/
 extern Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, Bool WZLegacy);
 
+/*ddg.c*/
 extern Bool DDG_Query(const char *Search, const char *SendTo);
 
+/*curlcore.c*/
+extern Bool CurlCore_GetHTTP(const char *const URL, void *const OutStream, const unsigned MaxOutBytes);
+
+/*Various globals.*/
 extern int SocketDescriptor;
 extern struct _ServerInfo ServerInfo;
 extern struct ChannelTree *Channels;
