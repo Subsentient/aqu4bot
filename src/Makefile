@@ -25,10 +25,13 @@ all:
 	$(CC) wz.c -c $(CFLAGS)
 ifeq ($(OS),WIN)
 	$(MAKE) -C substrings static RANLIB=$(RANLIB) CC=$(CC)
+	i686-pc-mingw32-windres ../aqu4bot-win.rc -o aqu4bot-win.o
+	$(CC) $(CFLAGS) -o ../$(OUTFILE) auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o curlcore.o wz.o aqu4bot-win.o substrings/libsubstrings.a $(LDFLAGS)
 else
 	$(MAKE) -C substrings static
-endif
 	$(CC) $(CFLAGS) -o ../$(OUTFILE) auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o curlcore.o wz.o substrings/libsubstrings.a $(LDFLAGS)
+
+endif
 
 clean:
 	rm -vf *.o
