@@ -58,10 +58,10 @@ Bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsi
 		curl_easy_setopt(Curl, CURLOPT_URL, URL);
 		
 		/*Follow paths that redirect.*/
-		curl_easy_setopt(Curl, CURLOPT_FOLLOWLOCATION, 1);
+		curl_easy_setopt(Curl, CURLOPT_FOLLOWLOCATION, 1L);
 		
 		/*No progress bar on stdout please.*/
-		curl_easy_setopt(Curl, CURLOPT_NOPROGRESS, 1);
+		curl_easy_setopt(Curl, CURLOPT_NOPROGRESS, 1L);
 		
 		curl_easy_setopt(Curl, CURLOPT_WRITEFUNCTION, _HTTPWriteHandler);
 		curl_easy_setopt(Curl, CURLOPT_WRITEDATA, &HTTPDescriptor);
