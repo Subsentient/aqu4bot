@@ -173,9 +173,18 @@ void CMD_ProcessCommand(const char *InStream_)
 	
 	if (*Target == '#')
 	{ /*If it's a channel, we might have a channel-specific prefix set.*/
+		char TempTarget[sizeof Target];
+		int Inc = 0;
+		
+		for (; Inc < sizeof TempTarget - 1 && Target[Inc] != '\0'; ++Inc)
+		{ /*Lower case it for compare.*/
+			TempTarget[Inc] = tolower(Target[Inc]);
+		}
+		Target[Inc] = '\0';
+		
 		for (; CWorker; CWorker = CWorker->Next)
 		{
-			if (!strcmp(CWorker->Channel, Target))
+			if (!strcmp(CWorker->Channel, TempTarget))
 			{
 				if (*CWorker->CmdPrefix)
 				{
