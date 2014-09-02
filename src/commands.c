@@ -157,19 +157,23 @@ void CMD_ProcessCommand(const char *InStream_)
 	
 	while (CMD_ReadTellDB(Nick));
 	
-	InStream = strstr(InStream, "PRIVMSG ");
-	InStream += strlen("PRIVMSG ");
+	/*Skip past PRIVMSG.*/
+	InStream = strstr(InStream, "PRIVMSG ") + (sizeof "PRIVMSG " - 1);
 
 	for (Inc = 0; InStream[Inc] != ' ' && Inc < sizeof Target - 1; ++Inc)
-	{
+	{ /*Get in the target for the message.*/
 		Target[Inc] = InStream[Inc];
 	}
 	Target[Inc] = '\0';
 	
+	/*Skip past the target in the origin stream.*/
+	InStream += Inc;
+
+	
+	/*Determine if our reply goes to a channel or via PM, depending on who said it.*/
 	SendTo = Target[0] == '#' ? Target : Nick;
 	
-	InStream += Inc + 1;
-	
+	/*Skip past all spaces preceding our new command.*/
 	while (*InStream == ' ') ++InStream;
 	
 	/*Commands.*/
@@ -206,15 +210,16 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 	
 	if (*CmdPrefix && !strncmp(InStream, CmdPrefix, strlen(CmdPrefix)))
-	{
+	{ /*The prefix matches one of ours.*/
 		InStream += strlen(CmdPrefix);
 	}
 	else if (!strncmp(InStream, NickBasedPrefix, strlen(NickBasedPrefix)))
-	{
+	{ /*Someone is sending us a command via our name rather than the prefix.*/
 		InStream += strlen(NickBasedPrefix);
 		
 		while (*InStream == ' ' || *InStream == '\t') ++InStream;
 		
+		/*Handle the joke commands people send to us via nick.*/
 		if (!strcmp(InStream, "hi") || !strcmp(InStream, "hello"))
 		{
 			IRC_Message(SendTo, "Hiyah.");
@@ -226,23 +231,29 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 	}
-	else if (*Target == '#') return; /*In a channel, we need to always use a prefix.*/
+	else if (*Target == '#') return; /*In a channel, we need to always use a prefix. In a PM, we don't, but we accept them.*/
 	
 	for (Inc = 0; InStream[Inc] != '\0' && InStream[Inc] != ' ' &&
 		InStream[Inc] != '\t' && Inc < sizeof CommandID - 1; ++Inc)
-	{ /*Copy in the command without it's argument.*/
+	{ /*Copy in the command without its argument.*/
 		CommandID[Inc] = InStream[Inc];
 	}
 	CommandID[Inc] = '\0';
 
-	InStream += Inc + 1;
+	/*Make InStream point to the zero or space we just hit at the end of that loop.*/
+	InStream += Inc;
 	
+	/*We have no argument for this command.*/
 	if (*InStream == '\0') Argument[0] = '\0';
 	
+	/*Skip past the whitespace if any.*/
 	while (*InStream == ' ' || *InStream == '\t') ++InStream;
 	
+	/*Still nothing, still no argument.*/
 	if (*InStream == '\0') Argument[0] = '\0';
 	
+	/*This works even if we have no command because InStream was incremented to the end of whitespace,
+	 * so it will start as zero if we have no argument.*/
 	for (Inc = 0; InStream[Inc] != '\0' && Inc < sizeof Argument - 1; ++Inc)
 	{ /*Copy in the argument if we have one.*/
 		Argument[Inc] = InStream[Inc];
@@ -252,6 +263,8 @@ void CMD_ProcessCommand(const char *InStream_)
 	/*Get rid of trailing spaces.*/
 	for (--Inc; Argument[Inc] == ' ' && Inc + 1 > 0; --Inc) Argument[Inc] = '\0';
 	
+	
+	/**		Start processing commands!		**/
 	if (!strcmp(CommandID, "help"))
 	{
 		char TmpBuf[2048];
