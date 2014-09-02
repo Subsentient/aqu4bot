@@ -15,6 +15,11 @@ ifeq ($(OS),WIN)
 	AQ_OBJECTS = $(AQ_CORE_OBJECTS) aqu4bot-win.o
 endif
 
+ifeq ($(OS),HAIKU)
+	CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS\""
+	LDFLAGS = -lcurl -lnetwork
+endif
+
 all:
 	$(CC) auth.c -c $(CFLAGS)
 	$(CC) commands.c -c $(CFLAGS)
