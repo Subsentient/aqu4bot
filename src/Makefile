@@ -36,7 +36,7 @@ ifeq ($(OS),HAIKU)
 		LDFLAGS = -lnetwork
 	else
 		LDFLAGS = -lcurl -lnetwork
-		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS\"" -DCURL_STATICLIB
+		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS\""
 	endif
 
 endif
