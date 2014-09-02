@@ -18,7 +18,7 @@ ifeq ($(OS),WIN)
 	
 	ifeq ($(USECURL),NO)
 		LDFLAGS = -lws2_32
-		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows (without libcurl)\" -DNO_LIBCURL
+		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS="\"Windows (without libcurl)\"" -DNO_LIBCURL
 	else
 		LDFLAGS = -lws2_32 `i686-pc-mingw32-pkg-config --libs libcurl`
 		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\" -DCURL_STATICLIB
