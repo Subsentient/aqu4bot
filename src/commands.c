@@ -56,15 +56,23 @@ struct
 			{ "guessinggame", "A simple number-guessing game where you guess from one to ten. "
 				"The first guess starts the game.", REQARG, ANY },
 			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG, ANY },
+#ifndef WIN
 			{ "time", "Displays the current time in a specified timezone, or UTC if omitted or not found. "
 				"After the timezone, you can specify strftime()-style syntax for custom output.", OPTARG, ANY },
+#else
+			{ "time", "Displays the current time. You may specify strftime()-style syntax for custom output, if desired. "
+				"If output format is specified, the timezone is the local time of the bot. Otherwise it's UTC. "
+				"Note that %r will not work, because this bot is built for Windows and Windows does not support this.",
+				OPTARG, ANY },
+#endif /*WIN*/
+
 #ifndef NO_LIBCURL
 			{ "title", "Displays the title of an http webpage. Domains must be prefixed with http:// or have no prefix, and https is unsupported.",
 				REQARG, ANY },
 			{ "ddg", "Searches DuckDuckGo for three search results. "
 				"Many things return blank due to the limitations of DuckDuckGo's API. "
 				"You can find the API that the results come from at \"http://api.duckduckgo.com/\".", REQARG, ANY },
-#endif
+#endif /*NO_LIBCURL*/
 			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG, ANY },
 			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG, ANY },
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
@@ -929,13 +937,15 @@ void CMD_ProcessCommand(const char *InStream_)
 		struct tm *TimeStruct;
 		char TimeString[256] = { '\0' };
 		struct tm *(*TimeFunc)(const time_t *Timer) = gmtime;
+#ifndef WIN
 		char TZ[32] = { '\0' };
+#endif
 		char TimeFormat[128] = "%a %Y-%m-%d %I:%M:%S %p";
 		
 		if (*Argument != '\0')
 		{
 			const char *Worker = Argument;
-			
+#ifndef WIN			
 			for (Inc = 0; Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof TZ - 1; ++Inc)
 			{
 				TZ[Inc] = Worker[Inc];
@@ -944,29 +954,32 @@ void CMD_ProcessCommand(const char *InStream_)
 			
 			if ((Worker = SubStrings.Line.WhitespaceJump(Worker)))
 			{
+#endif /*WIN*/
 				for (Inc = 0; Worker[Inc] != '\0' && Inc < sizeof TimeFormat - 1; ++Inc)
 				{
 					TimeFormat[Inc] = Worker[Inc];
 				}
 				TimeFormat[Inc] = '\0';
+#ifndef WIN
 			}
 			
-			TimeFunc = localtime;
-#ifndef WIN
 			setenv("TZ", TZ, true);
-#endif
 			tzset();
+#endif
+			TimeFunc = localtime;
 		}
 		
 		TimeStruct = TimeFunc(&CurrentTime);
-#ifndef WIN		
-		if (*TZ) unsetenv("TZ"); /*Restore to normalcy.*/
-#endif
+		
 		strftime(TimeString, sizeof TimeString, TimeFormat, TimeStruct);
 		
 		if (TimeFunc == gmtime) strcat(TimeString, " UTC");
+#ifndef WIN
 		else strcat(TimeString, " "), strcat(TimeString, TZ);
 		
+		if (*TZ) unsetenv("TZ"); /*Restore to normalcy.*/
+#endif
+
 		IRC_Message(SendTo, TimeString);
 	}
 	else if (!strcmp(CommandID, "join"))
