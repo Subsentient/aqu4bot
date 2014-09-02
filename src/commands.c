@@ -1057,6 +1057,8 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strcmp(CommandID, "listchannels"))
 	{
 		struct ChannelTree *Worker = Channels;
+		int TInc = 1;
+		char OutBuf[sizeof Worker->Channel] = { '\0' };
 		
 		if (!IsAdmin)
 		{
@@ -1074,7 +1076,16 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		for (; Worker; Worker = Worker->Next)
 		{
-			IRC_Message(SendTo, Worker->Channel);
+			snprintf(OutBuf + strlen(OutBuf), sizeof OutBuf - strlen(OutBuf), "%s, ", Worker->Channel);
+			
+			if (TInc == 4 || !Worker->Next)
+			{
+				OutBuf[strlen(OutBuf) - 2] = '\0';
+				TInc = 1;
+				IRC_Message(SendTo, OutBuf);
+				*OutBuf = '\0';
+			}
+			else ++TInc;
 		}
 		
 		IRC_Message(SendTo, "End of list.");
