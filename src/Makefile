@@ -27,7 +27,7 @@ ifeq ($(OS),WIN)
 	OUTFILE = aqu4bot.exe
 	RANLIB = i686-pc-mingw32-ranlib
 	CC = i686-pc-mingw32-gcc
-	AQ_OBJECTS = $(AQ_CORE_OBJECTS) aqu4bot-win.o
+	AQ_OBJECTS = $(AQ_CORE_OBJECTS) ../win32/aqu4bot-win.o
 endif
 
 ifeq ($(OS),HAIKU)
@@ -42,6 +42,10 @@ ifeq ($(OS),HAIKU)
 endif
 
 all:
+
+ifeq ($(OS),WIN)
+	$(MAKE) -C ../win32
+endif
 	$(CC) auth.c -c $(CFLAGS)
 	$(CC) commands.c -c $(CFLAGS)
 	$(CC) config.c -c $(CFLAGS)
@@ -54,7 +58,6 @@ all:
 	$(CC) wz.c -c $(CFLAGS)
 ifeq ($(OS),WIN)
 	$(MAKE) -C substrings static RANLIB=$(RANLIB) CC=$(CC)
-	i686-pc-mingw32-windres ../aqu4bot-win.rc -o aqu4bot-win.o
 else
 	$(MAKE) -C substrings static
 
