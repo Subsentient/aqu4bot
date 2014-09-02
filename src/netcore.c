@@ -97,7 +97,7 @@ Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Boo
 	int Status = 0;
 	unsigned char Byte = 0;
 	unsigned char *OutStream = OutStream_;
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	*OutStream = '\0';
 	

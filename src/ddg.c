@@ -24,7 +24,7 @@ Bool DDG_Query(const char *Search, const char *SendTo)
 	char Query[1024];
 	char URL[1024], Title[1024];
 	char OutBuf[1024];
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	snprintf(Query, sizeof Query, "http://duckduckgo.com/?q=%s&format=json&pretty=1&t=aqu4bot%%20IRC%%20bot", Search);
 	

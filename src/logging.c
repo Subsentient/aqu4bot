@@ -33,7 +33,7 @@ Bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const
 	FILE *Descriptor = NULL;
 	char Filename[256], *Buf = NULL, *Worker = NULL;
 	struct stat FileStat;
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	int Lines = 1;
 	
 	snprintf(Filename, sizeof Filename, "logs/%s.txt", ChannelOrNick);
@@ -97,7 +97,7 @@ Bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 	struct tm *TimeStruct;
 	char OutBuf[1024];	
 	char FileTitle[256];
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	SubStrings.Copy(FileTitle, FileTitle_, sizeof FileTitle);
 	
@@ -148,7 +148,7 @@ static Bool Log_ModeLog(const char *InStream)
 	char Nick[128], Channel[128], Mode[256];
 	char OutBuf[1024];
 	const char *Worker = InStream + 1;
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	for (; Worker[Inc] != '!' && Worker[Inc] != ' ' && Worker[Inc] != '\0' && Inc < sizeof Nick - 1; ++Inc)
 	{
@@ -188,7 +188,7 @@ static Bool Log_TopicLog(const char *InStream)
 {
 	char Channel[128], Topic[1024], OutBuf[1024];
 	char *Worker = SubStrings.CFind('#', 1, InStream);
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	if (!Worker) return false;
 	

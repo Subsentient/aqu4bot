@@ -57,7 +57,7 @@ static Bool Main_GenConfig(void)
 	FILE *Descriptor = NULL;
 	char LineBuf[4096], CurChan[128], *Worker = LineBuf;
 	char FileBuf[16384] = { '\0' }; /*16K max config size for generator. Should be ridiculously more than enough.*/
-	register unsigned long Inc = 0;
+	register unsigned Inc = 0;
 	char Nick[128], Ident[128], Mask[128];
 	char OutBuf[sizeof LineBuf + 128], OutPath[256];
 	struct stat FileStat;

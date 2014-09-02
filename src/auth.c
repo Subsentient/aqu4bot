@@ -256,7 +256,7 @@ void Auth_BlacklistLoad(void)
 	char *BlacklistDB = NULL, *Worker = NULL;
 	char CurLine[2048], Nick[128], Ident[128], Mask[128];
 	struct stat FileStat;
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	if (!Descriptor) return;
 	

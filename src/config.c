@@ -37,7 +37,7 @@ Bool Config_ReadConfig(void)
 	FILE *Descriptor = fopen(CONFIG_FILE, "rb");
 	char *ConfigStream = NULL, *Worker = NULL;
 	struct stat FileStat;
-	unsigned long Inc = 0, LineNum = 1;
+	unsigned Inc = 0, LineNum = 1;
 	char CurrentLine[2048];
 	char LineID[1024];
 	char LineData[1024];
@@ -119,7 +119,7 @@ Bool Config_ReadConfig(void)
 					putc('*', stderr);
 					Bot_SetTextColor(ENDCOLOR);
 					
-					fprintf(stderr, " Bad channel prefix value \"%s\" in config, line %lu.\n", Prefix, LineNum);
+					fprintf(stderr, " Bad channel prefix value \"%s\" in config, line %u.\n", Prefix, LineNum);
 				}
 				else
 				{
@@ -129,7 +129,7 @@ Bool Config_ReadConfig(void)
 			
 			if (Chan[0] == '#')
 			{
-				unsigned long Inc = 0;
+				unsigned Inc = 0;
 				for (; Chan[Inc] != '\0'; ++Inc) Chan[Inc] = tolower(Chan[Inc]);
 
 				IRC_AddChannelToTree(Chan, *Prefix ? Prefix : NULL);
@@ -140,7 +140,7 @@ Bool Config_ReadConfig(void)
 				putc('*', stderr);
 				Bot_SetTextColor(ENDCOLOR);
 				
-				fprintf(stderr, " Bad channel value \"%s\" in config, line %lu.\n", Chan, LineNum);
+				fprintf(stderr, " Bad channel value \"%s\" in config, line %u.\n", Chan, LineNum);
 			}
 		}
 		else if (!strcmp(LineID, "Prefix"))
@@ -159,13 +159,13 @@ Bool Config_ReadConfig(void)
 			
 			if (!IRC_BreakdownNick(LineData, Nick, Ident, Mask))
 			{
-				fprintf(stderr, "Invalid vhost format, line %lu\n", LineNum);
+				fprintf(stderr, "Invalid vhost format, line %u\n", LineNum);
 				return false;
 			}
 
 			if (!Auth_AddAdmin(Nick, Ident, Mask, BotOwner))
 			{
-				fprintf(stderr, "Failed to add admin, line %lu\n", LineNum);
+				fprintf(stderr, "Failed to add admin, line %u\n", LineNum);
 				return false;
 			}
 		}
@@ -191,7 +191,7 @@ Bool Config_ReadConfig(void)
 			putc('*', stderr);
 			Bot_SetTextColor(ENDCOLOR);
 			
-			fprintf(stderr, " Bad value in config, at line %lu.\n", LineNum);
+			fprintf(stderr, " Bad value in config, at line %u.\n", LineNum);
 			continue;
 		}	
 	} while (++LineNum, (Worker = SubStrings.Line.NextLine(Worker)));

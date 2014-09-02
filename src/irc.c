@@ -76,7 +76,7 @@ void IRC_Loop(void)
 			case IMSG_PRIVMSG:
 			{
 				char MessageData[2048], *TC = NULL, Channel[128];
-				unsigned long Inc = 0;
+				unsigned Inc = 0;
 								
 				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
@@ -138,7 +138,7 @@ void IRC_Loop(void)
 				
 				if (Auth_IsAdmin(Nick, Ident, Mask, NULL))
 				{
-					unsigned long Inc = 0;
+					unsigned Inc = 0;
 					char *TWorker = strchr(MessageBuf, '#');
 					
 					if (!TWorker)
@@ -162,7 +162,7 @@ void IRC_Loop(void)
 			case IMSG_KICK:
 			{
 				char InBuf[2048], *Worker = InBuf;
-				unsigned long Inc = 0;
+				unsigned Inc = 0;
 				
 				IRC_GetMessageData(MessageBuf, InBuf);
 
@@ -209,7 +209,7 @@ void IRC_Loop(void)
 			case IMSG_JOIN:
 			{
 				char *Search = SubStrings.CFind('#', 1, MessageBuf);
-				unsigned long Inc = 0;
+				unsigned Inc = 0;
 				
 				for (; Search[Inc] != '\0'; ++Inc) Search[Inc] = tolower(Search[Inc]);
 				
@@ -231,7 +231,7 @@ void IRC_Loop(void)
 			case IMSG_PART:
 			{
 				char *Search = SubStrings.CFind('#', 1, MessageBuf), *Two = Search;
-				unsigned long Inc = 0;
+				unsigned Inc = 0;
 				
 				for (; Search[Inc] != '\0'; ++Inc) Search[Inc] = tolower(Search[Inc]);
 
@@ -276,7 +276,7 @@ void IRC_Loop(void)
 				char TChannel[128], Topic[1024];
 				char *TWorker = SubStrings.CFind('#', 1, MessageBuf);
 				struct ChannelTree *Worker = Channels;
-				unsigned long Inc = 0;
+				unsigned Inc = 0;
 				
 				if (!TWorker) continue;
 				
@@ -310,7 +310,7 @@ void IRC_Loop(void)
 			{
 				char *NamesList = SubStrings.CFind('#', 1, MessageBuf);
 				char Channel[128], Nick[128];
-				unsigned long Inc = 0;
+				unsigned Inc = 0;
 				
 				if (!NamesList) continue;
 				
@@ -538,7 +538,7 @@ Bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
 {
 	struct ChannelTree *Worker = Channels;
 	char InNick[128], OutNick[128];
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	SubStrings.Copy(InNick, Nick, sizeof InNick);
 	for (; InNick[Inc] != '\0'; ++Inc) InNick[Inc] = tolower(InNick[Inc]);
@@ -593,7 +593,7 @@ Bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *cons
 {
 	struct _UserList *UWorker = Channel->UserList;
 	char InNick[128], OutNick[128];
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	SubStrings.Copy(InNick, Nick, sizeof InNick);
 	for (; InNick[Inc] != '\0'; ++Inc) InNick[Inc] = tolower(InNick[Inc]);
@@ -650,7 +650,7 @@ Bool IRC_UserInChannel(const char *const Channel_, const char *const Nick_)
 {
 	struct ChannelTree *Worker = Channels;
 	char Nick[128], OurNick[128], Channel[128];
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	SubStrings.Copy(Channel, Channel_, sizeof Channel);
 	SubStrings.Copy(Nick, Nick_, sizeof Nick);
@@ -684,7 +684,7 @@ Bool IRC_UserInChannelP(const struct ChannelTree *const Channel, const char *con
 {
 	struct _UserList *UWorker = Channel->UserList;
 	char Nick[128], OurNick[128];
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	SubStrings.Copy(Nick, Nick_, sizeof Nick);
 	for (; Nick[Inc] != '\0'; ++Inc) Nick[Inc] = tolower(Nick[Inc]);
@@ -839,7 +839,7 @@ MessageType IRC_GetMessageType(const char *InStream_)
 {
 	const char *InStream = InStream_;
 	char Command[32];
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	if (InStream[0] != ':') return IMSG_INVALID;
 	
@@ -890,7 +890,7 @@ Bool IRC_GetMessageData(const char *Message, char *OutData)
 Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
 {
 	char ComplexNick[128], *Worker = ComplexNick;
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	
 	for (; Message[Inc] != ' ' && Message[Inc] != '\0'; ++Inc)
 	{
@@ -945,7 +945,7 @@ Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char 
 
 Bool IRC_GetStatusCode(const char *Message, int *OutNumber)
 { /*Returns true if we get a status code.*/
-	unsigned long Inc = 0;
+	unsigned Inc = 0;
 	char Num[64];
 	
 	if (!(Message = strchr(Message, ' '))) return false;
