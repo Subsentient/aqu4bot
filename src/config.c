@@ -15,7 +15,7 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long MaxSize)
+Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned MaxSize)
 {
 	const char *Worker = InStream;
 	

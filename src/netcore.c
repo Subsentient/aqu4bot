@@ -67,7 +67,7 @@ Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescript
 Bool Net_Write(int SockDescriptor, const char *InMsg)
 {
 	size_t StringSize = strlen(InMsg);
-	unsigned long Transferred = 0, TotalTransferred = 0;
+	unsigned Transferred = 0, TotalTransferred = 0;
 
 	do
 	{
@@ -92,7 +92,7 @@ Bool Net_Write(int SockDescriptor, const char *InMsg)
 	return true;
 }
 
-Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Bool TextStream)
+Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, Bool TextStream)
 {
 	int Status = 0;
 	unsigned char Byte = 0;

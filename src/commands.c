@@ -22,7 +22,7 @@ enum HPerms { ANY, ADMIN, OWNER };
 
 struct StickySpec
 {
-	unsigned long ID;
+	unsigned ID;
 	time_t Time;
 	char Owner[128];
 	char Data[2048];
@@ -131,7 +131,7 @@ static struct _SeenDB
 static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo);
 static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo);
 static Bool CMD_ListStickies(const char *SendTo);
-static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete);
+static Bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, Bool JustDelete);
 
 void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
@@ -1111,7 +1111,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strcmp(CommandID, "sticky"))
 	{
 		char Mode[32], *Worker = NULL;
-		unsigned long TInc = 0;
+		unsigned TInc = 0;
 		
 		if (*Argument == '\0')
 		{
@@ -1135,12 +1135,12 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		if (!strcmp(Mode, "save"))
 		{
-			unsigned long StickyID = CMD_AddToStickyDB(Nick, Worker);
+			unsigned StickyID = CMD_AddToStickyDB(Nick, Worker);
 			if (!StickyID) IRC_Message(SendTo, "Error saving sticky. It's my fault.");
 			else
 			{
 				char OutBuf[1024];
-				snprintf(OutBuf, sizeof OutBuf, "Sticky saved. It's sticky ID is \"%lu\".", StickyID);
+				snprintf(OutBuf, sizeof OutBuf, "Sticky saved. It's sticky ID is \"%u\".", StickyID);
 				
 				IRC_Message(SendTo, OutBuf);
 			}
@@ -1330,12 +1330,12 @@ Bool CMD_ReadTellDB(const char *Target)
 	return Found;
 }
 
-unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky)
+unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 {
 	FILE *Descriptor = fopen("db/sticky.db", "a+b");
 	char OutBuf[4096];
 	struct stat FileStat;
-	unsigned long StickyID = 0;
+	unsigned StickyID = 0;
 	
 	if (!Descriptor) return 0;
 	
@@ -1353,7 +1353,7 @@ unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 	{
 		char *StickyDB = NULL, *Worker = NULL;
 		char Num[128];
-		unsigned long TInc = 0, Temp = 0;
+		unsigned TInc = 0, Temp = 0;
 		
 		Worker = StickyDB = malloc(FileStat.st_size + 1);
 		fread(StickyDB, 1, FileStat.st_size, Descriptor);
@@ -1379,7 +1379,7 @@ unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 		free(StickyDB);
 	}
 	
-	snprintf(OutBuf, sizeof OutBuf, "%lu %lu %s %s\n", StickyID, (unsigned long)time(NULL), Owner, Sticky);
+	snprintf(OutBuf, sizeof OutBuf, "%u %lu %s %s\n", StickyID, (unsigned long)time(NULL), Owner, Sticky);
 	fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
 	
 	fclose(Descriptor);
@@ -1398,7 +1398,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 	struct tm *TimeStruct;
 	char TimeString[256], StickyID_T[32], ATime[1024], Owner[128];
 	char OutBuf[2048];
-	unsigned long StickyCount = 0, BigInc = 0;
+	unsigned StickyCount = 0, BigInc = 0;
 	if (!Descriptor || stat("db/sticky.db", &FileStat) != 0 || FileStat.st_size == 0)
 	{
 		if (Descriptor) fclose(Descriptor);
@@ -1417,7 +1417,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 	/*Count the stickies.*/
 	do Worker = SubStrings.Line.NextLine(Worker); while(++StickyCount, Worker);
 	
-	snprintf(OutBuf, sizeof OutBuf, "Total of %lu stickies found", StickyCount);
+	snprintf(OutBuf, sizeof OutBuf, "Total of %u stickies found", StickyCount);
 	IRC_Message(SendTo, OutBuf);
 	
 	Worker = StickyDB;
@@ -1817,7 +1817,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 }
 
-static Bool CMD_StickyDB(unsigned long StickyID, void *OutSpec_, Bool JustDelete)
+static Bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, Bool JustDelete)
 { /*If SendTo is NULL, we delete the sticky instead of reading it.*/
 	char *StickyDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	unsigned Inc = 0;

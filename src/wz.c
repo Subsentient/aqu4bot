@@ -212,14 +212,14 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 		if (!GamesAvailable)
 		{
 			snprintf(OutBuf, sizeof OutBuf, "No games are in the lobby at the moment. "
-					"The last game was hosted %lu seconds (%lu minutes) ago.",
-					(unsigned long)LastHosted, (unsigned long)LastHosted / 60);
+					"The last game was hosted %u seconds (%u minutes) ago.",
+					(unsigned)LastHosted, (unsigned)LastHosted / 60);
 		}
 		else
 		{
-			snprintf(OutBuf, sizeof OutBuf, "End of games list. Game number %lu is the most recently hosted, "
-					"at %lu seconds (%lu minutes) ago.",
-					(unsigned long)Inc, (unsigned long)LastHosted, (unsigned long)LastHosted / 60);
+			snprintf(OutBuf, sizeof OutBuf, "End of games list. Game number %u is the most recently hosted, "
+					"at %u seconds (%u minutes) ago.",
+					(unsigned)Inc, (unsigned)LastHosted, (unsigned)LastHosted / 60);
 		}
 		IRC_Message(SendTo, OutBuf);
 	}

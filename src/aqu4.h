@@ -102,13 +102,13 @@ typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCO
 extern void Bot_SetTextColor(ConsoleColor Color);
 
 /*config.c*/
-extern Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned long MaxSize);
+extern Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned MaxSize);
 extern Bool Config_ReadConfig(void);
 
 /*netcore.c*/
 extern Bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);
 extern Bool Net_Write(int SockDescriptor, const char *InMsg);
-extern Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned long MaxLength, Bool TextStream);
+extern Bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, Bool TextStream);
 extern Bool Net_Disconnect(int SockDescriptor);
 
 /*irc.c*/
@@ -140,7 +140,7 @@ extern void IRC_ShutdownChannelUsers(struct ChannelTree *Channel);
 extern void CMD_ProcessCommand(const char *InStream);
 extern Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message);
 extern Bool CMD_ReadTellDB(const char *Target);
-extern unsigned long CMD_AddToStickyDB(const char *Owner, const char *Sticky);
+extern unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky);
 extern void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage);
 extern Bool CMD_SaveSeenDB(void);
 extern void CMD_LoadSeenDB(void);
