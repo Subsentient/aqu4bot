@@ -138,7 +138,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	monolithic function that does wayyyy too much.*/
 	char Nick[128], Ident[128], Mask[128], Target[128];
 	char CommandID[128], Argument[4096];
-	unsigned Inc = 0;
+	int Inc = 0;
 	const char *SendTo = NULL;
 	const char *InStream = InStream_;
 	Bool IsAdmin = false, BotOwner = false;
@@ -263,7 +263,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	/*Get rid of trailing spaces.*/
 	if (Inc > 0)
 	{
-		for (--Inc; Argument[Inc] == ' ' && Inc + 1 > 0; --Inc) Argument[Inc] = '\0';
+		for (--Inc; Argument[Inc] == ' ' && Inc >= 0; --Inc) Argument[Inc] = '\0';
 	}
 	
 	/**		Start processing commands!		**/
