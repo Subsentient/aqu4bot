@@ -261,8 +261,10 @@ void CMD_ProcessCommand(const char *InStream_)
 	Argument[Inc] = '\0';
 	
 	/*Get rid of trailing spaces.*/
-	for (--Inc; Argument[Inc] == ' ' && Inc + 1 > 0; --Inc) Argument[Inc] = '\0';
-	
+	if (Inc > 0)
+	{
+		for (--Inc; Argument[Inc] == ' ' && Inc + 1 > 0; --Inc) Argument[Inc] = '\0';
+	}
 	
 	/**		Start processing commands!		**/
 	if (!strcmp(CommandID, "help"))
