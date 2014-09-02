@@ -188,7 +188,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		{ /*Lower case it for compare.*/
 			TempTarget[Inc] = tolower(Target[Inc]);
 		}
-		Target[Inc] = '\0';
+		TempTarget[Inc] = '\0';
 		
 		for (; CWorker; CWorker = CWorker->Next)
 		{
