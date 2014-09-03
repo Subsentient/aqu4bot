@@ -91,7 +91,9 @@ struct
 			{ "part", "Leaves the specified channel. You must be at least admin for this."
 				" If no argument is specified and you are already in a channel, "
 				"it leaves the channel the command is issued from.", OPTARG, ADMIN },
-			{ "listchannels", "Lists the channels I am in. You must be at least admin.", REQARG, ADMIN },
+			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, and "
+				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel.", 
+				REQARG, ADMIN },
 			{ "nickchange", "Changes my nickname to the selected nick. "
 				"Make sure the new nick is not taken before issuing this.", REQARG, OWNER },
 			{ "admin", "Used to temporarily grant/remove bot admins. Cannot add owners. Changes must be made to"
@@ -304,45 +306,102 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		return;
 	}
-#ifdef DEBUG
-	else if (!strcmp(CommandID, "dumpchanneldb"))
+	else if (!strcmp(CommandID, "debug"))
 	{
-		struct ChannelTree *Worker = Channels;
-		struct _UserList *UWorker = NULL;
-		char OutBuf[1024];
+		char Subcommand[sizeof Argument];
+		char Subargs[sizeof Argument], *TW = NULL;
 		
-		if (!BotOwner)
+		/*Get the subcommand.*/
+		SubStrings.Copy(Subcommand, Argument, sizeof Subcommand);
+		if ((TW = strpbrk(Subcommand, " \t"))) *TW = '\0'; /*Don't copy in any arguments into the subcommand, it's confusing.*/
+		
+		/*Get any arguments to a subcommand.*/		
+		if (!(TW = SubStrings.Line.WhitespaceJump(Argument)))
+		{ /*No argument.*/
+			*Subargs = '\0';
+		}
+		else
 		{
-			IRC_Message(SendTo, "You must be an owner for that.");
+			SubStrings.Copy(Subargs, TW, sizeof Subargs);
+		}
+			
+		
+		
+		/*Process said debug commands.*/
+		if (!strcmp(Subcommand, "dumpchanneldb"))
+		{
+			struct ChannelTree *Worker = Channels;
+			struct _UserList *UWorker = NULL;
+			char OutBuf[1024];
+			
+			if (!BotOwner)
+			{
+				IRC_Message(SendTo, "You must be an owner for that.");
+				return;
+			}
+			
+			IRC_Message(SendTo, "Dumping channel database contents.");
+			
+			for (; Worker; Worker = Worker->Next)
+			{
+				if (!*Subargs || !strcmp(Subargs, Worker->Channel))
+				{
+					for (UWorker = Worker->UserList; UWorker; UWorker = UWorker->Next)
+					{
+						if (UWorker->FullUser)
+						{
+							snprintf(OutBuf, sizeof OutBuf, "%s: %s!%s@%s", Worker->Channel, UWorker->Nick, UWorker->Ident, UWorker->Mask);
+						}
+						else
+						{
+							snprintf(OutBuf, sizeof OutBuf, "%s: %s", Worker->Channel, UWorker->Nick);
+						}
+						
+						IRC_Message(SendTo, OutBuf);
+					}
+				}
+			}
+		
+			IRC_Message(SendTo, "End of list.");
+		}
+		else if (!strcmp(Subcommand, "listchannels"))
+		{
+			struct ChannelTree *Worker = Channels;
+			int TInc = 1;
+			char OutBuf[sizeof Worker->Channel] = { '\0' };
+			
+			if (!IsAdmin)
+			{
+				IRC_Message(SendTo, "You aren't authorized to see that.");
+				return;
+			}
+			
+			IRC_Message(SendTo, "List of channels I'm in:");
+			
+			for (; Worker; Worker = Worker->Next)
+			{
+				snprintf(OutBuf + strlen(OutBuf), sizeof OutBuf - strlen(OutBuf), "%s, ", Worker->Channel);
+				
+				if (TInc == 4 || !Worker->Next)
+				{
+					OutBuf[strlen(OutBuf) - 2] = '\0';
+					TInc = 1;
+					IRC_Message(SendTo, OutBuf);
+					*OutBuf = '\0';
+				}
+				else ++TInc;
+			}
+			
+			IRC_Message(SendTo, "End of list.");
+		}
+		else
+		{
+			IRC_Message(SendTo, "Bad debug subcommand.");
 			return;
 		}
 		
-		IRC_Message(SendTo, "Dumping channel database contents.");
-		
-		for (; Worker; Worker = Worker->Next)
-		{
-			if (!*Argument || !strcmp(Argument, Worker->Channel))
-			{
-				for (UWorker = Worker->UserList; UWorker; UWorker = UWorker->Next)
-				{
-					if (UWorker->FullUser)
-					{
-						snprintf(OutBuf, sizeof OutBuf, "%s: %s!%s@%s", Worker->Channel, UWorker->Nick, UWorker->Ident, UWorker->Mask);
-					}
-					else
-					{
-						snprintf(OutBuf, sizeof OutBuf, "%s: %s", Worker->Channel, UWorker->Nick);
-					}
-					
-					IRC_Message(SendTo, OutBuf);
-				}
-			}
-		}
-		
-		IRC_Message(SendTo, "End of list.");
 		return;
 	}
-#endif
 	else if (!strcmp(CommandID, "tail"))
 	{
 		char InBuf[16384], *Worker = NULL;
@@ -1053,42 +1112,6 @@ void CMD_ProcessCommand(const char *InStream_)
 				printf("Left channel %s\n", NTarg);
 			}
 		}
-	}
-	else if (!strcmp(CommandID, "listchannels"))
-	{
-		struct ChannelTree *Worker = Channels;
-		int TInc = 1;
-		char OutBuf[sizeof Worker->Channel] = { '\0' };
-		
-		if (!IsAdmin)
-		{
-			IRC_Message(SendTo, "You aren't authorized to see that.");
-			return;
-		}
-		
-		if (*Argument != '\0')
-		{
-			IRC_Message(SendTo, "I don't need an argument for this command.");
-			return;
-		}
-		
-		IRC_Message(SendTo, "List of channels I'm in:");
-		
-		for (; Worker; Worker = Worker->Next)
-		{
-			snprintf(OutBuf + strlen(OutBuf), sizeof OutBuf - strlen(OutBuf), "%s, ", Worker->Channel);
-			
-			if (TInc == 4 || !Worker->Next)
-			{
-				OutBuf[strlen(OutBuf) - 2] = '\0';
-				TInc = 1;
-				IRC_Message(SendTo, OutBuf);
-				*OutBuf = '\0';
-			}
-			else ++TInc;
-		}
-		
-		IRC_Message(SendTo, "End of list.");
 	}
 	else if (!strcmp(CommandID, "tell"))
 	{
