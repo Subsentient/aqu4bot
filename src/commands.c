@@ -51,6 +51,7 @@ struct
 		{
 			{ "burrito", "Chucks a nasty, rotten burrito at someone.", REQARG, ANY },
 			{ "beer", "Gives someone a cold, Samuel Adams beer.", REQARG, ANY },
+			{ "godzilla", "Turns me into godzilla for a couple moments.", NOARG, OWNER },
 			{ "wz", "Shows games in either the Warzone 2100 or Warzone 2100 Legacy game lobby."
 				" Passing 'legacy' as an argument chooses the Legacy server, otherwise it's the wz2100.net server.", OPTARG, ANY },
 			{ "guessinggame", "A simple number-guessing game where you guess from one to ten. "
@@ -1295,6 +1296,99 @@ void CMD_ProcessCommand(const char *InStream_)
 		snprintf(OutBuf, sizeof OutBuf, "%s: \"<%s>: %s\"", Nick, TargetUser, Message);
 		
 		IRC_Message(SendTo, OutBuf);
+		return;
+	}
+	else if (!strcmp(CommandID, "godzilla"))
+	{
+		struct _UserList *UW = NULL;
+		struct ChannelTree *ChanCore = NULL;
+		int MunchCount = 0, LuckyMunchee = 0, LuckyPooee = 0;
+		char *Munch = NULL, *Poo = NULL;
+		char TempBuf[1024];
+		
+		if (!BotOwner)
+		{ /*Only owners may behold this glory.*/
+			IRC_Message(SendTo, "How about no?");
+			return;
+		}
+		
+		if (*SendTo != '#')
+		{ /*For the random eatings and crappings we need a channel with a user list.*/
+			IRC_Message(SendTo, "I can only do the 'zilla in a channel.");
+			return;
+		}
+		
+		if (!(ChanCore = IRC_GetChannelFromDB(SendTo)))
+		{ /*Get the pointer for this channel.*/
+			IRC_Message(SendTo, "Internal error, I can't zilla because I can't look up the channel in my database!");
+			return;
+		}
+		
+		if (!(UW = ChanCore->UserList))
+		{ /*Now get the userlist for the channel.*/
+			IRC_Message(SendTo, "Empty user list database for channel! Can't zilla!");
+			return;
+		}
+		
+		/*Count users.*/
+		for (; UW; UW = UW->Next, ++MunchCount);
+		
+		if (MunchCount < 4)
+		{ /*We need food you know. or it's not worth it.*/
+			IRC_Message(SendTo, "No munching with under 4 munchees.");
+			return;
+		}
+	ReMunch:
+		/*Get a random user for both.*/
+		LuckyMunchee = rand() / ((RAND_MAX / MunchCount) + 1);
+		LuckyPooee = rand() / ((RAND_MAX / MunchCount) + 1);
+
+		/*Get the one to be munched.*/
+		Inc = 0;		
+		for (UW = ChanCore->UserList; UW && Inc < LuckyMunchee; UW = UW->Next, ++Inc);
+		
+		if (UW) Munch = UW->Nick; /*Now get their name.*/
+		else
+		{
+			IRC_Message(SendTo, "Error calculating munchee.");
+			return;
+		}
+		
+		/*Now get the one to be pooed upon.*/
+		Inc = 0;
+		for (UW = ChanCore->UserList; UW && Inc < LuckyPooee; UW = UW->Next, ++Inc);
+		
+		if (UW) Poo = UW->Nick; /*And again the name of the pooee.*/
+		else
+		{
+			IRC_Message(SendTo, "Errr calculating pooee.");
+			return;
+		}
+		
+		/*Don't let it not make sense.*/
+		if (!strcmp(Munch, ServerInfo.Nick) || !strcmp(Poo, ServerInfo.Nick) || !strcmp(Munch, Poo)) goto ReMunch;
+		
+		/**COMMENCE ROMPING!!!**/
+		IRC_Message(SendTo, "\001ACTION turns into Godzilla and begins to wreak havoc upon you all\001");
+		
+		for (Inc = 0; Inc < 5; ++Inc) IRC_Message(SendTo, "*ROMP*");
+		
+		/*Commence munching.*/
+		snprintf(TempBuf, sizeof TempBuf, "\001ACTION eats %s\001", Munch);
+		IRC_Message(SendTo, TempBuf);
+		
+		/*More romping.*/
+		for (Inc = 0; Inc < 3; ++Inc) IRC_Message(SendTo, "*ROMP*");
+		
+		/*Commence crapping.*/
+		snprintf(TempBuf, sizeof TempBuf, "\001ACTION craps out %s on %s\001", Munch, Poo);
+		IRC_Message(SendTo, TempBuf);
+		
+		/*Final romping.*/
+		for (Inc = 0; Inc < 4; ++Inc) IRC_Message(SendTo, "*ROMP*");
+		
+		/*And the reversion to normal aqu4bot.*/
+		IRC_Message(SendTo, "\001ACTION slowly shrinks back to normal size and scampers off\001");
 		return;
 	}
 	else if (!strcmp(CommandID, "tell"))

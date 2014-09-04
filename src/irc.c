@@ -492,6 +492,21 @@ void IRC_CompleteChannelUser(const char *const Nick, const char *const Ident, co
 	}
 }
 
+struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel)
+{
+	struct ChannelTree *Worker = Channels;
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		if (!strcmp(Channel, Worker->Channel))
+		{
+			return Worker;
+		}
+	}
+	
+	return NULL;
+}
+
 Bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask, Bool FullUser)
 {
 	struct ChannelTree *Worker = Channels;

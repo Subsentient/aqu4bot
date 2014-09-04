@@ -135,6 +135,7 @@ extern Bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const cha
 extern Bool IRC_UserInChannel(const char *Channel, const char *Nick);
 extern Bool IRC_UserInChannelP(const struct ChannelTree *Channel, const char *Nick);
 extern void IRC_ShutdownChannelUsers(struct ChannelTree *Channel);
+extern struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel);
 
 /*commands.c*/
 extern void CMD_ProcessCommand(const char *InStream);

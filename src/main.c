@@ -11,6 +11,7 @@ See the file UNLICENSE.TXT for more information.
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <time.h>
 #include <ctype.h>
 #include <sys/stat.h>
 #ifdef WIN
@@ -283,6 +284,9 @@ int main(int argc, char **argv)
 	
 	signal(SIGINT, SigHandler);
 	signal(SIGTERM, SigHandler);
+	
+	/*Seed rand()*/
+	srand(time(NULL));
 
 	for (; Inc < argc; ++Inc)
 	{
