@@ -78,6 +78,8 @@ struct
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
 				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies. "
 				"sticky list lists the names of the owners and times of creation for all stickies.", REQARG, ANY },
+			{ "replace", "Used to modify a quote by yourself or another user. Syntax is 'replace nick old^new'. "
+				"You may omit 'new' to delete from a string, but not 'old'.", REQARG, ANY },
 			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG, ANY },
 			{ "tail", "Reads the end of the log for the channel or user specified as the first argument. "
 				"The number of lines is optionally specified by the second argument, but the default is 10.", REQARG, ADMIN },
@@ -131,7 +133,7 @@ static struct _SeenDB
 } *SeenRoot;
 
 static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo);
-static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo);
+static struct _SeenDB *CMD_SeenDBLookup(const char *const Nick);
 static Bool CMD_ListStickies(const char *SendTo);
 static Bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, Bool JustDelete);
 
@@ -932,13 +934,39 @@ void CMD_ProcessCommand(const char *InStream_)
 	}
 	else if (!strcmp(CommandID, "seen"))
 	{
+		struct _SeenDB *SeenRecord = NULL;
+		char TimeString[128], OutBuf[2048];
+		struct tm *TimeStruct;
+		
 		if (*Argument == 0)
 		{
 			IRC_Message(SendTo, "I need a nickname to check.");
 			return;
 		}
 		
-		CMD_CheckSeenDB(Argument, SendTo);
+		if (!(SeenRecord = CMD_SeenDBLookup(Argument)))
+		{ /*No record found.*/
+			snprintf(OutBuf, sizeof OutBuf, "I'm afraid I don't remember anyone with the nick %s, sorry.", Nick);
+			IRC_Message(SendTo, OutBuf);
+			return;
+		}
+
+		/*Assume we did find someone.*/
+		TimeStruct = gmtime(&SeenRecord->Time);
+		strftime(TimeString, sizeof TimeString, "%Y-%m-%d %H:%M:%S UTC", TimeStruct);
+		
+		if (*SeenRecord->Channel == '#')
+		{
+			snprintf(OutBuf, sizeof OutBuf, "I last saw %s at %s in %s. Their most recent message is \"%s\"",
+					SeenRecord->Nick, TimeString, SeenRecord->Channel, SeenRecord->LastMessage);
+		}
+		else
+		{
+			snprintf(OutBuf, sizeof OutBuf, "I last saw %s at %s in a private message to me. "
+					"Their most recent message was \"%s\"", SeenRecord->Nick, TimeString, SeenRecord->LastMessage);
+		}
+		
+		IRC_Message(SendTo, OutBuf);
 	}
 	else if (!strcmp(CommandID, "chanctl"))
 	{
@@ -1196,6 +1224,72 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		return;
 		
+	}
+	else if (!strcmp(CommandID, "replace"))
+	{
+		char TargetUser[128], Old[128], New[128];
+		const char *TW = Argument;
+		struct _SeenDB *SeenRecord = NULL;
+		char Message[4096], OutBuf[4096];
+		
+		if (!*Argument)
+		{
+			IRC_Message(SendTo, "This command requires an argument.");
+			return;
+		}
+		
+		for (Inc = 0; Inc < sizeof TargetUser - 1 && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
+		{ /*Get the target user of the replace.*/
+			TargetUser[Inc] = TW[Inc];
+		}
+		TargetUser[Inc] = '\0';
+		
+		if (!(TW = SubStrings.Line.WhitespaceJump(TW)))
+		{
+			IRC_Message(SendTo, "You must specify more than just a nick.");
+			return;
+		}
+		
+		for (Inc = 0; Inc < sizeof Old - 1 && TW[Inc] != '^' && TW[Inc] != '\0'; ++Inc)
+		{ /*Get the old string that we will replace with the new string.*/
+			Old[Inc] = TW[Inc];
+		}
+		Old[Inc] = '\0';
+		
+		if (Inc == 0)
+		{ /*They just gave us a tick and nothing to look for.*/
+			IRC_Message(SendTo, "Something to match against is required.");
+			return;
+		}
+		
+		TW += Inc + 1;
+		
+		for (Inc = 0; Inc < sizeof New - 1 && TW[Inc] != '\0'; ++Inc)
+		{ /*The thing we will replace it all with.*/
+			New[Inc] = TW[Inc];
+		}
+		New[Inc] = '\0';
+		
+		/**$seen lookup powers, activate!**/
+		if (!(SeenRecord = CMD_SeenDBLookup(TargetUser)))
+		{
+			IRC_Message(SendTo, "No record of any speech by that user.");
+			return;
+		}
+		
+		SubStrings.Copy(Message, SeenRecord->LastMessage, sizeof Message);
+		
+		if (!SubStrings.Replace(Message, sizeof Message, Old, New))
+		{ /*perform the replacement.*/
+			/*It failed.*/
+			IRC_Message(SendTo, "Failed to perform replace. No match found in user's last message.");
+			return;
+		}
+		
+		snprintf(OutBuf, sizeof OutBuf, "%s: \"<%s>: %s\"", Nick, TargetUser, Message);
+		
+		IRC_Message(SendTo, OutBuf);
+		return;
 	}
 	else if (!strcmp(CommandID, "tell"))
 	{
@@ -2110,10 +2204,10 @@ void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const ch
 	Worker->Channel[sizeof Worker->Channel - 1] = '\0';
 }
 
-static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
+static struct _SeenDB *CMD_SeenDBLookup(const char *const Nick)
 {
 	struct _SeenDB *Worker = SeenRoot;
-	char OutBuf[2048], NickBuf[2][128];
+	char NickBuf[2][128];
 	unsigned Inc = 0;
 	
 	for (; Worker; Worker = Worker->Next)
@@ -2133,32 +2227,11 @@ static Bool CMD_CheckSeenDB(const char *Nick, const char *SendTo)
 		
 		if (!strcmp(NickBuf[0], NickBuf[1]))
 		{
-			char TimeString[128];
-			struct tm *TimeStruct;
-			
-			TimeStruct = gmtime(&Worker->Time);
-			strftime(TimeString, sizeof TimeString, "%Y-%m-%d %H:%M:%S UTC", TimeStruct);
-			
-			if (*Worker->Channel == '#')
-			{
-				snprintf(OutBuf, sizeof OutBuf, "I last saw %s at %s in %s. Their most recent message is \"%s\"",
-						Worker->Nick, TimeString, Worker->Channel, Worker->LastMessage);
-			}
-			else
-			{
-				snprintf(OutBuf, sizeof OutBuf, "I last saw %s at %s in a private message to me. "
-						"Their most recent message was \"%s\"", Worker->Nick, TimeString, Worker->LastMessage);
-			}
-			
-			IRC_Message(SendTo, OutBuf);
-			return true;
+			return Worker;
 		}
 	}
-	
-	snprintf(OutBuf, sizeof OutBuf, "I'm afraid I don't remember anyone with the nick %s, sorry.", Nick);
-	IRC_Message(SendTo, OutBuf);
-	
-	return false;
+		
+	return NULL;
 }
 
 void CMD_LoadSeenDB(void) /*Loads it from disk.*/
