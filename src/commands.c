@@ -86,9 +86,9 @@ struct
 			{ "noticemsg", "Sends a message as a notice.", REQARG, ADMIN },
 			{ "chanctl", "Used for administrating channels. I must be OP in the channel for this to be useful. "
 				"See chanctl help for a list of subcommands and more.", REQARG, ADMIN },
-			{ "join", "Joins the specified channel. You can also specify a command prefix for the channel, e.g. 'join #derp @'. "
+			{ "join", "Joins the specified channel(s). You can also specify a command prefix for the channels with a comma, e.g. 'join #derp,@'. "
 				"You must be at least admin for this. ", REQARG, ADMIN },
-			{ "part", "Leaves the specified channel. You must be at least admin for this."
+			{ "part", "Leaves the specified channel(s). You must be at least admin for this."
 				" If no argument is specified and you are already in a channel, "
 				"it leaves the channel the command is issued from.", OPTARG, ADMIN },
 			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, and "
@@ -1058,60 +1058,144 @@ void CMD_ProcessCommand(const char *InStream_)
 	}
 	else if (!strcmp(CommandID, "join"))
 	{
+		char CurChan[sizeof ((struct ChannelTree*)0)->Channel], Prefix[sizeof GlobalCmdPrefix];
+		char *TW = Argument;
+		int Count = 0, Specified = 0;
+		char TmpBuf[sizeof ((struct ChannelTree*)0)->Channel + 128];
+
 		if (!IsAdmin)
 		{
 			IRC_Message(SendTo, "You aren't authorized to tell me to join a channel.");
 			return;
 		}
 		
-		if (*Argument == '\0') IRC_Message(SendTo, "I need a channel name for that.");
-		else if (*Argument != '#') IRC_Message(SendTo, "That's not a channel name.");
-		else
+		/*Got an argument?*/
+		if (!*Argument)
 		{
-			char *Prefix = SubStrings.CFind(' ', 1, Argument);
-			IRC_Message(SendTo, "Ok.");
-			
-			if (Prefix)
-			{
-				*Prefix++ = '\0';
-				while (*Prefix == ' ' || *Prefix == '\t') ++Prefix;
-			}
-			
-			for (Inc = 0; Argument[Inc] != '\0'; ++Inc) Argument[Inc] = tolower(Argument[Inc]);
-			
-			if (IRC_JoinChannel(Argument))
-			{
-				IRC_AddChannelToTree(Argument, Prefix);
-				printf("Joined channel %s\n", Argument);
-			}
+			IRC_Message(SendTo, "I need at least one channel name to join.");
+			return;
 		}
+		
+		do
+		{
+			for (Inc = 0; Inc < sizeof CurChan - 1 && TW[Inc] != ',' && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
+			{ /*we need channel names in lowercase.*/
+				CurChan[Inc] = tolower(TW[Inc]);
+			}
+			CurChan[Inc] = '\0';
+		
+			++Specified; /*How many we asked for.*/
+			
+			if (CurChan[0] != '#')
+			{
+				snprintf(TmpBuf, sizeof TmpBuf, "\"%s\" is not a channel name.%s", CurChan, 
+						strchr(TW, ' ') ? " Continuing join operation." : "");
+						
+				IRC_Message(SendTo, TmpBuf);
+				--Count; /*Don't count a failure.*/
+				continue;
+			}
+			
+			if (TW[Inc] == ',' && TW[Inc + 1] != '\0')
+			{ /*Get the channel prefix.*/
+				TW += Inc + 1;
+				
+				for (Inc = 0; Inc < sizeof Prefix - 1 && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
+				{
+					Prefix[Inc] = TW[Inc];
+				}
+				Prefix[Inc] = '\0';
+			}
+			else *Prefix = '\0'; /*Let us know if no prefix.*/
+			
+			if (IRC_JoinChannel(CurChan))
+			{
+				IRC_AddChannelToTree(CurChan, *Prefix ? Prefix : NULL);
+			}
+			else
+			{
+				snprintf(TmpBuf, sizeof TmpBuf, "Failed to join channel %s.%s", CurChan, 
+						TW[Inc] == ' ' ? " Continuing join operation." : "");
+						
+				IRC_Message(SendTo, TmpBuf);
+				--Count; /*Don't count a failure.*/
+				continue;
+			}
+		} while (++Count, (TW = SubStrings.Line.WhitespaceJump(TW)));
+		
+		snprintf(TmpBuf, sizeof TmpBuf, "Joined %d/%d channels.", Count, Specified);
+		IRC_Message(SendTo, TmpBuf);
+		
+		return;
 	}
 	else if (!strcmp(CommandID, "part"))
 	{
+		char CurChan[sizeof ((struct ChannelTree*)0)->Channel], *TW = Argument;
+		int Count = 0, Specified = 0;
+		char TmpBuf[sizeof Channels->Channel];
+
 		if (!IsAdmin)
 		{
 			IRC_Message(SendTo, "You aren't authorized to tell me to leave a channel.");
 			return;
 		}
 		
-		if (*Argument == '\0' && *Target != '#') IRC_Message(SendTo, "I need a channel name for that.");
-		else if (*Argument && *Argument != '#') IRC_Message(SendTo, "That's not a channel name.");
-		else
+		if (!*Argument)
 		{
-			IRC_Message(SendTo, *Argument ? "Ok." : "Ok. Assuming you mean this channel.");
-			
-			if (IRC_LeaveChannel(*Argument ? Argument : Target))
-			{
-				char NTarg[sizeof Argument];
+			if (*SendTo == '#')
+			{ /*If no argument and in a channel, leave the current channel.*/
+				IRC_Message(SendTo, "Assuming you mean this channel.");
 				
-				SubStrings.Copy(NTarg, *Argument ? Argument : Target, sizeof NTarg);
-				
-				for (Inc = 0; NTarg[Inc] != '\0'; ++Inc) NTarg[Inc] = tolower(NTarg[Inc]);
-				
-				IRC_DelChannelFromTree(NTarg);
-				printf("Left channel %s\n", NTarg);
+				if (!IRC_LeaveChannel(SendTo) || !IRC_DelChannelFromTree(SendTo))
+				{
+					IRC_Message(SendTo, "Sorry, failed to leave! Something's wrong.");
+				}
 			}
+			else
+			{
+				IRC_Message(SendTo, "I need at least one channel name to part.");
+			}
+			
+			return;
 		}
+		
+		do
+		{
+			for (Inc = 0; Inc < sizeof CurChan  - 1 && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
+			{ /*Get channel name.*/
+				CurChan[Inc] = tolower(TW[Inc]);
+			}
+			CurChan[Inc] = '\0';
+			
+			++Specified; /*How many channels we asked to part.*/
+			
+			if (*CurChan != '#')
+			{
+				
+				snprintf(TmpBuf, sizeof TmpBuf, "\"%s\" is not a channel name.%s", CurChan,
+						(strchr(TW, ' ') ? " Continuing part operation." : "") );
+				IRC_Message(SendTo, TmpBuf);
+				--Count; /*Don't count a failure.*/
+				continue;
+			}
+			
+			if (!IRC_LeaveChannel(CurChan) || !IRC_DelChannelFromTree(CurChan))
+			{
+				snprintf(TmpBuf, sizeof TmpBuf, "Failed to part \"%s\".%s", CurChan,
+						strchr(TW, ' ') ? " Continuing part operation." : "");
+						
+				IRC_Message(SendTo, TmpBuf);
+				--Count; /*don't count a failure.*/
+				continue;
+			}
+		} while (++Count, (TW = SubStrings.Line.WhitespaceJump(TW)));
+		
+		snprintf(TmpBuf, sizeof TmpBuf, "Parted %d/%d channels.", Count, Specified);
+		
+		IRC_Message(SendTo, TmpBuf);
+		
+		return;
+		
 	}
 	else if (!strcmp(CommandID, "tell"))
 	{
