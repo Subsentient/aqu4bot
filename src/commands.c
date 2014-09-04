@@ -871,7 +871,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (!strcmp(CommandID, "sr"))
 	{
 		unsigned Inc1 = 0, Inc2 = 0;
-		char NewString[1024];
+		char NewString[1024], OutBuf[2048];
 		
 		if (*Argument == '\0')
 		{
@@ -896,7 +896,9 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		NewString[Inc1] = '\0';
 		
-		IRC_Message(SendTo, NewString);
+		snprintf(OutBuf, sizeof OutBuf, "\"%s\" >> \"%s\"", Argument, NewString);
+		
+		IRC_Message(SendTo, OutBuf);
 	}
 	else if (!strcmp(CommandID, "quit") || !strcmp(CommandID, "restart"))
 	{
@@ -1231,6 +1233,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		const char *TW = Argument;
 		struct _SeenDB *SeenRecord = NULL;
 		char Message[4096], OutBuf[4096];
+		char H[2][2048] = { "", "" };
 		
 		if (!*Argument)
 		{
@@ -1276,16 +1279,19 @@ void CMD_ProcessCommand(const char *InStream_)
 			IRC_Message(SendTo, "No record of any speech by that user.");
 			return;
 		}
+
 		
-		SubStrings.Copy(Message, SeenRecord->LastMessage, sizeof Message);
-		
-		if (!SubStrings.Replace(Message, sizeof Message, Old, New))
+		if (!SubStrings.Split(H[0], H[1], Old, SeenRecord->LastMessage, SPLIT_NOKEEP))
 		{ /*perform the replacement.*/
 			/*It failed.*/
 			IRC_Message(SendTo, "Failed to perform replace. No match found in user's last message.");
 			return;
 		}
 		
+		/*Second half of replacement.*/
+		snprintf(Message, sizeof Message, "%s%s%s", H[0], New, H[1]);
+		
+		/*Out format for message.*/
 		snprintf(OutBuf, sizeof OutBuf, "%s: \"<%s>: %s\"", Nick, TargetUser, Message);
 		
 		IRC_Message(SendTo, OutBuf);
