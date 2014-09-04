@@ -1305,6 +1305,13 @@ void CMD_ProcessCommand(const char *InStream_)
 		int MunchCount = 0, LuckyMunchee = 0, LuckyPooee = 0;
 		char *Munch = NULL, *Poo = NULL;
 		char TempBuf[1024];
+		char NChan[sizeof Channels->Channel];
+		
+		for (Inc = 0; Inc < sizeof NChan - 1 && SendTo[Inc] != '\0'; ++Inc)
+		{ /*Lower case our channel.*/
+			NChan[Inc] = tolower(SendTo[Inc]);
+		}
+		NChan[Inc] = '\0';
 		
 		if (!BotOwner)
 		{ /*Only owners may behold this glory.*/
@@ -1312,13 +1319,13 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		if (*SendTo != '#')
+		if (*NChan != '#')
 		{ /*For the random eatings and crappings we need a channel with a user list.*/
 			IRC_Message(SendTo, "I can only do the 'zilla in a channel.");
 			return;
 		}
 		
-		if (!(ChanCore = IRC_GetChannelFromDB(SendTo)))
+		if (!(ChanCore = IRC_GetChannelFromDB(NChan)))
 		{ /*Get the pointer for this channel.*/
 			IRC_Message(SendTo, "Internal error, I can't zilla because I can't look up the channel in my database!");
 			return;
