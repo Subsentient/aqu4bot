@@ -49,13 +49,16 @@ endif
 	$(CC) auth.c -c $(CFLAGS)
 	$(CC) commands.c -c $(CFLAGS)
 	$(CC) config.c -c $(CFLAGS)
-	$(CC) ddg.c -c $(CFLAGS)
 	$(CC) irc.c -c $(CFLAGS)
 	$(CC) logging.c -c $(CFLAGS)
 	$(CC) main.c -c $(CFLAGS)
 	$(CC) netcore.c -c $(CFLAGS)
-	$(CC) curlcore.c -c $(CFLAGS)
 	$(CC) wz.c -c $(CFLAGS)
+ifneq ($(USECURL),NO)
+	$(CC) curlcore.c -c $(CFLAGS)
+	$(CC) ddg.c -c $(CFLAGS)
+endif
+
 ifeq ($(OS),WIN)
 	$(MAKE) -C substrings static RANLIB=$(RANLIB) CC=$(CC)
 else
