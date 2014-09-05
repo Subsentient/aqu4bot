@@ -401,6 +401,12 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		else if (!strcmp(Subcommand, "togglecontrolcodes"))
 		{
+			if (!BotOwner)
+			{
+				IRC_Message(SendTo, "You aren't authorized to do that. Only owners.");
+				return;
+			}
+			
 			NoControlCodes = !NoControlCodes;
 			
 			IRC_Message(SendTo, NoControlCodes ? "Control codes disabled." : "Control codes enabled.");
