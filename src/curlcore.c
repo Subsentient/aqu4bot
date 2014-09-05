@@ -65,7 +65,10 @@ Bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsi
 		
 		curl_easy_setopt(Curl, CURLOPT_WRITEFUNCTION, _HTTPWriteHandler);
 		curl_easy_setopt(Curl, CURLOPT_WRITEDATA, &HTTPDescriptor);
-		curl_easy_setopt(Curl, CURLOPT_VERBOSE, 0L);
+		curl_easy_setopt(Curl, CURLOPT_VERBOSE, 0L); /*No verbose please.*/
+		
+		/*Request maximum 5 second timeout for each try of the operation.*/
+		curl_easy_setopt(Curl, CURLOPT_CONNECTTIMEOUT, 5L); /*This will not save us in some cases.*/
 		
 		Code = curl_easy_perform(Curl);
 		
