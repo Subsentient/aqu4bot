@@ -1008,7 +1008,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		else
 		{
 			snprintf(OutBuf, sizeof OutBuf, "I last saw %s at %s in a private message to me. "
-					"Their most recent message was \"%s\"", SeenRecord->Nick, TimeString, SeenRecord->LastMessage);
+					"I don't tell what PMs I get.", SeenRecord->Nick, TimeString);
 		}
 		
 		IRC_Message(SendTo, OutBuf);
@@ -2350,8 +2350,11 @@ void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const ch
 	strncpy(Worker->Nick, Nick, sizeof Worker->Nick - 1);
 	Worker->Nick[sizeof(Worker->Nick) - 1] = '\0';
 	
-	strncpy(Worker->LastMessage, LastMessage, sizeof Worker->LastMessage - 1);
-	Worker->LastMessage[sizeof(Worker->LastMessage) - 1] = '\0';
+	if (*Channel == '#')
+	{ /*This method for preventing recording PMs works even on disk because on load*/
+		strncpy(Worker->LastMessage, LastMessage, sizeof Worker->LastMessage - 1);
+		Worker->LastMessage[sizeof(Worker->LastMessage) - 1] = '\0';
+	} else *Worker->LastMessage = '\0'; /*Don't save what PMs we get.*/
 	
 	strncpy(Worker->Channel, Channel, sizeof Worker->Channel - 1);
 	Worker->Channel[sizeof Worker->Channel - 1] = '\0';
@@ -2460,7 +2463,8 @@ Bool CMD_SaveSeenDB(void)
 	for (; Worker; Worker = Worker->Next)
 	{
 		snprintf(OutBuf, sizeof OutBuf, "%lu %s %s %s\n",
-				(unsigned long)Worker->Time, Worker->Nick, Worker->Channel, Worker->LastMessage);
+				(unsigned long)Worker->Time, Worker->Nick, Worker->Channel,
+				*Worker->LastMessage ? Worker->LastMessage : "-");
 		fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
 	}
 	
