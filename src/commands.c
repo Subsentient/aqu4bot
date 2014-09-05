@@ -74,6 +74,7 @@ struct
 				"Many things return blank due to the limitations of DuckDuckGo's API. "
 				"You can find the API that the results come from at \"http://api.duckduckgo.com/\".", REQARG, ANY },
 #endif /*NO_LIBCURL*/
+			{ "coin", "Flips a coin on the question you provide, giving heads or tails as the result.", REQARG, ANY },
 			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG, ANY },
 			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG, ANY },
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
@@ -405,6 +406,47 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		return;
 	}
+	else if (!strcmp(CommandID, "coin"))
+	{ /*flip a coin.*/
+		int Magic = 0;
+		unsigned YesNo = false;
+		char TmpBuf[1024];
+		const char *CoinPhrases[10] = 
+						{ "flips a bubblegum covered penny",
+							"flips a shiney Soviet palladium coin",
+							"flips a special edition USA quarter",
+							"flips a canadian nickle found under the stove",
+							"flips a Mexican peso",
+							"flips a washer that could pass as a quarter",
+							"flips a chocolate coin bought at the convenience store",
+							"flips a big heavy round sewer lid", 
+							"flips a dime found on the floor",
+							"flips a 3V buttoncell battery that looks like a nickel",
+						};
+						
+		if (!*Argument)
+		{
+			IRC_Message(SendTo, "I need something to ask the coin.");
+			return;
+		}
+	
+		snprintf(TmpBuf, sizeof TmpBuf, "\001ACTION %s on \"%s\"\001", CoinPhrases[rand() / (RAND_MAX / 10 + 1)], Argument);
+		IRC_Message(SendTo, TmpBuf);
+		
+		/*Gerbil magic.*/
+		for (Inc = 0; Argument[Inc] != '\0'; ++Inc)
+		{
+			Magic += Argument[Inc];
+		}
+		
+		/*Get a rand and add our gerbil magic.*/
+		YesNo = ((unsigned)rand() + Magic) / (RAND_MAX / 2 + 1); /*Boolean value.*/
+		
+		snprintf(TmpBuf, sizeof TmpBuf, "I got %s.", YesNo ? "heads" : "tails");
+		
+		IRC_Message(SendTo, TmpBuf);
+		return;
+	}	
 	else if (!strcmp(CommandID, "tail"))
 	{
 		char InBuf[16384], *Worker = NULL;
