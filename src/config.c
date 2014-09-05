@@ -177,6 +177,10 @@ Bool Config_ReadConfig(void)
 		{
 			Logging = !strcmp(LineData, "true");
 		}
+		else if (!strcmp(LineID, "NoControlCodes"))
+		{
+			NoControlCodes = !strcmp(LineData, "true");
+		}
 		else if (!strcmp(LineID, "LogPMs"))
 		{
 			LogPMs = !strcmp(LineData, "true");

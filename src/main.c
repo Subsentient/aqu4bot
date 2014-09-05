@@ -221,8 +221,9 @@ OwnerGet:
 			"#Prefix=$ (The global command prefix)\n"
 			"#SendDelay=8 (tenths of a second to wait between sending messages)\n"
 			"#SetBotmode=true/false (some networks request you set a special mode for your IRC bots.)\n"
-			"#Admin=nick!ident@mask (Add a less privileged admin who can administrate channels and other stuff,\n"
-			"#but not administrate the bot itself.)\n");
+			"#Admin=nick!ident@mask (Add a less privileged admin who can administrate channels etc,\n"
+			"#but not administrate the bot itself.)\n"
+			"#NoControlCodes=true/false (some networks will not allow you bold/etc.\n");
 	fwrite(FileBuf, 1, strlen(FileBuf), Descriptor);
 	
 	fflush(NULL); fclose(Descriptor);

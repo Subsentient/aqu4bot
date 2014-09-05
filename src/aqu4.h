@@ -136,6 +136,7 @@ extern Bool IRC_UserInChannel(const char *Channel, const char *Nick);
 extern Bool IRC_UserInChannelP(const struct ChannelTree *Channel, const char *Nick);
 extern void IRC_ShutdownChannelUsers(struct ChannelTree *Channel);
 extern struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel);
+extern Bool IRC_StripControlCodes(char *Stream);
 
 /*commands.c*/
 extern void CMD_ProcessCommand(const char *InStream);
@@ -193,4 +194,4 @@ extern Bool LogPMs;
 extern int _argc;
 extern char **_argv;
 extern struct AuthTree *AdminAuths;
-
+extern Bool NoControlCodes;

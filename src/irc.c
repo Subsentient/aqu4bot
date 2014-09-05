@@ -18,6 +18,7 @@ See the file UNLICENSE.TXT for more information.
 
 struct _ServerInfo ServerInfo;
 struct ChannelTree *Channels;
+Bool NoControlCodes;
 
 void IRC_Loop(void)
 { /*Most of the action is triggered here.*/
@@ -830,7 +831,20 @@ Bool IRC_Message(const char *Target, const char *Message)
 {
 	char OutString[2048];
 	
+	if (NoControlCodes)
+	{
+		char *MessageT = malloc(strlen(Message) + 1);
+		
+		/*Copy ourselves a new stream identical but that is guaranteed to be writable.*/
+		SubStrings.Copy(MessageT, Message, strlen(Message) + 1);
+		Message = MessageT;
+		
+		IRC_StripControlCodes(MessageT);
+		
+	}
+	
 	snprintf(OutString, sizeof OutString, "PRIVMSG %s :%s\r\n", Target, Message);
+	if (NoControlCodes) free((void*)Message); /*Release that memory if applicable.*/
 	return Net_Write(SocketDescriptor, OutString);
 }
 
@@ -983,3 +997,44 @@ void IRC_Pong(const char *Param)
 	snprintf(OutBuf, sizeof OutBuf, "PONG%s\r\n", Param + strlen("PING"));
 	Net_Write(SocketDescriptor, OutBuf);
 }
+
+Bool IRC_StripControlCodes(char *const Stream)
+{
+	Bool EndColor = false;
+	const int StreamSize = strlen(Stream) + 1;
+	Bool FoundBold = false, FoundColor = false;
+	int Inc = 0, Inc2 = 0;
+	char *Worker = NULL, *Jump = NULL;
+	
+	/*Now the color part is trickier because of the numbers that will follow a \3.*/
+StripLoopStart:
+
+	for (Inc = 0; Inc < StreamSize - 1 && Stream[Inc] != '\0'; ++Inc)
+	{
+		if (Stream[Inc] == '\2' || Stream[Inc] == '\3')
+		{
+			 Worker = Stream + Inc;
+			 Jump = Worker + 1; /*Jump starts off past our \3 or \2.*/
+			
+			if (Stream[Inc] == '\3') /*color.*/
+			{
+				if (!EndColor)
+				{ /*Skip past the color numbers that follow a \3.*/
+					while (*Jump && isdigit(*Jump)) ++Jump;
+				}
+				EndColor = !EndColor;
+			}
+			
+			for (Inc2 = 0; Inc2 < StreamSize - 1 && Jump[Inc2] != '\0'; ++Inc2)
+			{ /*Remove the color code.*/
+				Worker[Inc2] = Jump[Inc2];
+			}
+			Worker[Inc2] = '\0';
+			
+			goto StripLoopStart; /*We have to start the loop over again unfortunately.*/
+		}
+	}
+	
+	return FoundBold || FoundColor;
+}
+
