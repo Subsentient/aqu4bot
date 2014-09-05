@@ -99,24 +99,23 @@ void IRC_Loop(void)
 				
 				if (*TC == ':') ++TC;
 				
-				if (*TC == 0x01)
-				{ /*IRC escape code thingy...*/
-					
-					if (!strcmp(TC, "\01VERSION\01"))
-					{
-						IRC_Notice(Nick, "\01VERSION aqu4bot " BOT_VERSION ", compiled " __DATE__ " " __TIME__ "\01");
-					}
-					else if (!strncmp(TC, "\01PING", strlen("\01PING")))
-					{
-						IRC_Notice(Nick, TC);
-					}
+				if (!strcmp(TC, "\1VERSION\1"))
+				{ /*CTCP VERSION request*/
+					IRC_Notice(Nick, "\01VERSION aqu4bot " BOT_VERSION ", compiled " __DATE__ " " __TIME__ "\01");
+				}
+				else if (!strncmp(TC, "\1PING", sizeof "\1PING" - 1))
+				{ /*CTCP PING request.*/
+					IRC_Notice(Nick, TC); /*The protocol wants us to send the same thing back as a notice.*/
 				}
 				else
-				{										
-					CMD_ProcessCommand(MessageBuf);
+				{ /*Normal PRIVMSG.*/
+					if (strncmp(TC, "\1ACTION", sizeof "\1ACTION" - 1) != 0)
+					{ /*Only process commands that aren't some warped /me message*/		
+						CMD_ProcessCommand(MessageBuf);
+					}
 					
 					if (strcmp(Nick, ServerInfo.Nick) != 0)
-					{
+					{ /*Don't update the seen database for ourselves.*/
 						CMD_UpdateSeenDB(time(NULL), Nick, Channel, TC);
 					}
 				}

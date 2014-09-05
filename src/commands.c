@@ -2354,6 +2354,22 @@ void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const ch
 	{ /*This method for preventing recording PMs works even on disk because on load*/
 		strncpy(Worker->LastMessage, LastMessage, sizeof Worker->LastMessage - 1);
 		Worker->LastMessage[sizeof(Worker->LastMessage) - 1] = '\0';
+
+		/*Correct in case privmsg.*/
+		if (*Worker->LastMessage == '\1')
+		{
+			char *W = NULL;
+			char ReplaceWith[256];
+			
+			snprintf(ReplaceWith, sizeof ReplaceWith, "** %s ", Nick);
+			
+			/*Replace the \1ACTION.*/
+			SubStrings.Replace(Worker->LastMessage, sizeof Worker->LastMessage, "\1ACTION ", ReplaceWith);
+			if ((W = strchr(Worker->LastMessage + 1, '\1'))) *W = '\0'; /*Get rid of the ending \01 too.*/
+			/*Add the little asterisks at the end.*/
+			SubStrings.Cat(Worker->LastMessage, " **", sizeof Worker->LastMessage);
+		}
+
 	} else *Worker->LastMessage = '\0'; /*Don't save what PMs we get.*/
 	
 	strncpy(Worker->Channel, Channel, sizeof Worker->Channel - 1);
