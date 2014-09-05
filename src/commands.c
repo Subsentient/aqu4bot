@@ -1757,11 +1757,13 @@ static Bool CMD_ListStickies(const char *SendTo)
 	FILE *Descriptor = fopen("db/sticky.db", "rb");
 	char *StickyDB = NULL, *Worker = NULL;
 	struct stat FileStat;
-	time_t Time = 0;
-	struct tm *TimeStruct;
-	char TimeString[256], StickyID_T[32], ATime[1024], Owner[128];
-	char OutBuf[2048];
-	unsigned StickyCount = 0, BigInc = 0;
+	char StickyID_T[32], Owner[128];
+	char OutBuf[4096];
+	unsigned StickyCount = 0;
+	int QTicker = 1;
+	Bool ColorFlip = false;
+	const char *const STColor[2] = { "2", "3" };
+	
 	if (!Descriptor || stat("db/sticky.db", &FileStat) != 0 || FileStat.st_size == 0)
 	{
 		if (Descriptor) fclose(Descriptor);
@@ -1780,45 +1782,47 @@ static Bool CMD_ListStickies(const char *SendTo)
 	/*Count the stickies.*/
 	do Worker = SubStrings.Line.NextLine(Worker); while(++StickyCount, Worker);
 	
-	snprintf(OutBuf, sizeof OutBuf, "Total of %u stickies found", StickyCount);
+	snprintf(OutBuf, sizeof OutBuf, "Total of %u stickies found. Syntax is [ID|Creator].", StickyCount);
 	IRC_Message(SendTo, OutBuf);
+	*OutBuf = '\0'; /*We will need OutBuf cleared for what waits ahead.*/
 	
 	Worker = StickyDB;
 	do
 	{
+		const int OutBufLen = strlen(OutBuf);
+		
 		for (Inc = 0; Worker[Inc] != ' ' && Inc < sizeof StickyID_T - 1; ++Inc)
-		{
+		{ /*Get the sticky ID.*/
 			StickyID_T[Inc] = Worker[Inc];
 		}
 		StickyID_T[Inc] = '\0';
 		
-		Worker += Inc + 1;
-		
-		for (Inc = 0; Worker[Inc] != ' ' && Inc < sizeof ATime - 1; ++Inc)
-		{
-			ATime[Inc] = Worker[Inc];
-		}
-		ATime[Inc] = '\0';
-		
-		Worker += Inc  + 1;
+		/*Skip past time since we don't list it.*/
+		Worker = SubStrings.Line.WhitespaceJump(Worker);
+		Worker = SubStrings.Line.WhitespaceJump(Worker); /*Yes, twice.*/
 		
 		for (Inc = 0; Worker[Inc] != ' ' && Inc < sizeof Owner - 1; ++Inc)
-		{
+		{ /*The creator.*/
 			Owner[Inc] = Worker[Inc];
 		}
 		Owner[Inc] = '\0';
 		
-		Time = atol(ATime);
-		TimeStruct = gmtime(&Time);
+		snprintf(OutBuf + OutBufLen, sizeof OutBuf - OutBufLen, "\3%s[%s|%s]\3 ",
+				STColor[(ColorFlip = !ColorFlip)], StickyID_T, Owner);
 		
-		strftime(TimeString, sizeof TimeString, "%H:%M:%S %Y-%m-%d UTC", TimeStruct);
+		if (QTicker == 8 || SubStrings.Line.NextLine(Worker) == NULL) /*We need to check for a new line otherwise we fall short in listings.*/
+		{ /*We have 8 of these listings on one line.*/
+			OutBuf[strlen(OutBuf) - 1] = '\0'; /*Nuke the space at the end.*/
+			IRC_Message(SendTo, OutBuf);
+			*OutBuf = '\0'; /*Set back to empty.*/
+			QTicker = 1; /*And then set the ticker back.*/
+			continue;
+		}
+		else ++QTicker;
 		
-		snprintf(OutBuf, sizeof OutBuf, "Sticky ID: %s, created by \"%s\" at %s", StickyID_T, Owner, TimeString);
-		IRC_Message(SendTo, OutBuf);
-	} while (++BigInc, (Worker = SubStrings.Line.NextLine(Worker)) && BigInc < MAX_STICKIES_TO_LIST);
+	} while ((Worker = SubStrings.Line.NextLine(Worker)));
 	
-	if (BigInc == MAX_STICKIES_TO_LIST) IRC_Message(SendTo, "Cannot list any more stickies.");
-	else IRC_Message(SendTo, "End of sticky list.");
+	IRC_Message(SendTo, "End of sticky list.");
 	
 	free(StickyDB);
 	
