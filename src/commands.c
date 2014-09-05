@@ -95,8 +95,9 @@ struct
 			{ "part", "Leaves the specified channel(s). You must be at least admin for this."
 				" If no argument is specified and you are already in a channel, "
 				"it leaves the channel the command is issued from.", OPTARG, ADMIN },
-			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, and "
-				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel.", 
+			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, "
+				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel,"
+				"and 'togglecontrolcodes', to toggle whether or not color and bold is permitted to appear in this bot's messages.", 
 				REQARG, ADMIN },
 			{ "nickchange", "Changes my nickname to the selected nick. "
 				"Make sure the new nick is not taken before issuing this.", REQARG, OWNER },
@@ -397,6 +398,13 @@ void CMD_ProcessCommand(const char *InStream_)
 			}
 			
 			IRC_Message(SendTo, "End of list.");
+		}
+		else if (!strcmp(Subcommand, "togglecontrolcodes"))
+		{
+			NoControlCodes = !NoControlCodes;
+			
+			IRC_Message(SendTo, NoControlCodes ? "Control codes disabled." : "Control codes enabled.");
+			return;
 		}
 		else
 		{
