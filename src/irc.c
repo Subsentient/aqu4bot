@@ -998,25 +998,24 @@ void IRC_Pong(const char *Param)
 	Net_Write(SocketDescriptor, OutBuf);
 }
 
-Bool IRC_StripControlCodes(char *const Stream)
+Bool IRC_StripControlCodes(char *const Stream_)
 {
 	Bool EndColor = false;
-	const int StreamSize = strlen(Stream) + 1;
+	const int StreamSize = strlen(Stream_) + 1;
 	Bool FoundBold = false, FoundColor = false;
-	int Inc = 0, Inc2 = 0;
-	char *Worker = NULL, *Jump = NULL;
+	char *Worker = NULL, *Jump = NULL, *Stream = NULL, *const EndPoint = Stream + (StreamSize - 1);
 	
 	/*Now the color part is trickier because of the numbers that will follow a \3.*/
 StripLoopStart:
 
-	for (Inc = 0; Inc < StreamSize - 1 && Stream[Inc] != '\0'; ++Inc)
+	for (Stream = Stream_; Stream != EndPoint && *Stream != '\0'; ++Stream)
 	{
-		if (Stream[Inc] == '\2' || Stream[Inc] == '\3')
+		if (*Stream == '\2' || *Stream == '\3')
 		{
-			 Worker = Stream + Inc;
+			 Worker = Stream;
 			 Jump = Worker + 1; /*Jump starts off past our \3 or \2.*/
 			
-			if (Stream[Inc] == '\3') /*color.*/
+			if (*Stream == '\3') /*color.*/
 			{
 				if (!EndColor)
 				{ /*Skip past the color numbers that follow a \3.*/
@@ -1025,11 +1024,11 @@ StripLoopStart:
 				EndColor = !EndColor;
 			}
 			
-			for (Inc2 = 0; Inc2 < StreamSize - 1 && Jump[Inc2] != '\0'; ++Inc2)
+			for (; Jump != EndPoint && *Jump != '\0'; ++Jump, ++Worker)
 			{ /*Remove the color code.*/
-				Worker[Inc2] = Jump[Inc2];
+				*Worker = *Jump;
 			}
-			Worker[Inc2] = '\0';
+			*Worker = '\0';
 			
 			goto StripLoopStart; /*We have to start the loop over again unfortunately.*/
 		}
