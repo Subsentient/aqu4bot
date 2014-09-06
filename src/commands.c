@@ -1298,6 +1298,12 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
+		if (*SendTo != '#')
+		{
+			IRC_Message(SendTo, "This command only works in a channel.");
+			return;
+		}
+		
 		for (Inc = 0; Inc < sizeof TargetUser - 1 && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
 		{ /*Get the target user of the replace.*/
 			TargetUser[Inc] = TW[Inc];
@@ -1337,7 +1343,12 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 
-		
+		if (strcmp(SeenRecord->Channel, SendTo) != 0)
+		{ /*Wrong channel.*/
+			IRC_Message(SendTo, "User's last speech was not in this channel. Cannot replace.");
+			return;
+		}
+			
 		if (!SubStrings.Split(H[0], H[1], Old, SeenRecord->LastMessage, SPLIT_NOKEEP))
 		{ /*perform the replacement.*/
 			/*It failed.*/
