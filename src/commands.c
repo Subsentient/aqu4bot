@@ -1005,7 +1005,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		if (!(SeenRecord = CMD_SeenDBLookup(Argument)))
 		{ /*No record found.*/
-			snprintf(OutBuf, sizeof OutBuf, "I'm afraid I don't remember anyone with the nick %s, sorry.", Nick);
+			snprintf(OutBuf, sizeof OutBuf, "I'm afraid I don't remember anyone with the nick %s, sorry.", Argument);
 			IRC_Message(SendTo, OutBuf);
 			return;
 		}
