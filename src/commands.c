@@ -1291,6 +1291,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		struct _SeenDB *SeenRecord = NULL;
 		char Message[4096], OutBuf[4096];
 		char H[2][2048] = { "", "" };
+		char Chan[128];
 		
 		if (!*Argument)
 		{
@@ -1303,6 +1304,12 @@ void CMD_ProcessCommand(const char *InStream_)
 			IRC_Message(SendTo, "This command only works in a channel.");
 			return;
 		}
+		
+		for (Inc = 0; Inc < sizeof Chan - 1 && SendTo[Inc] != '\0'; ++Inc)
+		{ /*We need a lowercase channel name.*/
+			Chan[Inc] = tolower(SendTo[Inc]);
+		}
+		Chan[Inc] = '\0';
 		
 		for (Inc = 0; Inc < sizeof TargetUser - 1 && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
 		{ /*Get the target user of the replace.*/
@@ -1343,7 +1350,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 
-		if (strcmp(SeenRecord->Channel, SendTo) != 0)
+		if (strcmp(SeenRecord->Channel, Chan) != 0)
 		{ /*Wrong channel.*/
 			IRC_Message(SendTo, "User's last speech was not in this channel. Cannot replace.");
 			return;
