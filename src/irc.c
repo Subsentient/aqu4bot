@@ -162,19 +162,40 @@ void IRC_Loop(void)
 			case IMSG_KICK:
 			{
 				char InBuf[2048], *Worker = InBuf;
+				char KChan[128], KNick[128];
 				unsigned Inc = 0;
 				
+				/*Get initial kick data into InBuf*/
 				IRC_GetMessageData(MessageBuf, InBuf);
 
+				/*Write the kick to logs.*/
 				Log_WriteMsg(MessageBuf, IMSG_KICK);
 				
-				if (!(Worker = strchr(InBuf, ' '))) break;
+				for (; Inc < sizeof KChan - 1 && Worker[Inc] != ' ' && Worker[Inc] != '\0'; ++Inc)
+				{ /*Channel.*/
+					KChan[Inc] = tolower(Worker[Inc]); /*For all channel comparisons except for display, we want lowercase.*/
+				}
+				KChan[Inc] = '\0';
 				
-				*Worker = '\0';
+				if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
+				{ /*Jump to beginning of the kick-ee*/
+					break; /*Malformed.*/
+				}
 				
-				for (; InBuf[Inc] != '\0'; ++Inc) InBuf[Inc] = tolower(InBuf[Inc]);
-				
-				IRC_DelChannelFromTree(*InBuf == ':' ? InBuf + 1 : InBuf);
+				for (Inc = 0; Inc < sizeof KNick - 1 && Worker[Inc] != ' ' && Worker[Inc] != '\0'; ++Inc)
+				{ /*Get the nick.*/
+					KNick[Inc] = Worker[Inc];
+				}
+				KNick[Inc] = '\0';
+
+				if (!strcmp(KNick, ServerInfo.Nick))
+				{ /*we have been kicked.*/
+					IRC_DelChannelFromTree(KChan);
+				}
+				else
+				{ /*Someone else has been kicked.*/
+					IRC_DelUserFromChannel(KChan, KNick);
+				}
 				break;
 			}
 			case IMSG_QUIT:
