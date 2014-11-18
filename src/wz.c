@@ -193,12 +193,58 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	
 	Net_Disconnect(WZSocket);
 	
+	/*Warzone 2100 Legacy lobby server.*/
+	if (WZLegacy)
+	{
+		if (LastHosted >= 60)
+		{
+			snprintf(OutBuf, sizeof OutBuf, "%u games available. Last game was hosted %u minutes ago.",
+					(unsigned)GamesAvailable, (unsigned)LastHosted / 60);
+		}
+		else
+		{
+			snprintf(OutBuf, sizeof OutBuf, "%u games available. Last game was hosted %u seconds ago.",
+					(unsigned)GamesAvailable, (unsigned)LastHosted);
+		}
+	}
+	else
+	{ /*wz2100.net lobby server.*/
+		snprintf(OutBuf, sizeof OutBuf, "%u games available.", (unsigned)GamesAvailable);
+	}
+	IRC_Message(SendTo, OutBuf);
+	
 	/*Now send them to the user.*/
 	for (Inc = 0; Inc < GamesAvailable; ++Inc)
 	{
-		snprintf(OutBuf, sizeof OutBuf, "[Game %d] \02Name\02: %s | \02Map\02: %s %s| \02Host\02: %s | "
+		char ModBuf[512] = { '\0' };
+		char ColTag[2] = { '\0' };
+		
+		if (GamesList[Inc].NetSpecs.CurPlayers >= GamesList[Inc].NetSpecs.MaxPlayers)
+		{ /*game full.*/
+			*ColTag = '4'; /*Red.*/
+		}
+		else if (GamesList[Inc].PrivateGame)
+		{ /*private game.*/
+			*ColTag = '8'; /*Yellow.*/
+		}
+		else if (*GamesList[Inc].ModList != '\0')
+		{ /*mods.*/
+			*ColTag = '6'; /*purple.*/
+		}
+		else
+		{ /*normal.*/
+			*ColTag = '3'; /*green.*/
+		}
+			
+		
+		if (GamesList[Inc].ModList[0] != '\0')
+		{
+			snprintf(ModBuf, sizeof ModBuf, " (mods: %s)", GamesList[Inc].ModList);
+		}
+		
+		snprintf(OutBuf, sizeof OutBuf, "\3%s[%d]\3 \02Name\02: %s | \02Map\02: %s%s | \02Host\02: %s | "
 				"\02Players\02: %d/%d %s| \02IP\02: %s | \02Version\02: %s",
-				Inc + 1, GamesList[Inc].GameName, GamesList[Inc].Map, GamesList[Inc].Mods ? "(mods required) " : "",
+				ColTag, Inc + 1, GamesList[Inc].GameName, GamesList[Inc].Map, ModBuf,
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
 				GamesList[Inc].PrivateGame ? "(private) " : "", GamesList[Inc].NetSpecs.HostIP,
 				GamesList[Inc].VersionString);
@@ -206,34 +252,6 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	}
 	
 	if (GamesList) free(GamesList);
-	
-	if (WZLegacy)
-	{ /*Legacy has something special.*/
-		if (!GamesAvailable)
-		{
-			snprintf(OutBuf, sizeof OutBuf, "No games are in the lobby at the moment. "
-					"The last game was hosted %u seconds (%u minutes) ago.",
-					(unsigned)LastHosted, (unsigned)LastHosted / 60);
-		}
-		else
-		{
-			snprintf(OutBuf, sizeof OutBuf, "End of games list. Game number %u is the most recently hosted, "
-					"at %u seconds (%u minutes) ago.",
-					(unsigned)Inc, (unsigned)LastHosted, (unsigned)LastHosted / 60);
-		}
-		IRC_Message(SendTo, OutBuf);
-	}
-	else
-	{
-		if (GamesAvailable)
-		{
-			IRC_Message(SendTo, "End of games list.");
-		}
-		else
-		{
-			IRC_Message(SendTo, "No games are in the lobby at the moment.");
-		}
-	}
 		
 	
 	return true;
