@@ -253,8 +253,10 @@ void CMD_ProcessCommand(const char *InStream_)
 			if (strncmp(InStream, "http://", sizeof "http://" - 1) != 0 &&
 				strncmp(InStream, "https://", sizeof "https://" - 1) != 0)
 			{ /*Not located at the beginning.*/
+				const char *const OldInStream = InStream;
+				
 				InStream = strstr(InStream, " http://"); /*http*/
-				if (!InStream) InStream = strstr(InStream, " https://"); /*https*/
+				if (!InStream) InStream = strstr(OldInStream, " https://"); /*https*/
 				++InStream; /*skip past the space at front.*/
 			}
 			
