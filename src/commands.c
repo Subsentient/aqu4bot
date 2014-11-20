@@ -238,7 +238,36 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 	}
-	else if (*Target == '#') return; /*In a channel, we need to always use a prefix. In a PM, we don't, but we accept them.*/
+	else if (*Target == '#')
+	{ /*Auto-URL-title-read, if enabled for channel. Must be explicitly enabled.*/
+		struct ChannelTree *LookupChannel = IRC_GetChannelFromDB(Target);
+		
+		if (!LookupChannel) return; /*Channel not found.*/
+		
+		/*We have libcurl so check for a link.*/
+		if (LookupChannel->AutoLinkTitle &&
+		(!strncmp(InStream, "http://", sizeof "http://" - 1) || strstr(InStream, " http://")))
+		{ /*Starts with http.*/
+			
+			if (strncmp(InStream, "http://", sizeof "http://" - 1) != 0)
+			{ /*Not located at the beginning.*/
+				InStream = strstr(InStream, " http://");
+				++InStream;
+			}
+			
+			/*Copy in this link to the argument and jump to title command.*/
+			for (Inc = 0; InStream[Inc] != ' ' && InStream[Inc] != '\0' && Inc < sizeof Argument - 1; ++Inc)
+			{
+				Argument[Inc] = InStream[Inc];
+			}
+			Argument[Inc] = '\0';
+#ifndef NO_LIBCURL	
+			goto TitleCommand; /*Jump into title code. Suck my goto.*/
+#else
+			IRC_Message(SendTo, "Auto-URL-title invoked, but this aqu4bot was compiled without libcurl.");
+#endif
+		}
+	}
 	
 	for (Inc = 0; InStream[Inc] != '\0' && InStream[Inc] != ' ' &&
 		InStream[Inc] != '\t' && Inc < sizeof CommandID - 1; ++Inc)
@@ -691,6 +720,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		return;
 	}
 	else if (!strcmp(CommandID, "title"))
+	TitleCommand:
 	{
 		char *Worker = Argument;
 		char RecvBuffer[16384], PageTitle[2048], *EndTerminator = NULL;
@@ -738,7 +768,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		SubStrings.Replace(PageTitle, sizeof PageTitle, "\n", " ");
 		SubStrings.Replace(PageTitle, sizeof PageTitle, "\r", " ");
 		
-		snprintf(OutBuf, sizeof OutBuf, "Title for page %s: \"%s\"", Argument, PageTitle);
+		snprintf(OutBuf, sizeof OutBuf, "Title for page %s: \"\2\0033%s\3\2\"", Argument, PageTitle);
 		IRC_Message(SendTo, OutBuf);
 		
 		return;
@@ -1165,6 +1195,8 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		do
 		{
+			const char *FinalChan = CurChan;
+			
 			for (Inc = 0; Inc < sizeof CurChan - 1 && TW[Inc] != ',' && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
 			{ /*we need channel names in lowercase.*/
 				CurChan[Inc] = tolower(TW[Inc]);
@@ -1173,7 +1205,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 			++Specified; /*How many we asked for.*/
 			
-			if (CurChan[0] != '#')
+			if (CurChan[0] != '#' && CurChan[1] != '#') /*if we have a @ at the beginning then we at least expect what comes after to be a #.*/
 			{
 				snprintf(TmpBuf, sizeof TmpBuf, "\"%s\" is not a channel name.%s", CurChan, 
 						strchr(TW, ' ') ? " Continuing join operation." : "");
@@ -1182,6 +1214,8 @@ void CMD_ProcessCommand(const char *InStream_)
 				--Count; /*Don't count a failure.*/
 				continue;
 			}
+			
+			if (*CurChan == '@') ++FinalChan; /*Skip past the @ for auto-url-titling.*/
 			
 			if (TW[Inc] == ',' && TW[Inc + 1] != '\0')
 			{ /*Get the channel prefix.*/
@@ -1195,9 +1229,14 @@ void CMD_ProcessCommand(const char *InStream_)
 			}
 			else *Prefix = '\0'; /*Let us know if no prefix.*/
 			
-			if (IRC_JoinChannel(CurChan))
+			if (IRC_JoinChannel(FinalChan))
 			{
-				IRC_AddChannelToTree(CurChan, *Prefix ? Prefix : NULL);
+				struct ChannelTree *TChan = IRC_AddChannelToTree(FinalChan, *Prefix ? Prefix : NULL);
+				
+				if (*CurChan == '@' && TChan)
+				{
+					TChan->AutoLinkTitle = true;
+				}
 			}
 			else
 			{

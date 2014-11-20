@@ -127,12 +127,22 @@ Bool Config_ReadConfig(void)
 				}
 			}
 			
-			if (Chan[0] == '#')
+			if (Chan[0] == '#' || Chan[0] == '@')  /*at sign says use auto title read.*/
 			{
 				unsigned Inc = 0;
-				for (; Chan[Inc] != '\0'; ++Inc) Chan[Inc] = tolower(Chan[Inc]);
-
-				IRC_AddChannelToTree(Chan, *Prefix ? Prefix : NULL);
+				
+				
+				for (; Chan[Inc] != '\0'; ++Inc) Chan[Inc] = tolower(Chan[Inc]); /*Lower case it.*/
+				
+				if (Chan[0] == '@')
+				{ /*They want auto link title reading.*/
+					struct ChannelTree *NewChannel = IRC_AddChannelToTree(Chan + 1, *Prefix ? Prefix : NULL);
+					NewChannel->AutoLinkTitle = true;
+				}
+				else
+				{ /*They didn't say, so assume no auto-link-title-reading.*/
+					IRC_AddChannelToTree(Chan, *Prefix ? Prefix : NULL);
+				}
 			}
 			else
 			{

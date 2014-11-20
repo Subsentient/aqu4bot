@@ -739,13 +739,13 @@ Bool IRC_UserInChannelP(const struct ChannelTree *const Channel, const char *con
 	return false;
 }
 
-void IRC_AddChannelToTree(const char *const Channel, const char *const Prefix)
+struct ChannelTree *IRC_AddChannelToTree(const char *const Channel, const char *const Prefix)
 {
 	struct ChannelTree *Worker = Channels;
 
 	for (; Worker; Worker = Worker->Next)
 	{
-		if (!strcmp(Channel, Worker->Channel)) return;
+		if (!strcmp(Channel, Worker->Channel)) return Worker;
 	}
 	Worker = Channels;
 	
@@ -773,6 +773,8 @@ void IRC_AddChannelToTree(const char *const Channel, const char *const Prefix)
 		strncpy(Worker->CmdPrefix, Prefix, sizeof Worker->CmdPrefix - 1);
 		Worker->CmdPrefix[sizeof Worker->CmdPrefix - 1] = '\0';
 	}
+	
+	return Worker;
 }
 
 Bool IRC_DelChannelFromTree(const char *Channel)

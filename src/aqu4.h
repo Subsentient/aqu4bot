@@ -58,6 +58,7 @@ struct ChannelTree
 	char TopicSetter[128];
 	char CmdPrefix[128];
 	unsigned long TopicSetTime;
+	Bool AutoLinkTitle; /*Automatically get link titles?*/
 	
 	struct _UserList
 	{
@@ -121,7 +122,7 @@ extern Bool IRC_Message(const char *Target, const char *Message);
 extern Bool IRC_Notice(const char *Target, const char *Notice);
 extern Bool IRC_NickChange(const char *Nick);
 extern void IRC_Pong(const char *Param);
-extern void IRC_AddChannelToTree(const char *Channel, const char *CmdPrefix);
+extern struct ChannelTree *IRC_AddChannelToTree(const char *const Channel, const char *const Prefix);
 extern Bool IRC_DelChannelFromTree(const char *Channel);
 extern void IRC_ShutdownChannelTree(void);
 extern MessageType IRC_GetMessageType(const char *InStream_);
