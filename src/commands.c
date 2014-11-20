@@ -267,6 +267,8 @@ void CMD_ProcessCommand(const char *InStream_)
 			IRC_Message(SendTo, "Auto-URL-title invoked, but this aqu4bot was compiled without libcurl.");
 #endif
 		}
+		
+		return;
 	}
 	
 	for (Inc = 0; InStream[Inc] != '\0' && InStream[Inc] != ' ' &&
