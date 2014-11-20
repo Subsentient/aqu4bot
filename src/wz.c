@@ -193,26 +193,39 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	
 	Net_Disconnect(WZSocket);
 	
-	/*Warzone 2100 Legacy lobby server.*/
-	if (WZLegacy)
-	{
-		if (LastHosted >= 60)
-		{
-			snprintf(OutBuf, sizeof OutBuf, "%u games available. Last game was hosted %u minutes ago.",
-					(unsigned)GamesAvailable, (unsigned)LastHosted / 60);
+	if (!GamesAvailable)
+	{ /*No games in lobby.*/
+		if (WZLegacy)
+		{ /*Legacy has some helpful info on when games were recently hosted.*/
+			if (((LastHosted / 60) / 60) / 24)
+			{ /*Days.*/
+				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u days ago.",
+						(unsigned)((LastHosted / 60) / 60) / 24);
+			}
+			else if (LastHosted / 60 > 60)
+			{ /*Hours.*/
+				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u hours ago.",
+						(unsigned)((LastHosted / 60) / 60));
+			}
+			else if (LastHosted >= 60)
+			{ /*Minutes.*/
+				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u minutes ago.",
+						(unsigned)LastHosted / 60);
+			}
+			else
+			{ /*Seconds.*/
+				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u seconds ago.",
+						(unsigned)LastHosted);
+			}
 		}
 		else
-		{
-			snprintf(OutBuf, sizeof OutBuf, "%u games available. Last game was hosted %u seconds ago.",
-					(unsigned)GamesAvailable, (unsigned)LastHosted);
+		{ /*But alas, 3.1 lobby does not. Except for a long MOTD we won't read.*/
+			snprintf(OutBuf, sizeof OutBuf, "No games available.");
 		}
+		
+		IRC_Message(SendTo, OutBuf);
 	}
-	else
-	{ /*wz2100.net lobby server.*/
-		snprintf(OutBuf, sizeof OutBuf, "%u games available.", (unsigned)GamesAvailable);
-	}
-	IRC_Message(SendTo, OutBuf);
-	
+		
 	/*Now send them to the user.*/
 	for (Inc = 0; Inc < GamesAvailable; ++Inc)
 	{
@@ -254,11 +267,11 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 			snprintf(ModBuf, sizeof ModBuf, " \0034(mods: %s)\x3", GamesList[Inc].ModList);
 		}
 		
-		snprintf(OutBuf, sizeof OutBuf, "\2\3%s[%d]\3\2 \02Name\02: %s | \02Map\02: %s | \02Host\02: %s | "
+		snprintf(OutBuf, sizeof OutBuf, "\2\3%s[%u/%u]\3\2 \02Name\02: %s | \02Map\02: %s | \02Host\02: %s | "
 				"\02Players\02: %d/%d %s| \02IP\02: %s | \02Version\02: %s%s",
-				ColTag, Inc + 1, GamesList[Inc].GameName, MapBuf,
+				ColTag, (unsigned)Inc + 1, (unsigned)GamesAvailable, GamesList[Inc].GameName, MapBuf,
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
-				GamesList[Inc].PrivateGame ? "(private) " : "", GamesList[Inc].NetSpecs.HostIP,
+				GamesList[Inc].PrivateGame ? "\0038(private)\x3 " : "", GamesList[Inc].NetSpecs.HostIP,
 				GamesList[Inc].VersionString, ModBuf);
 		IRC_Message(SendTo, OutBuf);
 	}
