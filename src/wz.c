@@ -254,7 +254,7 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 			snprintf(ModBuf, sizeof ModBuf, " \0034(mods: %s)\x3", GamesList[Inc].ModList);
 		}
 		
-		snprintf(OutBuf, sizeof OutBuf, "\3%s[%d]\3 \02Name\02: %s | \02Map\02: %s | \02Host\02: %s | "
+		snprintf(OutBuf, sizeof OutBuf, "\2\3%s[%d]\3\2 \02Name\02: %s | \02Map\02: %s | \02Host\02: %s | "
 				"\02Players\02: %d/%d %s| \02IP\02: %s | \02Version\02: %s%s",
 				ColTag, Inc + 1, GamesList[Inc].GameName, MapBuf,
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
