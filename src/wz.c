@@ -19,7 +19,7 @@ See the file UNLICENSE.TXT for more information.
 #endif
 
 #include "aqu4.h"
-
+#include "substrings/substrings.h"
 
 typedef struct
 {
@@ -44,7 +44,7 @@ typedef struct
 	char ModList[255];
 	uint32_t MajorVer, MinorVer;
 	uint32_t PrivateGame;
-	uint32_t PureGame;
+	uint32_t MapMod; /*Legacy still calls this PureGame and 3.1 PureGame.*/
 	uint32_t Mods;
 	
 	uint32_t GameID;
@@ -217,8 +217,20 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	for (Inc = 0; Inc < GamesAvailable; ++Inc)
 	{
 		char ModBuf[512] = { '\0' };
+		char MapBuf[128] = { '\0' };
 		char ColTag[2] = { '\0' };
 		
+		/**Check for map-mod.**/		
+		if (!WZLegacy && GamesList[Inc].MapMod)
+		{ /*Legacy can't detect map-mods so it'd be wrong.*/
+			snprintf(MapBuf, sizeof MapBuf, "\0034%s\003 (map-mod)", GamesList[Inc].Map);
+		}
+		else
+		{ /*Either Legacy or no mod.*/
+			SubStrings.Copy(MapBuf, GamesList[Inc].Map, sizeof MapBuf);
+		}
+		
+		/**Colors for number in braces.**/
 		if (GamesList[Inc].NetSpecs.CurPlayers >= GamesList[Inc].NetSpecs.MaxPlayers)
 		{ /*game full.*/
 			*ColTag = '4'; /*Red.*/
@@ -236,18 +248,18 @@ Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 			*ColTag = '3'; /*green.*/
 		}
 			
-		
+		/**Game has loaded mods (not map-mods)**/
 		if (GamesList[Inc].ModList[0] != '\0')
 		{
-			snprintf(ModBuf, sizeof ModBuf, " (mods: %s)", GamesList[Inc].ModList);
+			snprintf(ModBuf, sizeof ModBuf, " \0034(mods: %s)\x3", GamesList[Inc].ModList);
 		}
 		
-		snprintf(OutBuf, sizeof OutBuf, "\3%s[%d]\3 \02Name\02: %s | \02Map\02: %s%s | \02Host\02: %s | "
-				"\02Players\02: %d/%d %s| \02IP\02: %s | \02Version\02: %s",
-				ColTag, Inc + 1, GamesList[Inc].GameName, GamesList[Inc].Map, ModBuf,
+		snprintf(OutBuf, sizeof OutBuf, "\3%s[%d]\3 \02Name\02: %s | \02Map\02: %s | \02Host\02: %s | "
+				"\02Players\02: %d/%d %s| \02IP\02: %s | \02Version\02: %s%s",
+				ColTag, Inc + 1, GamesList[Inc].GameName, MapBuf,
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
 				GamesList[Inc].PrivateGame ? "(private) " : "", GamesList[Inc].NetSpecs.HostIP,
-				GamesList[Inc].VersionString);
+				GamesList[Inc].VersionString, ModBuf);
 		IRC_Message(SendTo, OutBuf);
 	}
 	
