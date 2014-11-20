@@ -246,13 +246,16 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		/*We have libcurl so check for a link.*/
 		if (LookupChannel->AutoLinkTitle &&
-		(!strncmp(InStream, "http://", sizeof "http://" - 1) || strstr(InStream, " http://")))
+		(!strncmp(InStream, "http://", sizeof "http://" - 1) || strstr(InStream, " http://") ||
+		!strncmp(InStream, "https://", sizeof "https://" - 1) || strstr(InStream, " https://")))
 		{ /*Starts with http.*/
 			
-			if (strncmp(InStream, "http://", sizeof "http://" - 1) != 0)
+			if (strncmp(InStream, "http://", sizeof "http://" - 1) != 0 &&
+				strncmp(InStream, "https://", sizeof "https://" - 1) != 0)
 			{ /*Not located at the beginning.*/
-				InStream = strstr(InStream, " http://");
-				++InStream;
+				InStream = strstr(InStream, " http://"); /*http*/
+				if (!InStream) InStream = strstr(InStream, " https://"); /*https*/
+				++InStream; /*skip past the space at front.*/
 			}
 			
 			/*Copy in this link to the argument and jump to title command.*/

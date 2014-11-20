@@ -36,7 +36,8 @@ Bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsi
 	char *OutStream = OutStream_;
 
 	/*Get the correct URL.*/
-	if (!SubStrings.NCompare("http://", sizeof "http://" - 1, URL_))
+	if (!SubStrings.NCompare("http://", sizeof "http://" - 1, URL_) &&
+		!SubStrings.NCompare("https://", sizeof "https://" - 1, URL_))
 	{
 		snprintf(URL, sizeof URL, "http://%s", URL_);
 	}
@@ -56,6 +57,11 @@ Bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsi
 		
 		/*Add the URL*/
 		curl_easy_setopt(Curl, CURLOPT_URL, URL);
+		
+		if (SubStrings.StartsWith("https://", URL))
+		{ /*HTTPS options.*/
+			curl_easy_setopt(Curl, CURLOPT_SSL_VERIFYPEER, 0L); /*My own cert is self-signed, and I want it to work.*/
+		}
 		
 		/*Follow paths that redirect.*/
 		curl_easy_setopt(Curl, CURLOPT_FOLLOWLOCATION, 1L);
