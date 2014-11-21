@@ -71,11 +71,7 @@ Bool Net_Write(int SockDescriptor, const char *InMsg)
 
 	do
 	{
-#if defined WIN || defined HAIKU
 		Transferred = send(SockDescriptor, InMsg, (StringSize - TotalTransferred), 0);
-#else
-		Transferred = send(SockDescriptor, InMsg, (StringSize - TotalTransferred), MSG_NOSIGNAL);
-#endif		
 		if (Transferred == -1) /*This is ugly I know, but it's converted implicitly, so shut up.*/
 		{
 			return false;
