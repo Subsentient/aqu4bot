@@ -240,7 +240,14 @@ void CMD_ProcessCommand(const char *InStream_)
 	}
 	else if (*Target == '#')
 	{ /*Auto-URL-title-read, if enabled for channel. Must be explicitly enabled.*/
-		struct ChannelTree *LookupChannel = IRC_GetChannelFromDB(Target);
+		struct ChannelTree *LookupChannel = NULL;
+		
+		for (Inc = 0; Target[Inc] != '\0' && Inc < sizeof Target - 1; ++Inc)
+		{ /*Lowercase the channel.*/
+			Target[Inc] = tolower(Target[Inc]);
+		}
+		
+		LookupChannel = IRC_GetChannelFromDB(Target); /*look up the channel.*/
 		
 		if (!LookupChannel) return; /*Channel not found.*/
 		
