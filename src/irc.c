@@ -375,20 +375,24 @@ void IRC_Loop(void)
 
 Bool IRC_Connect(void)
 {
-	char UserString[2048], NickString[2048], MessageBuf[2048];
+	char UserString[2048], MessageBuf[2048], NickServNick[sizeof ServerInfo.Nick];
 	struct ChannelTree *Worker = Channels;
 	Bool ServerLikesUs = false;
 	int Code = 0;
+	
+	/*Back up the nick we start with so we can tell nickserv who we are even if our nick changes.*/
+	SubStrings.Copy(NickServNick, ServerInfo.Nick, sizeof NickServNick);
 	
 	printf("Connecting to \"%s:%hu\"... ", ServerInfo.Hostname, ServerInfo.PortNum), fflush(stdout);
 	
 	if (!Net_Connect(ServerInfo.Hostname, ServerInfo.PortNum, &SocketDescriptor)) goto Error;
 	
+	/*set user mode.*/
 	snprintf(UserString, sizeof UserString, "USER %s 8 * :%s\r\n", ServerInfo.Ident, ServerInfo.RealName);
-	snprintf(NickString, sizeof NickString, "NICK %s\r\n", ServerInfo.Nick);
-	
 	Net_Write(SocketDescriptor, UserString);
-	Net_Write(SocketDescriptor, NickString);
+	
+	/*set nick.*/
+	IRC_NickChange(ServerInfo.Nick);
 	
 	/*Check if the server likes us.*/
 	while (!ServerLikesUs)
@@ -414,10 +418,22 @@ Bool IRC_Connect(void)
 				ServerLikesUs = true;
 				break;
 			case IRC_CODE_NICKTAKEN:
-				fprintf(stderr, "Nickname taken. Shutting down.\n");
-				close(SocketDescriptor);
-				exit(1);
+			{ /*We should deal with taken nicks gracefully, and try to connect anyways.*/
+				fprintf(stderr, "\nNickname taken, appending a _ and trying again...\n"); fflush(NULL);
+				
+				if (strlen(ServerInfo.Nick) > 16)
+				{ /*Sixteen characters is a reasonable compromise.*/
+					fprintf(stderr, "Our nickname is too long to append! Failed to get a nickname.\n"); fflush(NULL);
+					Net_Disconnect(SocketDescriptor);
+					exit(1);
+				}
+					
+				SubStrings.Cat(ServerInfo.Nick, "_", sizeof ServerInfo.Nick); /*Append a _ to the nickname.*/
+				
+				IRC_NickChange(ServerInfo.Nick); /*Resend our new nickname.*/
+				continue; /*Restart the loop.*/
 				break;
+			}
 			default:
 				break;
 		}
@@ -443,7 +459,7 @@ Bool IRC_Connect(void)
 		char NickservString[2048];
 		
 		printf("Authenticating with NickServ...");
-		snprintf(NickservString, 2048, "identify %s", ServerInfo.NickservPwd);
+		snprintf(NickservString, 2048, "identify %s %s", NickServNick, ServerInfo.NickservPwd);
 		IRC_Message("NickServ", NickservString);
 		puts(" Done.");
 	}
