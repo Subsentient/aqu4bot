@@ -350,11 +350,10 @@ void IRC_Loop(void)
 				do
 				{
 					/*Some characters are used for OP and such.*/
-					if (*NamesList == '!' || *NamesList == '@' || *NamesList == '#'
-						|| *NamesList == '$' || *NamesList == '%' || *NamesList == '^'
-						|| *NamesList == '&' || *NamesList == '*' || *NamesList == '+'
-						|| *NamesList == '=' || *NamesList == '-' || *NamesList == '('
-						|| *NamesList == ')' || *NamesList == '?' || *NamesList == '~') ++NamesList;
+					if (*NamesList == '!' || *NamesList == '@' || *NamesList == '#' ||
+						*NamesList == '$' || *NamesList == '%' || *NamesList == '&' ||
+						*NamesList == '*' ||*NamesList == '+' || *NamesList == '=' ||
+						*NamesList == '-' || *NamesList == '?' || *NamesList == '~') ++NamesList;
 						
 					for (Inc = 0; NamesList[Inc] != ' ' && NamesList[Inc] != '\0' && Inc < sizeof Nick - 1; ++Inc)
 					{ /*We don't have full data on them yet, so just record nick.*/
