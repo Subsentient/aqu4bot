@@ -737,10 +737,10 @@ void CMD_ProcessCommand(const char *InStream_)
 	TitleCommand:
 	{
 		char *Worker = Argument;
-		char RecvBuffer[(1024 * 1024) * 2]; //2MB.
+		char *RecvBuffer = NULL;
 		char PageTitle[2048], *EndTerminator = NULL;
 		char OutBuf[2048];
-		
+#define MAX_TITLE_DATA_SIZE ((1024 * 1024) * 2)
 		if (!*Argument)
 		{
 			IRC_Message(SendTo, "You need to provide a valid http link. https is not supported.");
@@ -750,15 +750,19 @@ void CMD_ProcessCommand(const char *InStream_)
 		if ((Worker = SubStrings.Find("http://", 1, Worker))) Worker += sizeof "http://" - 1;
 		else Worker = Argument;
 		
-		if (!CurlCore_GetHTTP(Worker, RecvBuffer, sizeof RecvBuffer))
+		RecvBuffer = malloc(MAX_TITLE_DATA_SIZE); //Allocate 2MB. Some platforms like Windows don't appreciate our large arrays on stack.
+		
+		if (!CurlCore_GetHTTP(Worker, RecvBuffer, MAX_TITLE_DATA_SIZE))
 		{ /*Download the first 16K*/
 			IRC_Message(SendTo, "Failed to connect to retrieve page title.");
+			free(RecvBuffer);
 			return;
 		}
 		
 		if (!(Worker = SubStrings.Find("<title>", 1, RecvBuffer)) && !(Worker = SubStrings.Find("<TITLE>", 1, RecvBuffer)))
 		{ /*Find the title.*/
 			IRC_Message(SendTo, "No title found.");
+			free(RecvBuffer);
 			return;
 		}
 		
@@ -768,6 +772,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			!(EndTerminator = SubStrings.Find("</TITLE>", 1, Worker)))
 		{
 			IRC_Message(SendTo, "Found a <title> but no </title>!");
+			free(RecvBuffer);
 			return;
 		}
 		
@@ -785,6 +790,9 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		snprintf(OutBuf, sizeof OutBuf, "Title for page \"%s\": \"\2\0033%s\3\2\"", Argument, PageTitle);
 		IRC_Message(SendTo, OutBuf);
+		
+		//Release the buffer we allocated on the heap for the scan.
+		free(RecvBuffer);
 		
 		return;
 	}
