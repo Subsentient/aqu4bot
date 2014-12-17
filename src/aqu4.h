@@ -11,6 +11,7 @@ See the file UNLICENSE.TXT for more information.
 
 #define IRC_CODE_OK 1
 #define IRC_CODE_NICKTAKEN 433
+#define IRC_CODE_BADPASSWORD 465
 
 #define WZSERVER_MAIN "lobby.wz2100.net"
 #define WZSERVER_MAIN_PORT 9990
@@ -82,6 +83,7 @@ struct _ServerInfo
 	char Ident[128];
 	char RealName[128];
 	char NickservPwd[256];
+	char ServerPassword[256];
 	unsigned short PortNum;
 	Bool SetBotmode;
 };

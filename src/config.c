@@ -103,6 +103,11 @@ Bool Config_ReadConfig(void)
 			strncpy(ServerInfo.NickservPwd, LineData, sizeof ServerInfo.NickservPwd - 1);
 			ServerInfo.NickservPwd[sizeof ServerInfo.NickservPwd - 1] = '\0';
 		}
+		else if (!strcmp(LineID, "ServerPassword"))
+		{
+			strncpy(ServerInfo.ServerPassword, LineData, sizeof ServerInfo.ServerPassword - 1);
+			ServerInfo.ServerPassword[sizeof ServerInfo.ServerPassword - 1] = '\0';
+		}
 		else if (!strcmp(LineID, "Channel"))
 		{
 			char Chan[sizeof LineData], Prefix[sizeof Chan] = { 0 }, *Worker = Chan;

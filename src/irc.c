@@ -386,6 +386,15 @@ Bool IRC_Connect(void)
 	
 	if (!Net_Connect(ServerInfo.Hostname, ServerInfo.PortNum, &SocketDescriptor)) goto Error;
 	
+	/*Check if there is a password.*/
+	if (*ServerInfo.ServerPassword)
+	{
+		char OutBuf[1024];
+		
+		snprintf(OutBuf, sizeof OutBuf, "PASS %s\r\n", ServerInfo.ServerPassword);
+		Net_Write(SocketDescriptor, OutBuf);
+	}
+	
 	/*set user mode.*/
 	snprintf(UserString, sizeof UserString, "USER %s 8 * :%s\r\n", ServerInfo.Ident, ServerInfo.RealName);
 	Net_Write(SocketDescriptor, UserString);
@@ -416,6 +425,21 @@ Bool IRC_Connect(void)
 			case IRC_CODE_OK:
 				ServerLikesUs = true;
 				break;
+			case IRC_CODE_BADPASSWORD:
+			{
+				if (*ServerInfo.ServerPassword)
+				{ /*We have a real password.*/
+					fprintf(stderr, "\nServer reports the password is incorrect.\n"); fflush(NULL);
+				}
+				else
+				{
+					fprintf(stderr, "\nServer reports a password is required,\n"
+							"but there is no password in aqu4bot.conf.\n"); fflush(NULL);
+				}
+				Net_Disconnect(SocketDescriptor);
+				exit(1);
+				break;
+			}		
 			case IRC_CODE_NICKTAKEN:
 			{ /*We should deal with taken nicks gracefully, and try to connect anyways.*/
 				fprintf(stderr, "\nNickname taken, appending a _ and trying again...\n"); fflush(NULL);
