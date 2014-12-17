@@ -95,6 +95,10 @@ struct
 			{ "part", "Leaves the specified channel(s). You must be at least admin for this."
 				" If no argument is specified and you are already in a channel, "
 				"it leaves the channel the command is issued from.", OPTARG, ADMIN },
+			{ "cycle", "Leaves and then rejoins the specified channel."
+				"If already in a channel, the channel can be omitted to cycle that channel."
+				"You can also pass 'fresh' after or in place of the channel name to reset the channel"
+				"to aqu4bot defaults, ignoring the config file.", OPTARG, ADMIN },
 			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, "
 				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel,"
 				"and 'togglecontrolcodes', to toggle whether or not color and bold is permitted to appear in this bot's messages.", 
@@ -1345,6 +1349,117 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		return;
 		
+	}
+	else if (!strcmp(CommandID, "cycle"))
+	{ //Rejoin a channel.
+		struct ChannelTree *Worker = Channels, *ChannelStruct = NULL;
+		char Subcommand[32] = { '\0' };
+		char Channel[sizeof ((struct ChannelTree*)0)->Channel];
+		const char *TW = Argument;
+		
+		if (!IsAdmin)
+		{
+			IRC_Message(SendTo, "You must be an admin to use that command.");
+			return;
+		}
+		
+		if (*Argument != '#' && *SendTo != '#')
+		{ //They didn't give us a channel and we're not in a channel.
+			IRC_Message(SendTo, "Since you're telling me via PM, tell me what channel to cycle.");
+			return;
+		}
+		
+		if (*Argument == '#')
+		{ //They specified a channel.
+			for (Inc = 0; Argument[Inc] != ' ' && Argument[Inc] != '\0' && Inc < sizeof Channel - 1; ++Inc)
+			{
+				Channel[Inc] = tolower(Argument[Inc]);
+			}
+			Channel[Inc] = '\0';
+			TW += Inc;
+			while (*TW == ' ') ++TW;
+		}
+		else
+		{ //No channel so assume current.
+			for (Inc = 0; SendTo[Inc] != '\0'; ++Inc)
+			{ //need to lowercase it for compare.
+				Channel[Inc] = tolower(SendTo[Inc]);
+			}
+			Channel[Inc] = '\0';
+		}
+		
+		
+		//Lookup the channel.
+		for (; Worker; Worker = Worker->Next)
+		{
+			char ChanCompare[sizeof Worker->Channel];
+			
+			//Lowercase this channel for comparison.
+			for (Inc = 0; Worker->Channel[Inc]; ++Inc)
+			{
+				ChanCompare[Inc] = tolower(Worker->Channel[Inc]);
+			}
+			ChanCompare[Inc] = '\0';
+			
+			if (!strcmp(Channel, ChanCompare))
+			{
+				ChannelStruct = Worker;
+				break;
+			}
+		}
+		
+		//Bad channel.
+		if (!ChannelStruct)
+		{
+			IRC_Message(SendTo, "I'm not in that channel.");
+			return;
+		}
+		
+		//Get the subcommand if any.
+		for (Inc = 0; *TW != '\0' && Inc < sizeof Subcommand - 1; ++Inc, ++TW)
+		{
+			Subcommand[Inc] = *TW;
+		}
+		Subcommand[Inc] = '\0';
+		
+		
+		//process the subcommand.
+		if (*Subcommand) //We actually have a subcommand.
+		{
+			if (!strcmp(Subcommand, "fresh"))
+			{
+				//Put in a stock prefix.
+				memcpy(ChannelStruct->CmdPrefix, GlobalCmdPrefix, sizeof ChannelStruct->CmdPrefix);
+				
+				//Turn off link auto-title as is default.
+				ChannelStruct->AutoLinkTitle = false;
+				
+				//Destroy all users for that channel.
+				for (struct _UserList *UWorker = ChannelStruct->UserList, *Next;
+					UWorker != NULL; UWorker = Next)
+				{
+					Next = UWorker->Next;
+					free(UWorker);
+				}
+				ChannelStruct->UserList = NULL;
+			}
+			else
+			{
+				IRC_Message(SendTo, "Bad subcommand.");
+				return;
+			}
+		}
+		
+		if (IRC_LeaveChannel(ChannelStruct->Channel) && IRC_JoinChannel(ChannelStruct->Channel))
+		{ //Perform the operation.
+			IRC_Message(SendTo, "Channel cycle complete.");
+		}
+		else
+		{
+			IRC_Message(SendTo, "Failed to cycle the specified channel.");
+		}
+			
+		return;
 	}
 	else if (!strcmp(CommandID, "replace"))
 	{
