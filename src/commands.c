@@ -737,7 +737,8 @@ void CMD_ProcessCommand(const char *InStream_)
 	TitleCommand:
 	{
 		char *Worker = Argument;
-		char RecvBuffer[16384], PageTitle[2048], *EndTerminator = NULL;
+		char RecvBuffer[(1024 * 1024) * 2]; //2MB.
+		char PageTitle[2048], *EndTerminator = NULL;
 		char OutBuf[2048];
 		
 		if (!*Argument)

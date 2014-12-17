@@ -76,6 +76,10 @@ Bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsi
 		/*Request maximum 5 second timeout for each try of the operation.*/
 		curl_easy_setopt(Curl, CURLOPT_CONNECTTIMEOUT, 5L); /*This will not save us in some cases.*/
 		
+		
+		/*Request that we NOT download files larger than what we want.*/
+		curl_easy_setopt(Curl, CURLOPT_MAXFILESIZE, MaxOutBytes);
+		
 		Code = curl_easy_perform(Curl);
 		
 		curl_easy_cleanup(Curl);
