@@ -5,12 +5,12 @@ AQ_CORE_OBJECTS = auth.o commands.o config.o ddg.o irc.o logging.o main.o netcor
 AQ_OBJECTS = $(AQ_CORE_OBJECTS)
 
 ifeq ($(USECURL),NO)
-	CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DNO_LIBCURL -DBOT_OS="\"UNIX (without libcurl)\""
+	CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DNO_LIBCURL -DBOT_OS="\"UNIX (without libcurl)\""
 	AQ_CORE_OBJECTS = auth.o commands.o config.o irc.o logging.o main.o netcore.o wz.o
 	AQ_OBJECTS = $(AQ_CORE_OBJECTS)
 	LDFLAGS =
 else
-	CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0
+	CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0
 	LDFLAGS = -lcurl
 endif
 
@@ -18,10 +18,10 @@ ifeq ($(OS),WIN)
 	
 	ifeq ($(USECURL),NO)
 		LDFLAGS = -lws2_32
-		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS="\"Windows (without libcurl)\"" -DNO_LIBCURL
+		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS="\"Windows (without libcurl)\"" -DNO_LIBCURL
 	else
 		LDFLAGS = -lws2_32 `i686-pc-mingw32-pkg-config --libs libcurl`
-		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\" -DCURL_STATICLIB
+		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\" -DCURL_STATICLIB
 	endif
 
 	OUTFILE = aqu4bot.exe
@@ -32,11 +32,11 @@ endif
 
 ifeq ($(OS),HAIKU)
 	ifeq ($(USECURL),NO)
-		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS (without libcurl)\"" -DNO_LIBCURL
+		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS (without libcurl)\"" -DNO_LIBCURL
 		LDFLAGS = -lnetwork
 	else
 		LDFLAGS = -lcurl -lnetwork
-		CFLAGS = -std=gnu89 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS\""
+		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS\""
 	endif
 
 endif
