@@ -16,7 +16,7 @@ See the file UNLICENSE.TXT for more information.
 #define WZSERVER_MAIN "lobby.wz2100.net"
 #define WZSERVER_MAIN_PORT 9990
 
-#define WZSERVER_LEGACY "warzonelegacy.org"
+#define WZSERVER_LEGACY "universe2.us"
 #define WZSERVER_LEGACY_PORT 9990
 
 #define ROOT_URL "http://universe2.us/"
