@@ -189,7 +189,7 @@ extern Bool CurlCore_GetHTTP(const char *const URL, void *const OutStream, const
 extern int SocketDescriptor;
 extern struct _ServerInfo ServerInfo;
 extern struct ChannelTree *Channels;
-extern char GlobalCmdPrefix[128];
+extern char GlobalCmdPrefix[sizeof ((struct ChannelTree*)0)->CmdPrefix];
 extern unsigned short SendDelay;
 extern Bool ShowOutput;
 extern Bool Logging;

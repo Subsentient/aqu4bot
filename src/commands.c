@@ -16,7 +16,7 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-char GlobalCmdPrefix[128] = "$";
+char GlobalCmdPrefix[sizeof ((struct ChannelTree*)0)->CmdPrefix] = "$";
 enum ArgMode { NOARG, OPTARG, REQARG };
 enum HPerms { ANY, ADMIN, OWNER };
 
