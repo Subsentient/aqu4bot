@@ -13,6 +13,10 @@ See the file UNLICENSE.TXT for more information.
 #include <ctype.h>
 #include <time.h>
 
+#ifdef WIN
+#include <winsock2.h>
+#endif
+
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
@@ -37,7 +41,14 @@ void IRC_Loop(void)
 			
 			do
 			{
-				if (SocketDescriptor) close(SocketDescriptor);
+				if (SocketDescriptor)
+				{
+#ifdef WIN
+					closesocket(SocketDescriptor);
+#else
+					close(SocketDescriptor);
+#endif //WIN
+				}
 				SocketDescriptor = 0;
 
 				Bot_SetTextColor(GREEN);
@@ -65,7 +76,14 @@ void IRC_Loop(void)
 				puts("** After three attempts, cannot reconnect to IRC server! Shutting down. **");
 				Bot_SetTextColor(ENDCOLOR);
 				
-				if (SocketDescriptor) close(SocketDescriptor);
+				if (SocketDescriptor)
+				{
+#ifdef WIN
+					closesocket(SocketDescriptor);
+#else
+					close(SocketDescriptor);
+#endif
+				}
 				exit(1);
 			}
 		}
