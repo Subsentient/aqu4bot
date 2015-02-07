@@ -123,7 +123,7 @@ struct
 
 static struct _RandomGame
 {
-	Bool Set;
+	bool Set;
 	unsigned int Num : 4;
 } RandGame;
 
@@ -141,8 +141,8 @@ static struct _SeenDB
 
 static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo);
 static struct _SeenDB *CMD_SeenDBLookup(const char *const Nick);
-static Bool CMD_ListStickies(const char *SendTo);
-static Bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, Bool JustDelete);
+static bool CMD_ListStickies(const char *SendTo);
+static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete);
 
 void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
@@ -152,7 +152,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	int Inc = 0;
 	const char *SendTo = NULL;
 	const char *InStream = InStream_;
-	Bool IsAdmin = false, BotOwner = false;
+	bool IsAdmin = false, BotOwner = false;
 	char NickBasedPrefix[128], CmdPrefix[sizeof GlobalCmdPrefix] = { '\0' };
 	struct ChannelTree *CWorker = Channels;
 	
@@ -501,7 +501,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		/*Get a rand and add our gerbil magic.*/
-		YesNo = ((unsigned)rand() + Magic) / (RAND_MAX / 2 + 1); /*Boolean value.*/
+		YesNo = ((unsigned)rand() + Magic) / (RAND_MAX / 2 + 1); /*boolean value.*/
 		
 		snprintf(TmpBuf, sizeof TmpBuf, "I got %s.", YesNo ? "heads" : "tails");
 		
@@ -1016,7 +1016,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	}
 	else if (!strcmp(CommandID, "quit") || !strcmp(CommandID, "restart"))
 	{
-		Bool FullQuit = !strcmp(CommandID, "quit");
+		bool FullQuit = !strcmp(CommandID, "quit");
 		
 		if (!BotOwner)
 		{
@@ -1781,7 +1781,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	}	
 }
 
-Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message)
+bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message)
 {
 	FILE *Descriptor = fopen("db/tell.db", "ab");
 	char OutBuffer[2048];
@@ -1797,7 +1797,7 @@ Bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message
 	return true;
 }
 
-Bool CMD_ReadTellDB(const char *Target)
+bool CMD_ReadTellDB(const char *Target)
 {
 	FILE *Descriptor = fopen("db/tell.db", "rb");
 	char *TellDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
@@ -1807,7 +1807,7 @@ Bool CMD_ReadTellDB(const char *Target)
 	unsigned Inc = 0;
 	unsigned char Counter;
 	struct stat FileStat;
-	Bool Found = false;
+	bool Found = false;
 	
 	if (!Descriptor) return false;
 	
@@ -1959,7 +1959,7 @@ unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 	return StickyID;
 }
 
-static Bool CMD_ListStickies(const char *SendTo)
+static bool CMD_ListStickies(const char *SendTo)
 {
 #define MAX_STICKIES_TO_LIST 10
 	unsigned Inc = 0;
@@ -1970,7 +1970,7 @@ static Bool CMD_ListStickies(const char *SendTo)
 	char OutBuf[4096];
 	unsigned StickyCount = 0;
 	int QTicker = 1;
-	Bool ColorFlip = false;
+	bool ColorFlip = false;
 	const char *const STColor[2] = { "2", "3" };
 	
 	if (!Descriptor || stat("db/sticky.db", &FileStat) != 0 || FileStat.st_size == 0)
@@ -2298,7 +2298,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	else if (!strcmp(Command, "addpumode") || !strcmp(Command, "delpumode"))
 	{
 		char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128], ModeTarget[384];
-		Bool ValidVhost = IRC_BreakdownNick(CmdStream, Nick, Ident, Mask); /*The first mask is for the target we match against.*/
+		bool ValidVhost = IRC_BreakdownNick(CmdStream, Nick, Ident, Mask); /*The first mask is for the target we match against.*/
 		const char *Worker = CmdStream;
 		char OutBuf[1024];
 		
@@ -2393,14 +2393,14 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 	}
 }
 
-static Bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, Bool JustDelete)
+static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete)
 { /*If SendTo is NULL, we delete the sticky instead of reading it.*/
 	char *StickyDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	unsigned Inc = 0;
 	FILE *Descriptor = fopen("db/sticky.db", "rb");
 	struct stat FileStat;
 	char StickyID_T[32], ATime[32], Owner[128], StickyData[2048];
-	Bool Found = false;
+	bool Found = false;
 	struct StickySpec *OutSpec = OutSpec_;
 	
 	if (!Descriptor) return false;
@@ -2675,7 +2675,7 @@ void CMD_LoadSeenDB(void) /*Loads it from disk.*/
 }
 
 
-Bool CMD_SaveSeenDB(void)
+bool CMD_SaveSeenDB(void)
 {
 	struct _SeenDB *Worker = SeenRoot, *Temp;
 	FILE *Descriptor = NULL;
@@ -2742,7 +2742,7 @@ void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 	
 }
 
-Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel)
+bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	char WChannel[128];
@@ -2791,7 +2791,7 @@ Bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 	return false;
 }
 
-Bool CMD_LoadUserModes(void)
+bool CMD_LoadUserModes(void)
 {
 	struct stat FileStat;
 	char *Stream = NULL, *Worker = NULL;
@@ -2902,7 +2902,7 @@ void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask,
 	}
 }
 
-Bool CMD_SaveUserModes(void)
+bool CMD_SaveUserModes(void)
 {
 	FILE *Descriptor = fopen("db/usermodes.db", "wb");
 	struct UserModeSpec *Worker = UserModeRoot, *Del;

@@ -16,7 +16,7 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-Bool DDG_Query(const char *Search, const char *SendTo)
+bool DDG_Query(const char *Search, const char *SendTo)
 { /*Results from DuckDuckGo. http://api.duckduckgo.com/ */
 	char Results[8192] = { '\0' };
 	int Counter = 1;

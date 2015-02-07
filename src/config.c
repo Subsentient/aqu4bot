@@ -15,7 +15,7 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned MaxSize)
+bool Config_GetLineData(const char *InStream, char *OutStream, unsigned MaxSize)
 {
 	const char *Worker = InStream;
 	
@@ -32,7 +32,7 @@ Bool Config_GetLineData(const char *InStream, char *OutStream, unsigned MaxSize)
 	return true;
 }
 	
-Bool Config_ReadConfig(void)
+bool Config_ReadConfig(void)
 {
 	FILE *Descriptor = fopen(CONFIG_FILE, "rb");
 	char *ConfigStream = NULL, *Worker = NULL;
@@ -170,7 +170,7 @@ Bool Config_ReadConfig(void)
 		else if (!strcmp(LineID, "BotOwner") || !strcmp(LineID, "Admin"))
 		{
 			char Nick[128], Ident[128], Mask[128];
-			Bool BotOwner = !strcmp(LineID, "BotOwner");
+			bool BotOwner = !strcmp(LineID, "BotOwner");
 			
 			if (!IRC_BreakdownNick(LineData, Nick, Ident, Mask))
 			{

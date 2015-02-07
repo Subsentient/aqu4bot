@@ -20,15 +20,15 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-Bool Logging;
-Bool LogPMs;
-static Bool NoLogToConsole;
+bool Logging;
+bool LogPMs;
+static bool NoLogToConsole;
 
 /*Prototypes.*/
-static Bool Log_TopicLog(const char *InStream);
-static Bool Log_ModeLog(const char *InStream);
+static bool Log_TopicLog(const char *InStream);
+static bool Log_ModeLog(const char *InStream);
 
-Bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const OutStream, const int Capacity)
+bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const OutStream, const int Capacity)
 {
 	FILE *Descriptor = NULL;
 	char Filename[256], *Buf = NULL, *Worker = NULL;
@@ -90,7 +90,7 @@ Bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const
 	return true;
 }
 			
-Bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
+bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 {
 	char TimeString[128];
 	time_t Time = time(NULL);
@@ -143,7 +143,7 @@ Bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 }
 
 
-static Bool Log_ModeLog(const char *InStream)
+static bool Log_ModeLog(const char *InStream)
 {
 	char Nick[128], Channel[128], Mode[256];
 	char OutBuf[1024];
@@ -184,7 +184,7 @@ static Bool Log_ModeLog(const char *InStream)
 	return true;
 }
 
-static Bool Log_TopicLog(const char *InStream)
+static bool Log_TopicLog(const char *InStream)
 {
 	char Channel[128], Topic[1024], OutBuf[1024];
 	char *Worker = SubStrings.CFind('#', 1, InStream);
@@ -216,7 +216,7 @@ static Bool Log_TopicLog(const char *InStream)
 }
 	
 	
-Bool Log_WriteMsg(const char *InStream, MessageType MType)
+bool Log_WriteMsg(const char *InStream, MessageType MType)
 {
 	char OutBuf[2048], Origin[2048], Message[2048];
 	char Nick[128], Ident[128], Mask[128], *Worker = Origin;

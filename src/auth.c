@@ -26,7 +26,7 @@ static struct Blacklist
 	struct Blacklist *Prev;
 } *BLCore;
 
-Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool BotOwner)
+bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool BotOwner)
 {
 	struct AuthTree *Worker = AdminAuths;
 	
@@ -58,10 +58,10 @@ Bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, Bool B
 	return true;
 }
 
-Bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, Bool OwnersToo)
+bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, bool OwnersToo)
 {
 	struct AuthTree *Worker = AdminAuths;
-	Bool Success = false;
+	bool Success = false;
 	
 	if (!Nick && !Ident && !Mask) return false;
 	
@@ -129,7 +129,7 @@ void Auth_ShutdownAdmin(void)
 	AdminAuths = NULL;
 }
 
-Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *BotOwner)
+bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, bool *BotOwner)
 {
 	struct AuthTree *Worker = AdminAuths;
 	
@@ -152,10 +152,10 @@ Bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, Bool *B
 /*Beyond this point, stuff for blacklisting.*/
 
 
-Bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask)
+bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask)
 {
 	struct Blacklist *Worker = BLCore;
-	Bool Success = false;
+	bool Success = false;
 	
 	if (!BLCore) return false;
 	
@@ -193,7 +193,7 @@ Bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask)
 	return Success;
 }
 
-Bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask)
+bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask)
 {
 	struct Blacklist *Worker = BLCore;
 	
@@ -212,7 +212,7 @@ Bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask)
 	return false;
 }
 
-Bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
+bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 {
 	struct Blacklist *Worker = BLCore;
 	
@@ -292,7 +292,7 @@ void Auth_BlacklistLoad(void)
 	free(BlacklistDB);
 }
 
-Bool Auth_BlacklistSave(void)
+bool Auth_BlacklistSave(void)
 {
 	FILE *Descriptor = NULL;
 	struct Blacklist *Worker = BLCore;

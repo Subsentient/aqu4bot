@@ -54,9 +54,9 @@ typedef struct
 	uint32_t Unused3;
 } GameStruct;
 
-static Bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct);
+static bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct);
 
-static Bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct)
+static bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct)
 {
 	uint32_t Inc = 0;
 	GameStruct RV = { 0 };
@@ -138,7 +138,7 @@ static Bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct)
 	return true;
 }
 
-Bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, Bool WZLegacy)
+bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy)
 {
 	GameStruct *GamesList = NULL;
 	int WZSocket = 0;

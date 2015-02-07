@@ -26,7 +26,7 @@ static size_t _HTTPWriteHandler(void *InStream, size_t SizePerUnit, size_t NumMe
 	return SizePerUnit * NumMembers; /*Just get something to pacify baby.*/
 }
 
-Bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsigned MaxOutBytes)
+bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsigned MaxOutBytes)
 {
 	struct HTTPStruct HTTPDescriptor = { NULL };
 	int AttemptsRemaining = 3; /*Three tries by default.*/

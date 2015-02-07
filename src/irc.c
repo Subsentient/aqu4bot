@@ -22,7 +22,7 @@ See the file UNLICENSE.TXT for more information.
 
 struct _ServerInfo ServerInfo;
 struct ChannelTree *Channels;
-Bool NoControlCodes;
+bool NoControlCodes;
 
 void IRC_Loop(void)
 { /*Most of the action is triggered here.*/
@@ -390,11 +390,11 @@ void IRC_Loop(void)
 	}
 }
 
-Bool IRC_Connect(void)
+bool IRC_Connect(void)
 {
 	char UserString[2048], MessageBuf[2048], NickServNick[sizeof ServerInfo.Nick];
 	struct ChannelTree *Worker = Channels;
-	Bool ServerLikesUs = false;
+	bool ServerLikesUs = false;
 	int Code = 0;
 	
 	/*Back up the nick we start with so we can tell nickserv who we are even if our nick changes.*/
@@ -526,7 +526,7 @@ Error:
 	return false;
 }
 
-Bool IRC_Quit(const char *QuitMSG)
+bool IRC_Quit(const char *QuitMSG)
 {
 	if (!SocketDescriptor) return false;
 
@@ -585,7 +585,7 @@ struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel)
 	return NULL;
 }
 
-Bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask, Bool FullUser)
+bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask, bool FullUser)
 {
 	struct ChannelTree *Worker = Channels;
 	
@@ -627,7 +627,7 @@ Bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, con
 	return false;
 }
 	
-Bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
+bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
 {
 	struct ChannelTree *Worker = Channels;
 	char InNick[128], OutNick[128];
@@ -682,7 +682,7 @@ Bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
 	return false;
 }
 
-Bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick)
+bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick)
 {
 	struct _UserList *UWorker = Channel->UserList;
 	char InNick[128], OutNick[128];
@@ -739,7 +739,7 @@ void IRC_ShutdownChannelUsers(struct ChannelTree *const Channel)
 	Channel->UserList = NULL;
 }
 
-Bool IRC_UserInChannel(const char *const Channel_, const char *const Nick_)
+bool IRC_UserInChannel(const char *const Channel_, const char *const Nick_)
 {
 	struct ChannelTree *Worker = Channels;
 	char Nick[128], OurNick[128], Channel[128];
@@ -773,7 +773,7 @@ Bool IRC_UserInChannel(const char *const Channel_, const char *const Nick_)
 	return false;
 }
 
-Bool IRC_UserInChannelP(const struct ChannelTree *const Channel, const char *const Nick_)
+bool IRC_UserInChannelP(const struct ChannelTree *const Channel, const char *const Nick_)
 {
 	struct _UserList *UWorker = Channel->UserList;
 	char Nick[128], OurNick[128];
@@ -834,7 +834,7 @@ struct ChannelTree *IRC_AddChannelToTree(const char *const Channel, const char *
 	return Worker;
 }
 
-Bool IRC_DelChannelFromTree(const char *Channel)
+bool IRC_DelChannelFromTree(const char *Channel)
 {
 	struct ChannelTree *Worker = Channels;
 
@@ -889,7 +889,7 @@ void IRC_ShutdownChannelTree(void)
 	Channels = NULL;
 }
 
-Bool IRC_JoinChannel(const char *Channel)
+bool IRC_JoinChannel(const char *Channel)
 {
 	char ChanString[2048];
 	
@@ -898,7 +898,7 @@ Bool IRC_JoinChannel(const char *Channel)
 	return Net_Write(SocketDescriptor, ChanString);
 }
 	
-Bool IRC_LeaveChannel(const char *Channel)
+bool IRC_LeaveChannel(const char *Channel)
 {
 	char ChanString[2048];
 	
@@ -907,7 +907,7 @@ Bool IRC_LeaveChannel(const char *Channel)
 	return Net_Write(SocketDescriptor, ChanString);
 }
 
-Bool IRC_Message(const char *Target, const char *Message)
+bool IRC_Message(const char *Target, const char *Message)
 {
 	char OutString[2048];
 	
@@ -928,14 +928,14 @@ Bool IRC_Message(const char *Target, const char *Message)
 	return Net_Write(SocketDescriptor, OutString);
 }
 
-Bool IRC_Notice(const char *Target, const char *Notice)
+bool IRC_Notice(const char *Target, const char *Notice)
 {
 	char OutString[2048];
 	snprintf(OutString, sizeof OutString, "NOTICE %s :%s\r\n", Target, Notice);
 	return Net_Write(SocketDescriptor, OutString);
 }
 
-Bool IRC_NickChange(const char *Nick)
+bool IRC_NickChange(const char *Nick)
 {
 	char OutString[2048];
 	
@@ -979,7 +979,7 @@ MessageType IRC_GetMessageType(const char *InStream_)
 	else return IMSG_UNKNOWN;
 }
 
-Bool IRC_GetMessageData(const char *Message, char *OutData)
+bool IRC_GetMessageData(const char *Message, char *OutData)
 {
 	const char *Worker = Message;
 	
@@ -995,7 +995,7 @@ Bool IRC_GetMessageData(const char *Message, char *OutData)
 	return true;
 }
 
-Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
+bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
 {
 	char ComplexNick[128], *Worker = ComplexNick;
 	unsigned Inc = 0;
@@ -1051,7 +1051,7 @@ Bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char 
 	return true;
 }
 
-Bool IRC_GetStatusCode(const char *Message, int *OutNumber)
+bool IRC_GetStatusCode(const char *Message, int *OutNumber)
 { /*Returns true if we get a status code.*/
 	unsigned Inc = 0;
 	char Num[64];
@@ -1078,11 +1078,11 @@ void IRC_Pong(const char *Param)
 	Net_Write(SocketDescriptor, OutBuf);
 }
 
-Bool IRC_StripControlCodes(char *const Stream_)
+bool IRC_StripControlCodes(char *const Stream_)
 {
-	Bool EndColor = false;
+	bool EndColor = false;
 	const int StreamSize = strlen(Stream_) + 1;
-	Bool FoundBold = false, FoundColor = false;
+	bool FoundBold = false, FoundColor = false;
 	char *Worker = NULL, *Jump = NULL, *Stream = NULL, *const EndPoint = Stream + (StreamSize - 1);
 	
 	/*Now the color part is trickier because of the numbers that will follow a \3.*/

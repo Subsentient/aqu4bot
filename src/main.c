@@ -20,7 +20,7 @@ See the file UNLICENSE.TXT for more information.
 #include "aqu4.h"
 #include "substrings/substrings.h"
 
-Bool ShowOutput;
+bool ShowOutput;
 int _argc;
 char **_argv;
 
@@ -53,7 +53,7 @@ static void SigHandler(int Signal)
 	}
 }
 
-static Bool Main_GenConfig(void)
+static bool Main_GenConfig(void)
 {
 	FILE *Descriptor = NULL;
 	char LineBuf[4096], CurChan[128], *Worker = LineBuf;
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 	int Inc = 1;
 	struct stat DirStat;
 #ifndef WIN
-	Bool Background = false;
+	bool Background = false;
 #endif
 
 #ifdef WIN
