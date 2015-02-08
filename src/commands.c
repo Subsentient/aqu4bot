@@ -171,15 +171,10 @@ void CMD_ProcessCommand(const char *InStream_)
 	/*Skip past PRIVMSG.*/
 	InStream = strstr(InStream, "PRIVMSG ") + (sizeof "PRIVMSG " - 1);
 
-	for (Inc = 0; InStream[Inc] != ' ' && Inc < sizeof Target - 1; ++Inc)
-	{ /*Get in the target for the message.*/
-		Target[Inc] = InStream[Inc];
-	}
-	Target[Inc] = '\0';
-	
-	/*Skip past the target in the origin stream.*/
-	InStream += Inc;
 
+	//Get the target.
+	SubStrings.CopyUntilC(Target, sizeof Target, &InStream, " ");
+	
 	
 	/*Determine if our reply goes to a channel or via PM, depending on who said it.*/
 	SendTo = Target[0] == '#' ? Target : Nick;
@@ -191,19 +186,15 @@ void CMD_ProcessCommand(const char *InStream_)
 	if (*InStream == ':') ++InStream;
 	
 	/*Figure out what prefix we need to use. Copy in the default in case nothing is set.*/
-	strncpy(CmdPrefix, GlobalCmdPrefix, sizeof CmdPrefix - 1);
-	CmdPrefix[sizeof CmdPrefix - 1] = '\0';
+	SubStrings.Copy(CmdPrefix, GlobalCmdPrefix, sizeof CmdPrefix);
 	
 	if (*Target == '#')
 	{ /*If it's a channel, we might have a channel-specific prefix set.*/
 		char TempTarget[sizeof Target];
-		int Inc = 0;
 		
-		for (; Inc < sizeof TempTarget - 1 && Target[Inc] != '\0'; ++Inc)
-		{ /*Lower case it for compare.*/
-			TempTarget[Inc] = tolower(Target[Inc]);
-		}
-		TempTarget[Inc] = '\0';
+		//Need to lower case it for the comparison.
+		SubStrings.Copy(TempTarget, Target, sizeof TempTarget);
+		SubStrings.ASCII.LowerS(TempTarget);
 		
 		for (; CWorker; CWorker = CWorker->Next)
 		{
@@ -211,8 +202,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			{
 				if (*CWorker->CmdPrefix)
 				{
-					strncpy(CmdPrefix, CWorker->CmdPrefix, sizeof CmdPrefix - 1);
-					CmdPrefix[sizeof CmdPrefix - 1] = '\0';
+					SubStrings.Copy(CmdPrefix, CWorker->CmdPrefix, sizeof CmdPrefix);
 				}
 				break;
 			}
@@ -271,12 +261,12 @@ void CMD_ProcessCommand(const char *InStream_)
 				++InStream; /*skip past the space at front.*/
 			}
 			
-			/*Copy in this link to the argument and jump to title command.*/
-			for (Inc = 0; InStream[Inc] != ' ' && InStream[Inc] != '\0' && Inc < sizeof Argument - 1; ++Inc)
-			{
-				Argument[Inc] = InStream[Inc];
-			}
-			Argument[Inc] = '\0';
+			const char *Temp = InStream; //Don't want CopyUntilC() to modify InStream.
+
+			/*Copy in this link to the argument and jump to title command.*/			
+			SubStrings.CopyUntilC(Argument, sizeof Argument, &Temp, " ");
+
+
 #ifndef NO_LIBCURL	
 			goto TitleCommand; /*Jump into title code. Suck my goto.*/
 #else
@@ -286,40 +276,27 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		return;
 	}
-	
-	for (Inc = 0; InStream[Inc] != '\0' && InStream[Inc] != ' ' &&
-		InStream[Inc] != '\t' && Inc < sizeof CommandID - 1; ++Inc)
-	{ /*Copy in the command without its argument.*/
-		CommandID[Inc] = InStream[Inc];
-	}
-	CommandID[Inc] = '\0';
 
-	/*Make InStream point to the zero or space we just hit at the end of that loop.*/
-	InStream += Inc;
+	const char *OIS = InStream;
 	
-	/*We have no argument for this command.*/
-	if (*InStream == '\0') Argument[0] = '\0';
+	SubStrings.CopyUntilC(CommandID, sizeof CommandID, &InStream, "\t ");
 	
-	/*Skip past the whitespace if any.*/
-	while (*InStream == ' ' || *InStream == '\t') ++InStream;
-	
-	/*Still nothing, still no argument.*/
-	if (*InStream == '\0') Argument[0] = '\0';
-	
-	/*This works even if we have no command because InStream was incremented to the end of whitespace,
-	 * so it will start as zero if we have no argument.*/
-	for (Inc = 0; InStream[Inc] != '\0' && Inc < sizeof Argument - 1; ++Inc)
-	{ /*Copy in the argument if we have one.*/
-		Argument[Inc] = InStream[Inc];
+	if (!InStream)
+	{ //No argument.
+		InStream = OIS;
+		*Argument = '\0';
 	}
-	Argument[Inc] = '\0';
-	
-	/*Get rid of trailing spaces.*/
-	if (Inc > 0)
+	else
 	{
-		for (--Inc; Argument[Inc] == ' ' && Inc >= 0; --Inc) Argument[Inc] = '\0';
+		Inc = SubStrings.Copy(Argument, InStream, sizeof Argument);
+		
+		/*Get rid of trailing spaces.*/
+		if (Inc > 0)
+		{
+			for (--Inc; Argument[Inc] == ' ' && Inc >= 0; --Inc) Argument[Inc] = '\0';
+		}
 	}
-	
+		
 	/**		Start processing commands!		**/
 	if (!strcmp(CommandID, "help"))
 	{
@@ -510,8 +487,8 @@ void CMD_ProcessCommand(const char *InStream_)
 	}	
 	else if (!strcmp(CommandID, "tail"))
 	{
-		char InBuf[16384], *Worker = NULL;
-		int TInc = 0, NumLines = 10;
+		char InBuf[16384], *Worker = Argument;
+		int NumLines = 10;
 		char LineBuf[1024];
 		char TailChannel[128];
 		
@@ -527,25 +504,20 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		for (Inc = 0; Argument[Inc] != '\0' && Argument[Inc] != ' ' && Inc < sizeof TailChannel - 1; ++Inc)
-		{ /*Lower case the channel.*/
-			TailChannel[Inc] = tolower(Argument[Inc]);
-		}
-		TailChannel[Inc] = '\0';
 		
-		Worker = Argument + Inc;
+		SubStrings.CopyUntilC(TailChannel, sizeof TailChannel, (void*)&Worker, " ");
+		SubStrings.ASCII.LowerS(TailChannel);
 		
-		if (*Worker == ' ')
-		{
+		if (Worker != NULL)
+		{ //No line count specified.
 			char NumBuf[16];
-			
-			while (*Worker == ' ') ++Worker;
 			
 			SubStrings.Copy(NumBuf, Worker, sizeof NumBuf);
 			
 			NumLines = atoi(NumBuf);
 		}
 		
+		//Now get the info.
 		if (!Log_TailLog(TailChannel, NumLines, InBuf, sizeof InBuf))
 		{
 			IRC_Message(SendTo, "Unable to tail the log. Most likely the channel/user isn't logged.");
@@ -553,20 +525,12 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		Worker = InBuf;
-		do
-		{
-			while (*Worker == '\r' || *Worker == '\n') ++Worker;
-			
-			if (*Worker == '\0') break;
-			
-			for (TInc = 0; Worker[TInc] != '\n' && Worker[TInc] != '\r' && Worker[TInc] != '\0' && TInc < sizeof LineBuf - 1; ++TInc)
-			{
-				LineBuf[TInc] = Worker[TInc];
-			}
-			LineBuf[TInc] = '\0';
-			
+		
+		//Iteratively send the requested log lines.
+		while (SubStrings.Line.GetLine(LineBuf, sizeof LineBuf, (const char**)&Worker))
+		{			
 			IRC_Message(SendTo, LineBuf);
-		} while ((Worker = strpbrk(Worker, "\r\n")));
+		}
 			
 		
 		IRC_Message(SendTo, "End of tail.");
@@ -588,19 +552,15 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		for (Inc = 0; Argument[Inc] != ' ' && Argument[Inc] != '\0' && Inc < sizeof Subcommand - 1; ++Inc)
-		{
-			Subcommand[Inc] = Argument[Inc];
-		}
-		Subcommand[Inc] = '\0';
-		Worker += Inc;
+		//Get the subcommand.
+		SubStrings.CopyUntilC(Subcommand, sizeof Subcommand, (const char**)&Worker, " ");
 		
 		if (!strcmp(Subcommand, "set") || !strcmp(Subcommand, "unset"))
 		{
 				
 			char NNick[128], NIdent[128], NMask[128];
 			
-			if (*Worker == '\0')
+			if (!Worker)
 			{
 				IRC_Message(SendTo, "This command requires both a subcommand and an argument to the subcommand.");
 				return;
