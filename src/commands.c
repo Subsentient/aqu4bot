@@ -786,11 +786,12 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		PageTitle[Inc] = '\0';
 		
+		unsigned char TempBuf[sizeof PageTitle * 2];
 		
 		/*Replace all newlines and carriage returns.*/
-		SubStrings.Replace(PageTitle, sizeof PageTitle, "\r\n", " ");
-		SubStrings.Replace(PageTitle, sizeof PageTitle, "\n", " ");
-		SubStrings.Replace(PageTitle, sizeof PageTitle, "\r", " ");
+		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "\r\n", " ");
+		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "\n", " ");
+		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "\r", " ");
 		
 		snprintf(OutBuf, sizeof OutBuf, "Title for page \"%s\": \"\2\0033%s\3\2\"", Argument, PageTitle);
 		IRC_Message(SendTo, OutBuf);
@@ -2569,11 +2570,12 @@ void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const ch
 		{
 			char *W = NULL;
 			char ReplaceWith[256];
+			unsigned char TempBuf[sizeof Worker->LastMessage * 2];
 			
 			snprintf(ReplaceWith, sizeof ReplaceWith, "** %s ", Nick);
 			
 			/*Replace the \1ACTION.*/
-			SubStrings.Replace(Worker->LastMessage, sizeof Worker->LastMessage, "\1ACTION ", ReplaceWith);
+			SubStrings.Replace(Worker->LastMessage, TempBuf,  sizeof Worker->LastMessage, "\1ACTION ", ReplaceWith);
 			if ((W = strchr(Worker->LastMessage + 1, '\1'))) *W = '\0'; /*Get rid of the ending \01 too.*/
 			/*Add the little asterisks at the end.*/
 			SubStrings.Cat(Worker->LastMessage, " **", sizeof Worker->LastMessage);

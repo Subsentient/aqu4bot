@@ -1,45 +1,62 @@
 /*SubStrings C-String manipulation library. This software is public domain.
  * Please read the file UNLICENSE.TXT for more information.*/
  
-#define NULL (void*)0
+#define NULL ((void*)0)
 
-#include <stdlib.h>
 #include "substrings.h"
 
 enum { false, true };
 
 /*Function prototypes.*/
-static unsigned long __SubStrings__Length(const char *String);
+static unsigned __SubStrings__Length(const char *String);
 static SSBool __SubStrings__StartsWith(const char *Match, const char *Source);
 static SSBool __SubStrings__EndsWith(const char *Match, const char *Source);
-static unsigned long __SubStrings__Copy(char *Dest, const char *Source, unsigned long Max);
+static unsigned __SubStrings__Copy(char *Dest, const char *Source, unsigned Max);
 static SSBool __SubStrings__Compare(const char *Match, const char *Source);
-static SSBool __SubStrings_NCompare(const char *Match, const unsigned long Length, const char *Source);
-static unsigned long __SubStrings__Cat(char *Dest, const char *Snip, unsigned long DestTotalSize);
+static SSBool __SubStrings__NCompare(const char *Match, const unsigned Length, const char *Source);
+static unsigned __SubStrings__Cat(char *Dest, const char *Snip, unsigned DestTotalSize);
 static char *__SubStrings__Find(const char *const Match, const int ResultNumber, const char *const InStream);
 static char *__SubStrings__CFind(const char Match, const int ResultNumber, const char *InStream);
-static SSBool __SubStrings__Replace(register char *InStream, unsigned long OutStreamSize, const char *Match, const char *Replacement);
+static unsigned __SubStrings__Replace(register char *Stream, void *TempBuf, unsigned StreamTotalSize, const char *Match,
+									const char *Replacement);
 static SSBool __SubStrings__Split(register char *HalfOneOut, register char *HalfTwoOut,
 								const char *const Match, const char *const InStream, int Mode);
 static char *__SubStrings__Between(char *OutBuf, const char *First, const char *Second, const char *InStream);
 static char *__SubStrings__Reverse(char *OutStream, const char *InStream);
+static SSBool __SubStrings__CopyUntil(char *Dest, register unsigned DestTotalSize,
+									const char **Ptr, const char *const Trigger);
+static SSBool __SubStrings__CopyUntilC(register char *Dest, register unsigned DestTotalSize, const char **Ptr,
+										const char *Triggers);
+static char *__SubStrings__FindAnyOf(const char *CharList, const char *Source);
+static unsigned __SubStrings__Strip(const char *const Match, char *const Source);
+static unsigned __SubStrings__StripC(const char *const Match, char *const Source);
 static char *__SubStrings__LP__NextLine(const char *InStream);
 static char *__SubStrings__LP__WhitespaceJump(const char *InStream);
+static SSBool __SubStrings__LP__GetLine(char *OutStream, unsigned OutStreamTotalSize, const char **Ptr);
+static char __SubStrings__ASCII__LowerC(const char C);
+static char __SubStrings__ASCII__UpperC(const char C);
+static char *__SubStrings__ASCII__LowerS(char *const S);
+static char *__SubStrings__ASCII__UpperS(char *const S);
 
-/*Actual functions.*/
+
 const struct _SubStrings SubStrings =
-	{
-		__SubStrings__Compare, __SubStrings_NCompare, 
+	{ /*Add all functions to a proper place in this struct, and in substrings.h's definition of its type.*/
+		__SubStrings__Compare, __SubStrings__NCompare, 
 		__SubStrings__StartsWith, __SubStrings__EndsWith,
 		__SubStrings__Length, __SubStrings__Copy, __SubStrings__Cat,
 		__SubStrings__Find, __SubStrings__CFind, __SubStrings__Replace,
 		__SubStrings__Split, __SubStrings__Between, __SubStrings__Reverse,
-		{ __SubStrings__LP__NextLine, __SubStrings__LP__WhitespaceJump }
+		__SubStrings__CopyUntil, __SubStrings__CopyUntilC, __SubStrings__FindAnyOf,
+		__SubStrings__Strip, __SubStrings__StripC,
+		{ __SubStrings__LP__NextLine, __SubStrings__LP__WhitespaceJump, __SubStrings__LP__GetLine },
+		{ __SubStrings__ASCII__UpperC, __SubStrings__ASCII__LowerC,
+			__SubStrings__ASCII__UpperS, __SubStrings__ASCII__LowerS }
 	};
-
-static unsigned long __SubStrings__Length(const char *String)
+	
+/*Actual functions.*/
+static unsigned __SubStrings__Length(register const char *String)
 {
-	register unsigned long Inc = 0;
+	register unsigned Inc = 0;
 	
 	for (; *String++ != '\0'; ++Inc);
 	
@@ -58,9 +75,9 @@ static SSBool __SubStrings__Compare(register const char *Match, register const c
 	return true;
 }
 
-static SSBool __SubStrings_NCompare(register const char *Match, const unsigned long Length, register const char *Source)
+static SSBool __SubStrings__NCompare(register const char *Match, const unsigned Length, register const char *Source)
 {
-	register unsigned long Inc = 0;
+	register unsigned Inc = 0;
 	
 	for (; *Match && *Source && Inc < Length - 1; ++Inc, ++Match, ++Source)
 	{
@@ -74,8 +91,8 @@ static SSBool __SubStrings_NCompare(register const char *Match, const unsigned l
 
 static SSBool __SubStrings__StartsWith(const char *Match, const char *Source)
 {
-	const unsigned long Len = SubStrings.Length(Match);
-	register unsigned long Inc = 0;
+	const unsigned Len = SubStrings.Length(Match);
+	register unsigned Inc = 0;
 	
 	if (!Len) return false;
 	
@@ -88,9 +105,9 @@ static SSBool __SubStrings__StartsWith(const char *Match, const char *Source)
 
 static SSBool __SubStrings__EndsWith(const char *Match, const char *Source)
 {
-	const unsigned long SourceLen = SubStrings.Length(Source);
-	const unsigned long MatchLen = SubStrings.Length(Match);
-	register unsigned long Inc = 0;
+	const unsigned SourceLen = SubStrings.Length(Source);
+	const unsigned MatchLen = SubStrings.Length(Match);
+	register unsigned Inc = 0;
 	
 	if (SourceLen < MatchLen || !MatchLen) return false;
 	
@@ -104,15 +121,45 @@ static SSBool __SubStrings__EndsWith(const char *Match, const char *Source)
 	return false;
 }
 
+static unsigned __SubStrings__Strip(const char *const Match, char *const Source)
+{ /*Removes all matching patterns from Source and returns the number of detections.*/
+	register char *Worker = Source;
+	const unsigned Len = SubStrings.Length(Source);
+	const unsigned MatchLen = SubStrings.Length(Match);
+	register unsigned Inc = 0;
+	
+	for (; (Worker = SubStrings.Find(Match, 1, Worker)); ++Inc)
+	{
+		SubStrings.Copy(Worker, Worker + MatchLen, Len);
+	}
+	
+	return Inc;
+}
+
+
+static unsigned __SubStrings__StripC(const char *const Match, char *const Source)
+{
+	register char *Worker = Source;
+	const unsigned Len = SubStrings.Length(Source);
+	register unsigned Inc = 0;
+	
+	for (; (Worker = SubStrings.FindAnyOf(Match, Worker)); ++Inc)
+	{
+		SubStrings.Copy(Worker, Worker + 1, Len);
+	}
+	
+	return Inc;
+}
+
 static char *__SubStrings__LP__NextLine(const char *InStream)
 {
 	register const char *Worker = InStream;
 	
-	while (*Worker != '\n' && *Worker != '\0') ++Worker;
+	while (*Worker != '\r' && *Worker != '\n' && *Worker != '\0') ++Worker;
 	
 	if (*Worker == '\0') return NULL;
 	
-	while (*Worker == '\n') ++Worker;
+	while (*Worker == '\r' || *Worker == '\n') ++Worker;
 	
 	if (*Worker == '\0') return NULL;
 	
@@ -124,20 +171,62 @@ static char *__SubStrings__LP__WhitespaceJump(const char *InStream)
 {
 	register const char *Worker = InStream;
 	
-	while (*Worker != ' ' && *Worker != '\t' && *Worker != '\n' && *Worker != '\0') ++Worker;
+	while (*Worker != ' ' && *Worker != '\t' && *Worker != '\r' && *Worker != '\n' && *Worker != '\0') ++Worker;
 	
-	if (*Worker == '\0' || *Worker == '\n') return NULL;
+	if (*Worker == '\0' || *Worker == '\r' || *Worker == '\n') return NULL;
 	
 	while (*Worker == ' ' || *Worker == '\t') ++Worker;
 	
-	if (*Worker == '\0' || *Worker == '\n') return NULL;
+	if (*Worker == '\0' || *Worker == '\r' || *Worker == '\n') return NULL;
 	
 	return (char*)Worker;
 }
 
-static unsigned long __SubStrings__Copy(char *Dest, const char *Source, unsigned long Max)
+static char __SubStrings__ASCII__LowerC(const char C)
 {
-	register unsigned long Inc = 0;
+	if (C >= 'A' && C <= 'Z') return C + ('a' - 'A');
+	else return C;
+}
+
+static char __SubStrings__ASCII__UpperC(const char C)
+{
+	if (C >= 'a' && C <= 'z') return C - ('a' - 'A');
+	else return C;
+}
+
+static char *__SubStrings__ASCII__UpperS(char *const S)
+{
+	register char *Worker = S;
+	
+	for (; *Worker != '\0'; ++Worker)
+	{
+		if (*Worker >= 'a' && *Worker <= 'z')
+		{
+			*Worker -= ('a' - 'A');
+		}
+	}
+
+	return S;
+}
+
+static char *__SubStrings__ASCII__LowerS(char *const S)
+{
+	register char *Worker = S;
+	
+	for (; *Worker != '\0'; ++Worker)
+	{
+		if (*Worker >= 'A' && *Worker <= 'Z')
+		{
+			*Worker += ('a' - 'A');
+		}
+	}
+	
+	return S;
+}
+
+static unsigned __SubStrings__Copy(register char *Dest, register const char *Source, unsigned Max)
+{
+	register unsigned Inc = 0;
 	
 	for (; *Source != '\0' && Inc < Max - 1; ++Inc) *Dest++ = *Source++;
 	*Dest = '\0';
@@ -145,10 +234,92 @@ static unsigned long __SubStrings__Copy(char *Dest, const char *Source, unsigned
 	return Inc;
 }
 
-static unsigned long __SubStrings__Cat(char *Dest, const char *Snip, unsigned long DestTotalSize)
-{
-	register unsigned long Inc = 0;
-	register unsigned long DestTotalLength = SubStrings.Length(Dest);
+static SSBool __SubStrings__CopyUntil(char *Dest, register unsigned DestTotalSize,
+									const char **Ptr, const char *const Trigger)
+{ /*Copy Source to Dest until the string Until, copying a maximum of DestTotalSize - 1 characters.*/
+	register const char *Worker = NULL;
+	register const char *Stopper = NULL;
+	
+	if (!*Ptr || **Ptr == '\0') return false;
+	
+	Worker = *Ptr;
+	Stopper = SubStrings.Find(Trigger, 1, *Ptr);
+	
+	for (; Worker != Stopper && *Worker != '\0' && DestTotalSize > 0; ++Dest, ++Worker, --DestTotalSize)
+	{
+		*Dest = *Worker;
+	}
+	*Dest = '\0';
+	
+	
+	if (!Stopper) *Ptr = NULL;
+	else
+	{
+		*Ptr = Stopper + SubStrings.Length(Trigger);
+	}
+	
+	return true;
+}
+
+static char *__SubStrings__FindAnyOf(const char *CharList, const char *Source)
+{ /*Like strpbrk().*/
+	register const char *Worker = Source;
+	register const char *CL;
+	
+	for (; *Worker != '\0'; ++Worker)
+	{
+		for (CL = CharList; *CL != '\0'; ++CL)
+		{
+			if (*Worker == *CL) return (char*)Worker;
+		}
+	}
+	
+	return NULL;
+}
+	
+static SSBool __SubStrings__CopyUntilC(register char *Dest, register unsigned DestTotalSize, const char **Ptr,
+										const char *Triggers)
+{ /*Same as CopyUntil(), except it does strpbrk() style matching instead of strstr() style.*/
+	register const char *Worker = NULL;
+	register const char *Stopper = NULL;
+	
+	if (!*Ptr || **Ptr == '\0') return false;
+	
+	Worker = *Ptr;
+	Stopper = SubStrings.FindAnyOf(Triggers, *Ptr);
+	
+	for (; Worker != Stopper && *Worker != '\0' && DestTotalSize > 0; ++Dest, ++Worker, --DestTotalSize)
+	{
+		*Dest = *Worker;
+	}
+	*Dest = '\0';
+	
+	
+	if (!Stopper) *Ptr = NULL;
+	else
+	{
+		const char *CL;
+
+	CheckRestart:
+		for (CL = Triggers; *CL != '\0'; ++CL)
+		{
+			if (*Worker == *CL)
+			{
+				++Worker;
+				goto CheckRestart;
+			}
+		}
+		
+		*Ptr = Worker;
+	}	
+	
+	return true;
+}
+
+static unsigned __SubStrings__Cat(char *Dest, const char *Snip, const unsigned DestTotalSize)
+{ /*Safe concatenation function.*/
+	register unsigned Inc = 0;
+	register unsigned DestTotalLength = SubStrings.Length(Dest);
 	
 	if (!DestTotalSize || !*Snip) return 0;
 	
@@ -164,12 +335,12 @@ static unsigned long __SubStrings__Cat(char *Dest, const char *Snip, unsigned lo
 }
 
 static char *__SubStrings__Find(const char *const Match, const int ResultNumber, const char *const InStream)
-{
+{ /*Like strstr(), but can get a certain result number.*/
 	register const char *Worker = InStream;
-	const unsigned long MatchLen = SubStrings.Length(Match);
-	const unsigned long SLen = SubStrings.Length(InStream);
+	const unsigned MatchLen = SubStrings.Length(Match);
+	const unsigned SLen = SubStrings.Length(InStream);
 	register const char *SubWorker = Worker, *SubMatch = NULL;
-	register unsigned long Inc = 0;
+	register unsigned Inc = 0;
 	register int CountInc = 0;
 	
 	if (MatchLen > SLen || !MatchLen || !SLen || !ResultNumber) return NULL;
@@ -190,7 +361,7 @@ static char *__SubStrings__Find(const char *const Match, const int ResultNumber,
 }
 
 static char *__SubStrings__CFind(const char Match, const int ResultNumber, const char *const InStream)
-{
+{ /*Like strchr(), but can get a certain result number.*/
 	register const char *Worker = InStream;
 	register int CountInc = 0;
 	
@@ -206,25 +377,27 @@ static char *__SubStrings__CFind(const char Match, const int ResultNumber, const
 	return NULL;
 }
 
-static SSBool __SubStrings__Replace(register char *Stream, unsigned long StreamSize, const char *Match, const char *Replacement)
+static unsigned __SubStrings__Replace(register char *Stream, void *TempBuf, unsigned StreamTotalSize, const char *Match, const char *Replacement)
 { /*I decided to use some existing functions so we don't have to reinvent the wheel here.
 	The optimizer should do ok by inlining these.*/
-	char *HalfOne = malloc(StreamSize), *HalfTwo = malloc(StreamSize);
-	register int ReplaceCount = 0;
+	char *HalfOne = TempBuf, *HalfTwo = (char*)TempBuf + StreamTotalSize;
+	register unsigned ReplaceCount = 0;
+	char *Last;
 	
 	for (; SubStrings.Split(HalfOne, HalfTwo, Match, Stream, SPLIT_NOKEEP); ++ReplaceCount)
 	{
 		*Stream = '\0';
-		SubStrings.Cat(Stream, HalfOne, StreamSize);
-		SubStrings.Cat(Stream, Replacement, StreamSize);
-		SubStrings.Cat(Stream, HalfTwo, StreamSize);
+		SubStrings.Cat(Stream, HalfOne, StreamTotalSize);
+		
+		Last = Stream + SubStrings.Length(Stream);
+		
+		SubStrings.Cat(Stream, Replacement, StreamTotalSize);
+		SubStrings.Cat(Stream, HalfTwo, StreamTotalSize);
+		
+		Stream = Last + SubStrings.Length(Replacement);
 	}
 	
-	free(HalfOne); free(HalfTwo);
-	
-	if (ReplaceCount) return true;
-	
-	return false;
+	return ReplaceCount;
 }
 		
 static SSBool __SubStrings__Split(register char *HalfOneOut, register char *HalfTwoOut,
@@ -297,7 +470,7 @@ static char *__SubStrings__Between(register char *OutBuf, const char *First, con
 static char *__SubStrings__Reverse(register char *OutStream, register const char *InStream)
 { /*Reverse a string of text*/
 	const char *End = NULL, *RetVal = OutStream;
-	const unsigned long Len = SubStrings.Length(InStream);
+	const unsigned Len = SubStrings.Length(InStream);
 	
 	InStream += Len - 1;
 	End = OutStream + Len;
@@ -310,3 +483,28 @@ static char *__SubStrings__Reverse(register char *OutStream, register const char
 	
 	return (char*)RetVal;
 }
+
+static SSBool __SubStrings__LP__GetLine(char *OutStream, const unsigned OutStreamTotalSize, const char **Ptr)
+{ /*Takes the value of *Ptr, gets a line from it, and modifies *Ptr to point to the next line after, or returns false if bad.*/
+	register const char *Worker = *Ptr;
+	register unsigned Inc = 0;
+	
+	/*No line.*/
+	if (*Worker == '\0') return false;
+	
+	/*Do the line copy.*/
+	for (; *Worker != '\r' && *Worker != '\n' && *Worker != '\0' && Inc < OutStreamTotalSize - 1; ++Worker, ++OutStream, ++Inc)
+	{
+		*OutStream = *Worker;
+	}
+	*OutStream = '\0';
+	
+	while (*Worker == '\r' || *Worker == '\n') ++Worker;
+	
+	*Ptr = Worker;
+	
+	return true;
+}
+
+
+
