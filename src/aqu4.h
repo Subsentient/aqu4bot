@@ -103,7 +103,6 @@ typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCO
 extern void Bot_SetTextColor(ConsoleColor Color);
 
 /*config.c*/
-extern bool Config_GetLineData(const char *InStream, char *OutStream, unsigned MaxSize);
 extern bool Config_ReadConfig(void);
 
 /*netcore.c*/

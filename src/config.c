@@ -15,29 +15,13 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-bool Config_GetLineData(const char *InStream, char *OutStream, unsigned MaxSize)
-{
-	const char *Worker = InStream;
-	
-	while (*Worker != ' ' && *Worker != '\t' && *Worker != '=') ++Worker;
-	
-	if (*(Worker + 1) == '\0') return false;
-	
-	while (*Worker == ' ' || *Worker == '\t' || *Worker == '=') ++Worker;
-	
-	if (*Worker == '\0') return false;
-	
-	snprintf(OutStream, MaxSize, "%s", Worker);
-	
-	return true;
-}
-	
 bool Config_ReadConfig(void)
 {
-	FILE *Descriptor = fopen(CONFIG_FILE, "rb");
-	char *ConfigStream = NULL, *Worker = NULL;
+	FILE *Descriptor = fopen(CONFIG_FILE, "r");
+	char *ConfigStream = NULL;
+	const char *Worker = NULL;
 	struct stat FileStat;
-	unsigned Inc = 0, LineNum = 1;
+	unsigned LineNum = 1;
 	char CurrentLine[2048];
 	char LineID[1024];
 	char LineData[1024];
@@ -54,30 +38,21 @@ bool Config_ReadConfig(void)
 	ConfigStream[FileStat.st_size] = '\0';
 	fclose(Descriptor);
 	
-	do
+	for (; SubStrings.Line.GetLine(CurrentLine, sizeof CurrentLine, &Worker); ++LineNum)
 	{
-		if (*Worker == '\n' || *Worker == '#') continue;
+		const char *Ptr = CurrentLine;
 
-		for (Inc = 0; Worker[Inc] != '\n' && Worker[Inc] != '\0' && Inc < sizeof CurrentLine - 1; ++Inc)
-		{
-			CurrentLine[Inc] = Worker[Inc];
-		}
-		CurrentLine[Inc] = '\0';
+		if (*CurrentLine == '#' || *CurrentLine == '\r' || *CurrentLine == '\n') continue;
 		
-		for (Inc = 0; CurrentLine[Inc] != ' ' && CurrentLine[Inc] != '\t' &&
-			CurrentLine[Inc] != '=' && CurrentLine[Inc] != '\0' && Inc < sizeof LineID - 1; ++Inc)
-		{
-			LineID[Inc] = CurrentLine[Inc];
-		}
-		LineID[Inc] = '\0';
+		//Get the line ID, aka config attribute.
+		SubStrings.CopyUntilC(LineID, sizeof LineID, &Ptr, "\t =");
 		
-		*LineData = '\0';
-		Config_GetLineData(CurrentLine, LineData, sizeof LineData);	
+		//Get the data for the attribute.
+		SubStrings.Copy(LineData, Ptr, sizeof LineData);
 	
 		if (!strcmp(LineID, "Hostname"))
 		{
-			strncpy(ServerInfo.Hostname, LineData, sizeof ServerInfo.Hostname - 1);
-			ServerInfo.Hostname[sizeof ServerInfo.Hostname - 1] = '\0';
+			SubStrings.Copy(ServerInfo.Hostname, LineData, sizeof ServerInfo.Hostname);
 		}
 		else if (!strcmp(LineID, "PortNum"))
 		{
@@ -85,34 +60,29 @@ bool Config_ReadConfig(void)
 		}
 		else if (!strcmp(LineID, "Nick"))
 		{
-			strncpy(ServerInfo.Nick, LineData, sizeof ServerInfo.Nick - 1);
-			ServerInfo.Nick[sizeof ServerInfo.Nick - 1] = '\0';
+			SubStrings.Copy(ServerInfo.Nick, LineData, sizeof ServerInfo.Nick);
 		}
 		else if (!strcmp(LineID, "Ident"))
 		{
-			strncpy(ServerInfo.Ident, LineData, sizeof ServerInfo.Ident - 1);
-			ServerInfo.Ident[sizeof ServerInfo.Ident - 1] = '\0';
+			SubStrings.Copy(ServerInfo.Ident, LineData, sizeof ServerInfo.Ident);
 		}
 		else if (!strcmp(LineID, "RealName"))
 		{
-			strncpy(ServerInfo.RealName, LineData, sizeof ServerInfo.RealName - 1);
-			ServerInfo.RealName[sizeof ServerInfo.RealName - 1] = '\0';
+			SubStrings.Copy(ServerInfo.RealName, LineData, sizeof ServerInfo.RealName);
 		}
 		else if (!strcmp(LineID, "NickservPwd"))
 		{
-			strncpy(ServerInfo.NickservPwd, LineData, sizeof ServerInfo.NickservPwd - 1);
-			ServerInfo.NickservPwd[sizeof ServerInfo.NickservPwd - 1] = '\0';
+			SubStrings.Copy(ServerInfo.NickservPwd, LineData, sizeof ServerInfo.NickservPwd);
 		}
 		else if (!strcmp(LineID, "ServerPassword"))
 		{
-			strncpy(ServerInfo.ServerPassword, LineData, sizeof ServerInfo.ServerPassword - 1);
-			ServerInfo.ServerPassword[sizeof ServerInfo.ServerPassword - 1] = '\0';
+			SubStrings.Copy(ServerInfo.ServerPassword, LineData, sizeof ServerInfo.ServerPassword);
 		}
 		else if (!strcmp(LineID, "Channel"))
 		{
 			char Chan[sizeof LineData], Prefix[sizeof Chan] = { 0 }, *Worker = Chan;
 			
-			memcpy(Chan, LineData, sizeof Chan);
+			SubStrings.Copy(Chan, LineData, sizeof Chan);
 			
 			if ((Worker = SubStrings.CFind(',', 1, Chan)))
 			{ /*Copy in any prefixes.*/
@@ -127,17 +97,15 @@ bool Config_ReadConfig(void)
 					fprintf(stderr, " Bad channel prefix value \"%s\" in config, line %u.\n", Prefix, LineNum);
 				}
 				else
-				{
-					strncpy(Prefix, Worker, strlen(Worker) + 1);
+				{ //get the prefix
+					SubStrings.Copy(Prefix, Worker, sizeof Prefix);
 				}
 			}
 			
 			if (Chan[0] == '#' || Chan[0] == '@')  /*at sign says use auto title read.*/
 			{
-				unsigned Inc = 0;
-				
-				
-				for (; Chan[Inc] != '\0'; ++Inc) Chan[Inc] = tolower(Chan[Inc]); /*Lower case it.*/
+				//Lower case it.
+				SubStrings.ASCII.LowerS(Chan);
 				
 				if (Chan[0] == '@')
 				{ /*They want auto link title reading.*/
@@ -163,8 +131,7 @@ bool Config_ReadConfig(void)
 			if (!strcmp(LineData, "NONE")) GlobalCmdPrefix[0] = '\0';
 			else
 			{
-				strncpy(GlobalCmdPrefix, LineData, sizeof GlobalCmdPrefix - 1);
-				GlobalCmdPrefix[sizeof GlobalCmdPrefix - 1] = '\0';
+				SubStrings.Copy(GlobalCmdPrefix, LineData, sizeof GlobalCmdPrefix);
 			}
 		}
 		else if (!strcmp(LineID, "BotOwner") || !strcmp(LineID, "Admin"))
@@ -213,7 +180,7 @@ bool Config_ReadConfig(void)
 			fprintf(stderr, " Bad value in config, at line %u.\n", LineNum);
 			continue;
 		}	
-	} while (++LineNum, (Worker = SubStrings.Line.NextLine(Worker)));
+	}
 	
 	free(ConfigStream);
 	
