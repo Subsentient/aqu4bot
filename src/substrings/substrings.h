@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define SUBSTRINGS_VERSION "0.2"
+#define SUBSTRINGS_VERSION "0.3"
 
 typedef signed char SSBool;
 
@@ -29,12 +29,14 @@ extern const struct _SubStrings
 	char *(*Between)(char *OutBuf, const char *First, const char *Second, const char *InStream);
 	char *(*Reverse)(char *OutStream, const char *InStream);
 	SSBool (*CopyUntil)(char *Dest, register unsigned DestTotalSize,
-									const char **Ptr, const char *const Trigger);
+									const char **Ptr, const char *const Trigger, const SSBool SkipPastAdjacentTriggers);
 	SSBool (*CopyUntilC)(register char *Dest, register unsigned DestTotalSize, const char **Ptr,
-										const char *Triggers);
+										const char *Triggers, const SSBool SkipPastAdjacentTriggers);
 	char *(*FindAnyOf)(const char *CharList, const char *Source);
 	unsigned (*Strip)(const char *Match, char *Source);
 	unsigned (*StripC)(const char *Match, char *Source);
+	unsigned (*StripTrailingChars)(register char *Stream, const char *Match);
+	unsigned (*StripLeadingChars)(register char *Stream, const char *Match);
 	
 	struct
 	{ /*Line-processing, for iterating through files in memory with newlines and/or carriage returns separating lines.*/

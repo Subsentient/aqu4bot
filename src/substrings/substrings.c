@@ -24,9 +24,9 @@ static SSBool __SubStrings__Split(register char *HalfOneOut, register char *Half
 static char *__SubStrings__Between(char *OutBuf, const char *First, const char *Second, const char *InStream);
 static char *__SubStrings__Reverse(char *OutStream, const char *InStream);
 static SSBool __SubStrings__CopyUntil(char *Dest, register unsigned DestTotalSize,
-									const char **Ptr, const char *const Trigger);
+							const char **Ptr, const char *const Trigger, const SSBool SkipPastAdjacentTriggers);
 static SSBool __SubStrings__CopyUntilC(register char *Dest, register unsigned DestTotalSize, const char **Ptr,
-										const char *Triggers);
+										const char *Triggers, const SSBool SkipPastAdjacentTriggers);
 static char *__SubStrings__FindAnyOf(const char *CharList, const char *Source);
 static unsigned __SubStrings__Strip(const char *const Match, char *const Source);
 static unsigned __SubStrings__StripC(const char *const Match, char *const Source);
@@ -37,7 +37,8 @@ static char __SubStrings__ASCII__LowerC(const char C);
 static char __SubStrings__ASCII__UpperC(const char C);
 static char *__SubStrings__ASCII__LowerS(char *const S);
 static char *__SubStrings__ASCII__UpperS(char *const S);
-
+static unsigned __SubStrings__StripLeadingChars(register char *Stream, const char *Match);
+static unsigned __SubStrings__StripTrailingChars(register char *Stream, const char *Match);
 
 const struct _SubStrings SubStrings =
 	{ /*Add all functions to a proper place in this struct, and in substrings.h's definition of its type.*/
@@ -47,7 +48,8 @@ const struct _SubStrings SubStrings =
 		__SubStrings__Find, __SubStrings__CFind, __SubStrings__Replace,
 		__SubStrings__Split, __SubStrings__Between, __SubStrings__Reverse,
 		__SubStrings__CopyUntil, __SubStrings__CopyUntilC, __SubStrings__FindAnyOf,
-		__SubStrings__Strip, __SubStrings__StripC,
+		__SubStrings__Strip, __SubStrings__StripC, __SubStrings__StripTrailingChars,
+		__SubStrings__StripLeadingChars,
 		{ __SubStrings__LP__NextLine, __SubStrings__LP__WhitespaceJump, __SubStrings__LP__GetLine },
 		{ __SubStrings__ASCII__UpperC, __SubStrings__ASCII__LowerC,
 			__SubStrings__ASCII__UpperS, __SubStrings__ASCII__LowerS }
@@ -235,7 +237,7 @@ static unsigned __SubStrings__Copy(register char *Dest, register const char *Sou
 }
 
 static SSBool __SubStrings__CopyUntil(char *Dest, register unsigned DestTotalSize,
-									const char **Ptr, const char *const Trigger)
+							const char **Ptr, const char *const Trigger, const SSBool SkipPastAdjacentTriggers)
 { /*Copy Source to Dest until the string Until, copying a maximum of DestTotalSize - 1 characters.*/
 	register const char *Worker = NULL;
 	register const char *Stopper = NULL;
@@ -255,7 +257,14 @@ static SSBool __SubStrings__CopyUntil(char *Dest, register unsigned DestTotalSiz
 	if (!Stopper) *Ptr = NULL;
 	else
 	{
-		*Ptr = Stopper + SubStrings.Length(Trigger);
+		const unsigned TLen = SubStrings.Length(Trigger);
+		
+		*Ptr = Stopper + TLen;
+		
+		if (SkipPastAdjacentTriggers)
+		{ /*So if we have wibblederpderpderpderpwibble, we get wibblewibble.*/
+			while (SubStrings.Compare(Trigger, *Ptr)) *Ptr += TLen;
+		}
 	}
 	
 	return true;
@@ -278,7 +287,7 @@ static char *__SubStrings__FindAnyOf(const char *CharList, const char *Source)
 }
 	
 static SSBool __SubStrings__CopyUntilC(register char *Dest, register unsigned DestTotalSize, const char **Ptr,
-										const char *Triggers)
+										const char *Triggers, const SSBool SkipPastAdjacentTriggers)
 { /*Same as CopyUntil(), except it does strpbrk() style matching instead of strstr() style.*/
 	register const char *Worker = NULL;
 	register const char *Stopper = NULL;
@@ -306,7 +315,9 @@ static SSBool __SubStrings__CopyUntilC(register char *Dest, register unsigned De
 			if (*Worker == *CL)
 			{
 				++Worker;
-				goto CheckRestart;
+				
+				if (SkipPastAdjacentTriggers) goto CheckRestart;
+				else break;
 			}
 		}
 		
@@ -499,12 +510,62 @@ static SSBool __SubStrings__LP__GetLine(char *OutStream, const unsigned OutStrea
 	}
 	*OutStream = '\0';
 	
-	while (*Worker == '\r' || *Worker == '\n') ++Worker;
+	if (*Worker == '\r' || *Worker == '\n') ++Worker;
+	
+	if (Worker > *Ptr && Worker[-1] == '\r' && *Worker == '\n') ++Worker;
 	
 	*Ptr = Worker;
 	
 	return true;
 }
 
+static unsigned __SubStrings__StripTrailingChars(register char *Stream, const char *Match)
+{
+	register const char *M;
+	unsigned StripCount = 0;
+	
+	if (!*Stream) return 0;
+	
+	while (*Stream) ++Stream;
+	
+	for (--Stream; *Stream; --Stream)
+	{
+		for (M = Match; *M; ++M)
+		{
+			if (*Stream == *M)
+			{
+				*Stream = '\0';
+				++StripCount;
+				break; /*From the outer loop.*/
+			}
+		}
+	}
+	
+	return StripCount;
+}
 
+static unsigned __SubStrings__StripLeadingChars(register char *Stream, const char *Match)
+{
+	register const char *M;
+	char *Orig = Stream, *Worker = Stream;
+	unsigned StripCount = 0;
+	
+	for (; *Stream; ++Stream)
+	{
+		for (M = Match; *M; ++M)
+		{
+			if (*Stream == *M)
+			{
+				Worker = Stream + 1;
+				++StripCount;
+				break;
+			}
+		}
+	}
 
+	if (Stream == Orig) return 0;
+	
+	SubStrings.Copy(Orig, Worker, SubStrings.Length(Worker) + 1);
+	
+	return StripCount;
+}

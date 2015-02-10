@@ -173,7 +173,7 @@ void CMD_ProcessCommand(const char *InStream_)
 
 
 	//Get the target.
-	SubStrings.CopyUntilC(Target, sizeof Target, &InStream, " ");
+	SubStrings.CopyUntilC(Target, sizeof Target, &InStream, " ", true);
 	
 	
 	/*Determine if our reply goes to a channel or via PM, depending on who said it.*/
@@ -264,7 +264,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			const char *Temp = InStream; //Don't want CopyUntilC() to modify InStream.
 
 			/*Copy in this link to the argument and jump to title command.*/			
-			SubStrings.CopyUntilC(Argument, sizeof Argument, &Temp, " ");
+			SubStrings.CopyUntilC(Argument, sizeof Argument, &Temp, " ", true);
 
 
 #ifndef NO_LIBCURL	
@@ -279,7 +279,7 @@ void CMD_ProcessCommand(const char *InStream_)
 
 	const char *OIS = InStream;
 	
-	SubStrings.CopyUntilC(CommandID, sizeof CommandID, &InStream, "\t ");
+	SubStrings.CopyUntilC(CommandID, sizeof CommandID, &InStream, "\t ", true);
 	
 	if (!InStream)
 	{ //No argument.
@@ -505,7 +505,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		
-		SubStrings.CopyUntilC(TailChannel, sizeof TailChannel, (void*)&Worker, " ");
+		SubStrings.CopyUntilC(TailChannel, sizeof TailChannel, (void*)&Worker, " ", true);
 		SubStrings.ASCII.LowerS(TailChannel);
 		
 		if (Worker != NULL)
@@ -553,7 +553,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		//Get the subcommand.
-		SubStrings.CopyUntilC(Subcommand, sizeof Subcommand, (const char**)&Worker, " ");
+		SubStrings.CopyUntilC(Subcommand, sizeof Subcommand, (const char**)&Worker, " ", true);
 		
 		if (!strcmp(Subcommand, "set") || !strcmp(Subcommand, "unset"))
 		{

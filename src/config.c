@@ -42,10 +42,10 @@ bool Config_ReadConfig(void)
 	{
 		const char *Ptr = CurrentLine;
 
-		if (*CurrentLine == '#' || *CurrentLine == '\r' || *CurrentLine == '\n') continue;
+		if (*CurrentLine == '#' || !*CurrentLine || *CurrentLine == '\r' || *CurrentLine == '\n') continue;
 		
 		//Get the line ID, aka config attribute.
-		SubStrings.CopyUntilC(LineID, sizeof LineID, &Ptr, "\t =");
+		SubStrings.CopyUntilC(LineID, sizeof LineID, &Ptr, "\t =", true);
 		
 		//Get the data for the attribute.
 		SubStrings.Copy(LineData, Ptr, sizeof LineData);
