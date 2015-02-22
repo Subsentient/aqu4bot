@@ -142,7 +142,7 @@ extern bool IRC_StripControlCodes(char *Stream);
 extern void CMD_ProcessCommand(const char *InStream);
 extern bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message);
 extern bool CMD_ReadTellDB(const char *Target);
-extern unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky);
+extern unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky, bool Private);
 extern void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage);
 extern bool CMD_SaveSeenDB(void);
 extern void CMD_LoadSeenDB(void);

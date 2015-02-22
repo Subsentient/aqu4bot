@@ -77,7 +77,8 @@ struct
 			{ "coin", "Flips a coin on the question you provide, giving heads or tails as the result.", REQARG, ANY },
 			{ "seen", "Used to get information about the last time I have seen a nickname speak.", REQARG, ANY },
 			{ "tell", "Used to tell someone a message the next time they enter a channel or speak.", REQARG, ANY },
-			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky read <number> reads it, sticky delete <number> "
+			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky save_private saves a private sticky, "
+				"sticky read <number> reads it, sticky delete <number> "
 				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies. "
 				"sticky list lists the names of the owners and times of creation for all stickies.", REQARG, ANY },
 			{ "replace", "Used to modify a quote by yourself or another user. Syntax is 'replace nick old^new'. "
@@ -1728,14 +1729,23 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		++Worker;
 		
-		if (!strcmp(Mode, "save"))
+		if (!strcmp(Mode, "save") || !strcmp(Mode, "save_private"))
 		{
-			unsigned StickyID = CMD_AddToStickyDB(Nick, Worker);
+			const bool Private = !strcmp(Mode, "save_private");
+			
+			if (Private && !IsAdmin)
+			{
+				IRC_Message(SendTo, "Only admins may save private stickies.");
+				return;
+			}
+			
+			unsigned StickyID = CMD_AddToStickyDB(Nick, Worker, Private);
+			
 			if (!StickyID) IRC_Message(SendTo, "Error saving sticky. It's my fault.");
 			else
 			{
 				char OutBuf[1024];
-				snprintf(OutBuf, sizeof OutBuf, "Sticky saved. It's sticky ID is \"%u\".", StickyID);
+				snprintf(OutBuf, sizeof OutBuf, "Sticky saved. Its sticky ID is \"%u\".", StickyID);
 				
 				IRC_Message(SendTo, OutBuf);
 			}
@@ -1746,6 +1756,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			struct tm *TimeStruct;
 			char TimeString[256];
 			char OutBuf[2048];
+			const char *Sticky_Data = Sticky.Data;
 			
 			if (!CMD_StickyDB(atol(Worker), &Sticky, false))
 			{
@@ -1753,10 +1764,30 @@ void CMD_ProcessCommand(const char *InStream_)
 				return;
 			}
 			
+			if (*Sticky.Data == '\1')
+			{ //Private
+				++Sticky_Data;
+				
+				if (!BotOwner && !SubStrings.Compare(Sticky.Owner, Nick)) //No permission to read this.
+				{ //Owners can read all private stickies.
+					char OutBuf[1024];
+					
+					snprintf(OutBuf, sizeof OutBuf, "That sticky is private. It belongs to %s.", Sticky.Owner);
+					
+					IRC_Message(SendTo, OutBuf);
+					return;
+				}
+				else if (!IsAdmin)
+				{ //For private stickies we take extra care to make sure nobody but the owner can read it.
+					IRC_Message(SendTo, "Your nickname is recognized as admin but you are not showing the correct credentials.");
+					return;
+				}
+			}
+			
 			TimeStruct = gmtime(&Sticky.Time);
 			strftime(TimeString, sizeof TimeString, "%m/%d/%Y %H:%M:%S UTC", TimeStruct);
 			
-			snprintf(OutBuf, sizeof OutBuf, "Created by \"%s\" at %s: %s", Sticky.Owner, TimeString, Sticky.Data);
+			snprintf(OutBuf, sizeof OutBuf, "Created by \"%s\" at %s: %s", Sticky.Owner, TimeString, Sticky_Data);
 			IRC_Message(SendTo, OutBuf);
 		}
 		else if (!strcmp(Mode, "delete"))
@@ -1772,6 +1803,11 @@ void CMD_ProcessCommand(const char *InStream_)
 			if (strcmp(Sticky.Owner, Nick) != 0 && !IsAdmin)
 			{
 				IRC_Message(SendTo, "I can't delete that sticky because you didn't create it.");
+				return;
+			}
+			else if (*Sticky.Data == '\1' && !strcmp(Sticky.Owner, Nick) && !IsAdmin) //Private sticky.
+			{ //For private stickies we add an additional layer of protection.
+				IRC_Message(SendTo, "Your nickname is recognized as admin but you are not showing the correct credentials.");
 				return;
 			}
 			
@@ -1925,7 +1961,7 @@ bool CMD_ReadTellDB(const char *Target)
 	return Found;
 }
 
-unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky)
+unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky, bool Private)
 {
 	FILE *Descriptor = fopen("db/sticky.db", "a+b");
 	char OutBuf[4096];
@@ -1974,7 +2010,7 @@ unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky)
 		free(StickyDB);
 	}
 	
-	snprintf(OutBuf, sizeof OutBuf, "%u %lu %s %s\n", StickyID, (unsigned long)time(NULL), Owner, Sticky);
+	snprintf(OutBuf, sizeof OutBuf, "%u %lu %s %s%s\n", StickyID, (unsigned long)time(NULL), Owner, (Private ? "\1" : ""), Sticky);
 	fwrite(OutBuf, 1, strlen(OutBuf), Descriptor);
 	
 	fclose(Descriptor);
@@ -2018,6 +2054,8 @@ static bool CMD_ListStickies(const char *SendTo)
 	IRC_Message(SendTo, OutBuf);
 	*OutBuf = '\0'; /*We will need OutBuf cleared for what waits ahead.*/
 	
+	bool Private = false;
+	
 	Worker = StickyDB;
 	do
 	{
@@ -2039,7 +2077,10 @@ static bool CMD_ListStickies(const char *SendTo)
 		}
 		Owner[Inc] = '\0';
 		
-		snprintf(OutBuf + OutBufLen, sizeof OutBuf - OutBufLen, "\3%s[%s|%s]\3 ",
+		//Private stickies are not listed.
+		if (Worker[Inc + 1] == '\1') Private = true;
+		
+		snprintf(OutBuf + OutBufLen, sizeof OutBuf - OutBufLen, "%s\3%s[%s|%s]\3 ", Private ? "\2\0034!\3\2" : "",
 				STColor[(ColorFlip = !ColorFlip)], StickyID_T, Owner);
 		
 		if (QTicker == 8 || SubStrings.Line.NextLine(Worker) == NULL) /*We need to check for a new line otherwise we fall short in listings.*/
