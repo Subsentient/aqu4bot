@@ -116,6 +116,7 @@ struct
 			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
 				"as my quit message.", OPTARG, OWNER },
 			{ "restart", "Tells me to restart myself.", NOARG, OWNER },
+			{ "pageall", "Prints the entire list of nicknames for the current channel. Limit 50 nicknames.", NOARG, ANY },
 			{ "help", "Prints info about me. If you specify an argument, then I'll give help for that command.", OPTARG, ANY },
 			{ "commands", "Prints the list of commands I know.", NOARG, ANY },
 			{ { '\0' } } /*Terminator.*/
@@ -535,6 +536,67 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		IRC_Message(SendTo, "End of tail.");
 		return;
+	}
+	else if (!strcmp(CommandID, "pageall"))
+	{//Sends a list of all users nicks in the channel. Good for highlighting people.
+		if (*Argument)
+		{
+			IRC_Message(SendTo, "This command takes no arguments.");
+			return;
+		}
+		
+		if (*SendTo != '#')
+		{
+			IRC_Message(SendTo, "This command only works in a channel.");
+			return;
+		}
+		
+		struct ChannelTree *Channel = IRC_GetChannelFromDB(SendTo);
+		
+		if (!Channel || !Channel->UserList)
+		{
+			IRC_Message(SendTo, "No user data available for that channel.");
+			return;
+		}
+		
+		
+		struct _UserList *TW = Channel->UserList; 
+		unsigned Inc = 0, TotalLength = 1;
+		
+		//Count all users. More than 50, quit.
+		///We are also getting the amount of space we'll need to allocate.
+		for (; TW && Inc < 50; ++Inc, TW = TW->Next)
+		{
+			TotalLength += SubStrings.Length(TW->Nick) + (sizeof " " - 1); //We'll separate with a space, so, yeah, need that too.
+		}
+		
+		printf("Nick count: %u, allocated bytes for string: %u\n", Inc, TotalLength);
+		if (Inc == 50)
+		{ //We do this because we don't want to spam huge channels like #freenode etc.
+			IRC_Message(SendTo, "More than 50 users in this channel. Cannot proceed.");
+			return;
+		}
+		
+		
+		char *NickBuf = calloc(1, TotalLength);
+		//Now we do that processing.
+		
+		Inc = 1;
+		for (TW = Channel->UserList; TW != NULL; TW = TW->Next, ++Inc)
+		{
+			SubStrings.Cat(NickBuf, TW->Nick, TotalLength);
+			SubStrings.Cat(NickBuf, " ", TotalLength);
+			
+			if (Inc == 10 || !TW->Next)
+			{ //We're at ten, so send it and reset our counter.
+				NickBuf[SubStrings.Length(NickBuf) - 1] = '\0'; //Nuke trailing space.
+				
+				IRC_Message(SendTo, NickBuf);
+				Inc = 1;
+				*NickBuf = '\0';
+			}
+		}
+		free(NickBuf);
 	}
 	else if (!strcmp(CommandID, "blacklist"))
 	{
