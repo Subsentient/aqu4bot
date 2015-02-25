@@ -96,10 +96,11 @@ struct
 			{ "part", "Leaves the specified channel(s). You must be at least admin for this."
 				" If no argument is specified and you are already in a channel, "
 				"it leaves the channel the command is issued from.", OPTARG, ADMIN },
-			{ "cycle", "Leaves and then rejoins the specified channel."
-				"If already in a channel, the channel can be omitted to cycle that channel."
-				"You can also pass 'fresh' after or in place of the channel name to reset the channel"
-				"to aqu4bot defaults, ignoring the config file.", OPTARG, ADMIN },
+			{ "cycle", "Leaves and then rejoins the specified channel. "
+				"If already in a channel, the channel can be omitted to cycle that channel. "
+				"Subcommands are 'fresh' to reset to aqu4bot defaults, 'autotitle on/off' to control "
+				"auto-link-titling, and 'prefix \"myprefix\"' to change per-channel prefix. "
+				"Use empty \"\" to use global prefix.", OPTARG, ADMIN },
 			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, "
 				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel,"
 				"and 'togglecontrolcodes', to toggle whether or not color and bold is permitted to appear in this bot's messages.", 
@@ -1460,6 +1461,38 @@ void CMD_ProcessCommand(const char *InStream_)
 					free(UWorker);
 				}
 				ChannelStruct->UserList = NULL;
+			}
+			else if (SubStrings.StartsWith("autotitle", Subcommand))
+			{
+				const char *Arg = Subcommand + sizeof "autotitle" - 1;
+				
+				//Skip to the data
+				Arg = SubStrings.Line.WhitespaceJump(Arg);
+				
+				if (!strcmp(Arg, "on")) ChannelStruct->AutoLinkTitle = true;
+				else if (!strcmp(Arg, "off")) ChannelStruct->AutoLinkTitle = false;
+				else
+				{
+					IRC_Message(SendTo, "Bad parameter to 'cycle autotitle'.");
+					return;
+				}
+			}
+			else if (SubStrings.StartsWith("prefix", Subcommand))
+			{
+				const char *Arg = Subcommand + sizeof "prefix" - 1;
+				//Skip to the data
+				Arg = SubStrings.Line.WhitespaceJump(Arg);
+
+				if (*Arg != '"' || !SubStrings.EndsWith("\"", Arg))
+				{
+					IRC_Message(SendTo, "The parameter for 'cycle prefix' must begin and end with \" \" quotes.");
+					return;
+				}
+				
+				const char *TW = ++Arg;
+				
+				//Update the prefix.
+				SubStrings.CopyUntilC(ChannelStruct->CmdPrefix, sizeof ChannelStruct->CmdPrefix, &TW, "\"", false);
 			}
 			else
 			{
