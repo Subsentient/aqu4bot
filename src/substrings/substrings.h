@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define SUBSTRINGS_VERSION "0.3"
+#define SUBSTRINGS_VERSION "0.31"
 
 typedef signed char SSBool;
 
@@ -35,7 +35,7 @@ extern const struct _SubStrings
 	char *(*FindAnyOf)(const char *CharList, const char *Source);
 	unsigned (*Strip)(const char *Match, char *Source);
 	unsigned (*StripC)(const char *Match, char *Source);
-	unsigned (*StripTrailingChars)(register char *Stream, const char *Match);
+	unsigned (*StripTrailingChars)(char *Stream, const char *Match);
 	unsigned (*StripLeadingChars)(register char *Stream, const char *Match);
 	
 	struct

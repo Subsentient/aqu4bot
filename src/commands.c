@@ -237,11 +237,9 @@ void CMD_ProcessCommand(const char *InStream_)
 	else if (*Target == '#')
 	{ /*Auto-URL-title-read, if enabled for channel. Must be explicitly enabled.*/
 		struct ChannelTree *LookupChannel = NULL;
-		
-		for (Inc = 0; Target[Inc] != '\0' && Inc < sizeof Target - 1; ++Inc)
-		{ /*Lowercase the channel.*/
-			Target[Inc] = tolower(Target[Inc]);
-		}
+
+		//Lowercase the channel.
+		SubStrings.ASCII.LowerS(Target);
 		
 		LookupChannel = IRC_GetChannelFromDB(Target); /*look up the channel.*/
 		
@@ -293,10 +291,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		Inc = SubStrings.Copy(Argument, InStream, sizeof Argument);
 		
 		/*Get rid of trailing spaces.*/
-		if (Inc > 0)
-		{
-			for (--Inc; Argument[Inc] == ' ' && Inc >= 0; --Inc) Argument[Inc] = '\0';
-		}
+		SubStrings.StripTrailingChars(Argument, " ");
 	}
 		
 	/**		Start processing commands!		**/
@@ -571,7 +566,6 @@ void CMD_ProcessCommand(const char *InStream_)
 			TotalLength += SubStrings.Length(TW->Nick) + (sizeof " " - 1); //We'll separate with a space, so, yeah, need that too.
 		}
 		
-		printf("Nick count: %u, allocated bytes for string: %u\n", Inc, TotalLength);
 		if (Inc == 50)
 		{ //We do this because we don't want to spam huge channels like #freenode etc.
 			IRC_Message(SendTo, "More than 50 users in this channel. Cannot proceed.");
@@ -590,7 +584,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			
 			if (Inc == 10 || !TW->Next)
 			{ //We're at ten, so send it and reset our counter.
-				NickBuf[SubStrings.Length(NickBuf) - 1] = '\0'; //Nuke trailing space.
+				SubStrings.StripTrailingChars(NickBuf, " "); //Nuke trailing space.
 				
 				IRC_Message(SendTo, NickBuf);
 				Inc = 1;
