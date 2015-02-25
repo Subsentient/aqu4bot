@@ -2054,12 +2054,11 @@ static bool CMD_ListStickies(const char *SendTo)
 	IRC_Message(SendTo, OutBuf);
 	*OutBuf = '\0'; /*We will need OutBuf cleared for what waits ahead.*/
 	
-	bool Private = false;
-	
 	Worker = StickyDB;
 	do
 	{
 		const int OutBufLen = strlen(OutBuf);
+		bool Private = false;
 		
 		for (Inc = 0; Worker[Inc] != ' ' && Inc < sizeof StickyID_T - 1; ++Inc)
 		{ /*Get the sticky ID.*/
