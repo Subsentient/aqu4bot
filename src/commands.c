@@ -810,6 +810,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "\r\n", " ");
 		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "\n", " ");
 		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "\r", " ");
+		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "&amp;", "&");
 		
 		snprintf(OutBuf, sizeof OutBuf, "Title for page \"%s\": \"\2\0033%s\3\2\"", Argument, PageTitle);
 		IRC_Message(SendTo, OutBuf);
