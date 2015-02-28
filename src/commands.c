@@ -116,8 +116,8 @@ struct
 			{ "netwrite", "Writes raw data to the IRC network. For example, 'PRIVMSG derp :Hee hee' "
 				"will send a private message to derp via raw IRC protocol.", REQARG, OWNER },
 			{ "quit", "Tells me to shut down and disconnect. If an argument is given, I use it "
-				"as my quit message.", OPTARG, OWNER },
-			{ "restart", "Tells me to restart myself.", NOARG, OWNER },
+				"as my quit message, or if the argument is 'save', I will remember channels, temp admins, and my nick etc.", OPTARG, OWNER },
+			{ "restart", "Tells me to restart myself. Pass nosave if you don't want me to remember session-specific channels etc.", NOARG, OWNER },
 			{ "pageall", "Prints the entire list of nicknames for the current channel. Limit 50 nicknames.", NOARG, ANY },
 			{ "help", "Prints info about me. If you specify an argument, then I'll give help for that command.", OPTARG, ANY },
 			{ "commands", "Prints the list of commands I know.", NOARG, ANY },
@@ -1047,7 +1047,16 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		IRC_Message(SendTo, FullQuit ? "See you around." : "Be right back.");
 		
-		if (FullQuit) IRC_Quit(*Argument ? Argument : NULL);
+		if (FullQuit)
+		{
+			if (!strcmp(Argument, "save"))
+			{
+				if (!Config_DumpBrain()) IRC_Message(SendTo, "Failed to dump brain.");
+				*Argument = '\0';
+			}
+			
+			IRC_Quit(*Argument ? Argument : NULL);
+		}
 		else
 		{
 			if (!SubStrings.Compare("nosave", Argument))
