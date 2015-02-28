@@ -380,6 +380,11 @@ int main(int argc, char **argv)
 	{
 		return 1;
 	}
+	
+	if (Config_LoadBrain()) //Restore if we are resuming from a restart.
+	{
+		fputs("Resuming session from brain.resume.\n", stderr);
+	}
 
 	if (!IRC_Connect())
 	{

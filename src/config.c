@@ -202,3 +202,114 @@ Error:
 			"If you have no config file, try passing --genconfig to generate it.\n");
 	return false;
 }
+
+
+bool Config_DumpBrain(void)
+{ //Dumps restore state for resuming from a restart.
+	FILE *Descriptor = fopen("brain.resume", "wb");
+
+	if (!Descriptor) return false;
+	
+	fputs(ServerInfo.Nick, Descriptor);
+	fputc('\n', Descriptor);
+	
+	for (struct ChannelTree *Worker = Channels; Worker != NULL; Worker = Worker->Next)
+	{ //Dump channels.
+		fprintf(Descriptor, "%s%s", Worker->AutoLinkTitle ? "@" : "", Worker->Channel);
+		
+		if (*Worker->CmdPrefix)
+		{
+			fputc(',', Descriptor);
+			fwrite(Worker->CmdPrefix, 1, strlen(Worker->CmdPrefix), Descriptor);
+		}
+		fputc('\n', Descriptor);
+	}
+	
+	//Dump current bot admins.
+	fputc('\1', Descriptor); //Tells the resume that we are now reading the admins.
+	for (struct AuthTree *Worker = AdminAuths; Worker != NULL; Worker = Worker->Next)
+	{
+		fprintf(Descriptor, "%s!%s@%s %d\n", Worker->Nick, Worker->Ident, Worker->Mask, Worker->BotOwner);
+	}
+	
+	
+	fclose(Descriptor);
+	
+	return true;
+}
+
+bool Config_LoadBrain(void)
+{
+	FILE *Descriptor = fopen("brain.resume", "rb");
+	
+	if (!Descriptor) return false;
+	
+	struct stat FileStat;
+	
+	if (stat("brain.resume", &FileStat) != 0) return false;
+
+	char *FileBuf = malloc(FileStat.st_size + 1);
+	
+	fread(FileBuf, 1, FileStat.st_size, Descriptor);
+	FileBuf[FileStat.st_size] = '\0';
+	
+	fclose(Descriptor);
+	
+	char CurrentLine[2048];
+	const char *Iter = FileBuf;
+	char Channel[128];
+	
+	//Get the nickname.
+	SubStrings.Line.GetLine(ServerInfo.Nick, sizeof ServerInfo.Nick, &Iter);
+	
+	//Channels.
+	while (SubStrings.Line.GetLine(CurrentLine, sizeof CurrentLine, &Iter))
+	{
+		if (*CurrentLine == '\x1') break;
+		const char *Worker = CurrentLine;
+		const char *Prefix = NULL;
+		bool AutoLinkTitle = false;
+		
+		if (*Worker == '@')
+		{
+			AutoLinkTitle = true;
+			++Worker;
+		}
+		
+		//Copy in the channel.
+		SubStrings.CopyUntilC(Channel, sizeof Channel, &Worker, ",", false);
+		
+		//Get the prefix.
+		if (Worker) //We have a prefix.
+		{
+			Prefix = Worker;
+		}
+		
+		//Add the channel.
+		struct ChannelTree *Ret = IRC_AddChannelToTree(Channel, Prefix);
+		Ret->AutoLinkTitle = AutoLinkTitle;
+	}
+		
+	//Admins.
+	if ((Iter = strchr(FileBuf, '\1')) != NULL)
+	{
+		char Nick[sizeof AdminAuths->Nick], Ident[sizeof AdminAuths->Ident], Mask[sizeof AdminAuths->Mask];
+		
+		++Iter;
+		
+		while (SubStrings.Line.GetLine(CurrentLine, sizeof CurrentLine, &Iter))
+		{
+			IRC_BreakdownNick(CurrentLine, Nick, Ident, Mask); //Get the nick.
+			
+			bool BotOwner = atoi(strchr(CurrentLine, ' ') + 1);
+	
+			Auth_AddAdmin(Nick, Ident, Mask, BotOwner);
+		}
+	}
+	
+	//Delete the brain file after a successful load.
+	remove("brain.resume");
+	
+	free(FileBuf);
+	return true;
+}

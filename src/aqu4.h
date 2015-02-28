@@ -104,6 +104,8 @@ extern void Bot_SetTextColor(ConsoleColor Color);
 
 /*config.c*/
 extern bool Config_ReadConfig(void);
+extern bool Config_LoadBrain(void);
+extern bool Config_DumpBrain(void);
 
 /*netcore.c*/
 extern bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);

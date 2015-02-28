@@ -1048,7 +1048,14 @@ void CMD_ProcessCommand(const char *InStream_)
 		IRC_Message(SendTo, FullQuit ? "See you around." : "Be right back.");
 		
 		if (FullQuit) IRC_Quit(*Argument ? Argument : NULL);
-		else IRC_Quit("aqu4bot is restarting...");
+		else
+		{
+			if (!SubStrings.Compare("nosave", Argument))
+			{
+				if (!Config_DumpBrain()) IRC_Message(SendTo, "Failed to dump brain.");
+			}
+			IRC_Quit("aqu4bot is restarting...");
+		}
 		
 		IRC_ShutdownChannelTree();
 		Auth_ShutdownAdmin();
