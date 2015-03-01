@@ -263,10 +263,10 @@ bool Log_WriteMsg(const char *InStream, MessageType MType)
 				snprintf(OutBuf, sizeof OutBuf, "(%s) **%s %s**",
 						*Origin == '#' ? Origin : Nick, Nick, Message + strlen("\01ACTION "));
 			}
-			else snprintf(OutBuf, sizeof OutBuf, "(%s) %s: %s", *Origin == '#' ? Origin : Nick, Nick, Message);
+			else snprintf(OutBuf, sizeof OutBuf, "(%s) <%s>: %s", *Origin == '#' ? Origin : Nick, Nick, Message);
 			break;
 		case IMSG_NOTICE:
-			snprintf(OutBuf, sizeof OutBuf, "(%s) %s (notice): %s", *Origin == '#' ? Origin : Nick, Nick, Message);
+			snprintf(OutBuf, sizeof OutBuf, "(%s) <%s> (notice): %s", *Origin == '#' ? Origin : Nick, Nick, Message);
 			break;
 		case IMSG_JOIN:
 			snprintf(OutBuf, sizeof OutBuf, "<%s!%s@%s joined %s>", Nick, Ident, Mask, Origin);
