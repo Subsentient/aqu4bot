@@ -1062,14 +1062,16 @@ void CMD_ProcessCommand(const char *InStream_)
 		{
 			if (!SubStrings.Compare("nosave", Argument))
 			{
-				if (!Config_DumpBrain()) IRC_Message(SendTo, "Failed to dump brain.");
-
-#ifndef NOSOCKETINHERIT
-				if (!Main_SaveSocket(SendTo))
-#endif //NOSOCKETINHERIT
+				if (Config_DumpBrain())
 				{
-					IRC_Quit("aqu4bot is restarting...");
+#ifndef NOSOCKETINHERIT
+					if (!Main_SaveSocket(SendTo))
+#endif //NOSOCKETINHERIT
+					{
+						IRC_Quit("aqu4bot is restarting...");
+					}
 				}
+				else IRC_Message(SendTo, "Failed to dump brain.");
 			}
 			else IRC_Quit("aqu4bot is restarting...");
 		}
