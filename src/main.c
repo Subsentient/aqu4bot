@@ -95,7 +95,7 @@ static bool Main_ResumeFromSocket(void)
 	//Delete the file.
 	remove("aqu4bot.socket");
 	
-	IRC_Message(OkMessageTarget, "Rebuilding list of users in channels, please wait...");
+	IRC_Message(OkMessageTarget, "New aqu4bot instance loaded. Rebuilding list of users in channels. Please wait...");
 	
 	char OutBuf[1024];
 	//Now we need to send a names request to every channel to repopulate the user lists.
