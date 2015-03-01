@@ -95,6 +95,8 @@ static bool Main_ResumeFromSocket(void)
 	//Delete the file.
 	remove("aqu4bot.socket");
 	
+	IRC_Message(OkMessageTarget, "Rebuilding list of users in channels, please wait...");
+	
 	char OutBuf[1024];
 	//Now we need to send a names request to every channel to repopulate the user lists.
 	for (struct ChannelTree *Worker = Channels; Worker; Worker = Worker->Next)
@@ -104,7 +106,7 @@ static bool Main_ResumeFromSocket(void)
 	}
 	
 	//Now send our I'm ok mommy speech.
-	IRC_Message(OkMessageTarget, "Restart successful.");
+	IRC_Message(OkMessageTarget, "Restart completed.");
 	return true;
 }
 
