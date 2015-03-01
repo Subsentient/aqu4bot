@@ -262,7 +262,7 @@ OwnerGet:
 	printf("Writing config file to \"%s\"...\n", OutPath);
 	Bot_SetTextColor(ENDCOLOR);
 	
-	if (!(Descriptor = fopen(OutPath, "wb")))
+	if (!(Descriptor = fopen(OutPath, "w")))
 	{
 		Bot_SetTextColor(RED);
 		puts("\nFailed to save config file!");
