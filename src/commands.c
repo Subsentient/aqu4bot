@@ -1064,7 +1064,12 @@ void CMD_ProcessCommand(const char *InStream_)
 			{
 				if (!Config_DumpBrain()) IRC_Message(SendTo, "Failed to dump brain.");
 			}
-			IRC_Quit("aqu4bot is restarting...");
+#ifndef NOSOCKETINHERIT
+			if (!Main_SaveSocket(SendTo))
+#endif //NOSOCKETINHERIT
+			{
+				IRC_Quit("aqu4bot is restarting...");
+			}
 		}
 		
 		IRC_ShutdownChannelTree();

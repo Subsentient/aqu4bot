@@ -99,8 +99,9 @@ struct AuthTree
 
 typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCOLOR = 0 } ConsoleColor;
 
-/*This function comes from main.c*/
+/*main.c*/
 extern void Bot_SetTextColor(ConsoleColor Color);
+extern bool Main_SaveSocket(const char *OkMessageTarget);
 
 /*config.c*/
 extern bool Config_ReadConfig(void);

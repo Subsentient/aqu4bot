@@ -53,6 +53,62 @@ static void SigHandler(int Signal)
 	}
 }
 
+#ifndef NOSOCKETINHERIT
+bool Main_SaveSocket(const char *OkMessageTarget)
+{ //Writes the socket to config.
+	FILE *Descriptor = fopen("aqu4bot.socket", "wb");
+	
+	if (!Descriptor) return false;
+	
+	//Write the descriptor.
+	fwrite(&SocketDescriptor, 1, sizeof(int), Descriptor);
+	
+	//Write the target we'll tell restart successful to after we restart.
+	fwrite(OkMessageTarget, 1, strlen(OkMessageTarget), Descriptor);
+	
+	fclose(Descriptor);
+	return true;
+}
+
+static bool Main_ResumeFromSocket(void)
+{ //Resumes our session from a socket.
+	FILE *Descriptor = fopen("aqu4bot.socket", "rb");
+	char OkMessageTarget[128];
+	
+	if (!Descriptor) return false;
+	
+	//Read in the socket.
+	fread(&SocketDescriptor, 1, sizeof(int), Descriptor);
+	
+	//Read in the OK message target.
+	int Char, Inc = 0;
+	while ((Char = fgetc(Descriptor)) != EOF)
+	{
+		OkMessageTarget[Inc++] = Char;
+	}
+	OkMessageTarget[Inc] = '\0';
+	
+	//Close the descriptor.
+	fclose(Descriptor);
+	
+	
+	//Delete the file.
+	remove("aqu4bot.socket");
+	
+	char OutBuf[1024];
+	//Now we need to send a names request to every channel to repopulate the user lists.
+	for (struct ChannelTree *Worker = Channels; Worker; Worker = Worker->Next)
+	{
+		snprintf(OutBuf, sizeof OutBuf, "NAMES %s\r\n", Worker->Channel);
+		Net_Write(SocketDescriptor, OutBuf);
+	}
+	
+	//Now send our I'm ok mommy speech.
+	IRC_Message(OkMessageTarget, "Restart successful.");
+	return true;
+}
+
+#endif //NOSOCKETINHERIT
 static bool Main_GenConfig(void)
 {
 	FILE *Descriptor = NULL;
@@ -386,10 +442,14 @@ int main(int argc, char **argv)
 		fputs("Resuming session from brain.resume.\n", stderr);
 	}
 
-	if (!IRC_Connect())
+#ifndef NOSOCKETINHERIT
+	if (Main_ResumeFromSocket())
 	{
-		return 1;
+		fputs("Loaded saved socket descriptor. Resuming session.\n", stderr);
 	}
+	else
+#endif
+	if (!IRC_Connect()) return 1;
 	
 	/*Load the seen command data.*/
 	CMD_LoadSeenDB();
