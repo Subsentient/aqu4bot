@@ -80,7 +80,8 @@ struct
 			{ "sticky", "Used to save a sticky note. sticky save saves it, sticky save_private saves a private sticky, "
 				"sticky read <number> reads it, sticky delete <number> "
 				"deletes it, but only if it's your sticky. For admins, sticky reset deletes all stickies. "
-				"sticky list lists the names of the owners and times of creation for all stickies.", REQARG, ANY },
+				"sticky list lists the names of the owners and times of creation for all stickies, "
+				"and sticky search returns a list of sticky IDs that match your search.", REQARG, ANY },
 			{ "replace", "Used to modify a quote by yourself or another user. Syntax is 'replace nick old^new'. "
 				"You may omit 'new' to delete from a string, but not 'old'.", REQARG, ANY },
 			{ "whoami", "Tells you your full nickname, along with whether or not you're a bot owner/admin.", NOARG, ANY },
@@ -146,6 +147,7 @@ static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *
 static struct _SeenDB *CMD_SeenDBLookup(const char *const Nick);
 static bool CMD_ListStickies(const char *SendTo);
 static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete);
+static bool CMD_SearchStickies(const char *SendTo, const char *SearchQuery);
 
 void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
@@ -1877,6 +1879,10 @@ void CMD_ProcessCommand(const char *InStream_)
 		{
 			CMD_ListStickies(SendTo);
 		}
+		else if (!strcmp(Mode, "search"))
+		{
+			CMD_SearchStickies(SendTo, Worker);
+		}
 		else if (!strcmp(Mode, "reset"))
 		{
 			if (!IsAdmin)
@@ -2073,6 +2079,66 @@ unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky, bool Private)
 	return StickyID;
 }
 
+static bool CMD_SearchStickies(const char *SendTo, const char *SearchQuery)
+{
+	FILE *Descriptor = fopen("db/sticky.db", "rb");
+	
+	struct stat FileStat;
+	
+	if (!Descriptor || stat("db/sticky.db", &FileStat) != 0) return false;
+	
+	char *StickyDB = malloc(FileStat.st_size + 1);
+	
+	fread(StickyDB, 1, FileStat.st_size, Descriptor);
+	StickyDB[FileStat.st_size] = '\0';
+	fclose(Descriptor);
+	
+	const char *LineWorker = StickyDB;
+	char CurLine[2048], Creator[128], Data[2048];
+	char StickyID[64];
+	bool Found = false;
+	
+	char OutMessage[2048] = "Matching sticky IDs: ";
+	
+	while (SubStrings.Line.GetLine(CurLine, sizeof CurLine, &LineWorker))
+	{
+		const char *Worker = CurLine;
+		//Get sticky ID.
+		SubStrings.CopyUntilC(StickyID, sizeof StickyID, &Worker, " ", false);
+		
+		//Skip past creation time, we don't need it.
+		Worker = SubStrings.Line.WhitespaceJump(Worker);
+		
+		//Get creator.
+		SubStrings.CopyUntilC(Creator, sizeof Creator, &Worker, " ", false);
+		
+		//Get sticky data.
+		SubStrings.Copy(Data, Worker, sizeof Data);
+		
+		if (SubStrings.Find(SearchQuery, 1, Data))
+		{ ///Check if it matches.
+			Found = true;
+			SubStrings.Cat(OutMessage, StickyID, sizeof OutMessage);
+			SubStrings.Cat(OutMessage, ", ", sizeof OutMessage);
+		}
+	}
+	
+	SubStrings.StripTrailingChars(OutMessage, " ,");
+
+	free(StickyDB); //Release the sticky db now that we're done with it.
+	
+	if (Found)
+	{
+		IRC_Message(SendTo, OutMessage);
+	}
+	else
+	{
+		IRC_Message(SendTo, "No stickies matching your search were found.");
+	}
+	
+	return Found;
+}	
+		
 static bool CMD_ListStickies(const char *SendTo)
 {
 #define MAX_STICKIES_TO_LIST 10
