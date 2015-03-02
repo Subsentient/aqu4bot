@@ -569,7 +569,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			TotalLength += SubStrings.Length(TW->Nick) + (sizeof " " - 1); //We'll separate with a space, so, yeah, need that too.
 		}
 		
-		if (Inc == 50 && BotOwner) //Allow owners to do anything
+		if (Inc == 50 && !BotOwner) //Allow owners to do anything
 		{ //We do this because we don't want to spam huge channels like #freenode etc.
 			IRC_Message(SendTo, "More than 50 users in this channel. Cannot proceed.");
 			return;
