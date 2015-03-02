@@ -266,6 +266,10 @@ bool Config_LoadBrain(void)
 	
 	fclose(Descriptor);
 	
+	
+	//Destroy any existing channel tree to prevent channels reported joined that are not.
+	IRC_ShutdownChannelTree();
+	
 	char CurrentLine[2048];
 	const char *Iter = FileBuf;
 	char Channel[128];
