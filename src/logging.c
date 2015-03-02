@@ -103,6 +103,11 @@ bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 	
 	for (; FileTitle[Inc] != '\0'; ++Inc) FileTitle[Inc] = tolower(FileTitle[Inc]);
 	
+	//Discard any logs that would be written to files we don't want to write to.
+	struct ChannelTree *const TempChan = *FileTitle == '#' ? IRC_GetChannelFromDB(FileTitle_) : NULL;
+	
+	if (TempChan && TempChan->ExcludeFromLogs) return true; //Silently bury the data in the dirt.
+	
 	TimeStruct = gmtime(&Time);
 	strftime(TimeString, sizeof TimeString, "[%Y-%m-%d %H:%M:%S UTC]", TimeStruct);
 	

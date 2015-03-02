@@ -100,7 +100,7 @@ struct
 			{ "cycle", "Leaves and then rejoins the specified channel. "
 				"If already in a channel, the channel can be omitted to cycle that channel. "
 				"Subcommands are 'fresh' to reset to aqu4bot defaults, 'autotitle on/off' to control "
-				"auto-link-titling, and 'prefix \"myprefix\"' to change per-channel prefix. "
+				"auto-link-titling, 'logexclude on/off' to control log exclusion, and 'prefix \"myprefix\"' to change per-channel prefix. "
 				"Use empty \"\" to use global prefix.", OPTARG, ADMIN },
 			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, "
 				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel,"
@@ -1272,6 +1272,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		do
 		{
 			const char *FinalChan = CurChan;
+			bool AutoLinkTitle = false, ExcludeFromLogs = false;
 			
 			for (Inc = 0; Inc < sizeof CurChan - 1 && TW[Inc] != ',' && TW[Inc] != ' ' && TW[Inc] != '\0'; ++Inc)
 			{ /*we need channel names in lowercase.*/
@@ -1281,17 +1282,28 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 			++Specified; /*How many we asked for.*/
 			
-			if (CurChan[0] != '#' && CurChan[1] != '#') /*if we have a @ at the beginning then we at least expect what comes after to be a #.*/
+					
+			if (*FinalChan == '!')
+			{ //Channel excluded from logging
+				ExcludeFromLogs = true;
+				++FinalChan;
+			}
+			
+			if (*FinalChan == '@')
+			{ //Auto-link title
+				AutoLinkTitle = true;
+				++FinalChan;
+			}
+			
+			if (*FinalChan != '#') /*if we have a @ at the beginning then we at least expect what comes after to be a #.*/
 			{
-				snprintf(TmpBuf, sizeof TmpBuf, "\"%s\" is not a channel name.%s", CurChan, 
+				snprintf(TmpBuf, sizeof TmpBuf, "\"%s\" is not a channel name.%s", FinalChan, 
 						strchr(TW, ' ') ? " Continuing join operation." : "");
 						
 				IRC_Message(SendTo, TmpBuf);
 				--Count; /*Don't count a failure.*/
 				continue;
 			}
-			
-			if (*CurChan == '@') ++FinalChan; /*Skip past the @ for auto-url-titling.*/
 			
 			if (TW[Inc] == ',' && TW[Inc + 1] != '\0')
 			{ /*Get the channel prefix.*/
@@ -1309,10 +1321,8 @@ void CMD_ProcessCommand(const char *InStream_)
 			{
 				struct ChannelTree *TChan = IRC_AddChannelToTree(FinalChan, *Prefix ? Prefix : NULL);
 				
-				if (*CurChan == '@' && TChan)
-				{
-					TChan->AutoLinkTitle = true;
-				}
+				TChan->AutoLinkTitle = AutoLinkTitle;
+				TChan->ExcludeFromLogs = ExcludeFromLogs;
 			}
 			else
 			{
@@ -1504,6 +1514,21 @@ void CMD_ProcessCommand(const char *InStream_)
 				else
 				{
 					IRC_Message(SendTo, "Bad parameter to 'cycle autotitle'.");
+					return;
+				}
+			}
+			else if (SubStrings.StartsWith("logexclude", Subcommand))
+			{
+				const char *Arg = Subcommand + sizeof "logexclude" - 1;
+				
+				//Skip to the data
+				Arg = SubStrings.Line.WhitespaceJump(Arg);
+				
+				if (!strcmp(Arg, "on")) ChannelStruct->ExcludeFromLogs = true;
+				else if (!strcmp(Arg, "off")) ChannelStruct->ExcludeFromLogs = false;
+				else
+				{
+					IRC_Message(SendTo, "Bad parameter to 'cycle logexclude'.");
 					return;
 				}
 			}

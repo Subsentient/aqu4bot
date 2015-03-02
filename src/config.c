@@ -102,20 +102,31 @@ bool Config_ReadConfig(void)
 				}
 			}
 			
-			if (Chan[0] == '#' || Chan[0] == '@')  /*at sign says use auto title read.*/
+				
+			if (Chan[0] == '#' || Chan[0] == '!' || Chan[0] == '@')  /*at sign says use auto title read.*/
 			{
 				//Lower case it.
 				SubStrings.ASCII.LowerS(Chan);
 				
-				if (Chan[0] == '@')
-				{ /*They want auto link title reading.*/
-					struct ChannelTree *NewChannel = IRC_AddChannelToTree(Chan + 1, *Prefix ? Prefix : NULL);
-					NewChannel->AutoLinkTitle = true;
+				const char *ToChannel = Chan, *const TPrefix = *Prefix ? Prefix : NULL;
+				bool AutoLinkTitle = false, ExcludeFromLogs = false;
+				
+				if (*ToChannel == '!')
+				{
+					++ToChannel;
+					ExcludeFromLogs = true;
 				}
-				else
-				{ /*They didn't say, so assume no auto-link-title-reading.*/
-					IRC_AddChannelToTree(Chan, *Prefix ? Prefix : NULL);
+				
+				if (*ToChannel == '@')
+				{
+					++ToChannel;
+					AutoLinkTitle = true;
 				}
+				
+				struct ChannelTree *NewChannel = IRC_AddChannelToTree(ToChannel, TPrefix);
+				
+				NewChannel->AutoLinkTitle = AutoLinkTitle;
+				NewChannel->ExcludeFromLogs = ExcludeFromLogs;
 			}
 			else
 			{

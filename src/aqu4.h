@@ -59,6 +59,7 @@ struct ChannelTree
 	char CmdPrefix[128];
 	unsigned long TopicSetTime;
 	bool AutoLinkTitle; /*Automatically get link titles?*/
+	bool ExcludeFromLogs; //Do not log this channel at all.
 	
 	struct _UserList
 	{
