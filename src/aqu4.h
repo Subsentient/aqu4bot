@@ -47,7 +47,8 @@ typedef enum
 	IMSG_INVITE,
 	IMSG_TOPIC,
 	IMSG_TOPICORIGIN,
-	IMSG_NAMES
+	IMSG_NAMES,
+	IMSG_WHO
 } MessageType;
 
 struct ChannelTree
@@ -140,6 +141,7 @@ extern bool IRC_UserInChannelP(const struct ChannelTree *Channel, const char *Ni
 extern void IRC_ShutdownChannelUsers(struct ChannelTree *Channel);
 extern struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel);
 extern bool IRC_StripControlCodes(char *Stream);
+extern struct _UserList *IRC_GetUserInChannel(const char *const ChannelName, const char *Nick_);
 
 /*commands.c*/
 extern void CMD_ProcessCommand(const char *InStream);

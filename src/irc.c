@@ -384,6 +384,53 @@ void IRC_Loop(void)
 				
 				break;
 			}
+			case IMSG_WHO:
+			{ /*Format:
+			:weber.freenode.net 352 fjkl3rfehkrjfher ##aqu4bot ~aqu4bot unaffiliated/subsen/bot/aqu4 cameron.freenode.net aqu4 H@ :0 aqu4, daughter of pr0t0!
+			*/
+				
+				const char *Worker = MessageBuf;
+				
+				if ((Worker = strstr(Worker, "352")) == NULL) continue;
+				
+				//Twice, once to get past 352, once to get to the channel name.
+				if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) continue;
+				if (!(Worker = SubStrings.Line.WhitespaceJump(Worker))) continue;
+				
+				char Channel[128], Nick[128], Ident[128], Mask[128];
+			
+				//Channel
+				SubStrings.CopyUntilC(Channel, sizeof Channel, &Worker, " ", false);
+				SubStrings.ASCII.LowerS(Channel);
+				
+				//Ident
+				SubStrings.CopyUntilC(Ident, sizeof Ident, &Worker, " ", false);
+				
+				//Mask
+				SubStrings.CopyUntilC(Mask, sizeof Mask, &Worker, " ", false);
+				
+				//Skip past server name; we don't care.
+				Worker = SubStrings.Line.WhitespaceJump(Worker);
+				
+				//Nick
+				SubStrings.CopyUntilC(Nick, sizeof Nick, &Worker, " ", false);
+				
+				struct _UserList *User = IRC_GetUserInChannel(Channel, Nick);
+				
+				if (User != NULL)
+				{ //It exists. We update.
+					SubStrings.Copy(User->Nick, Nick, sizeof User->Nick);
+					SubStrings.Copy(User->Ident, Ident, sizeof User->Ident);
+					SubStrings.Copy(User->Mask, Mask, sizeof User->Mask);
+					User->FullUser = true;
+				}
+				else
+				{
+					IRC_AddUserToChannel(Channel, Nick, Ident, Mask, true);
+				}
+					
+				break;
+			}
 			default:
 				break;
 		}
@@ -891,11 +938,12 @@ void IRC_ShutdownChannelTree(void)
 
 bool IRC_JoinChannel(const char *Channel)
 {
-	char ChanString[2048];
+	char ChanString[2048], WhoString[2048];
 	
 	snprintf(ChanString, sizeof ChanString, "JOIN %s\r\n", Channel);
+	snprintf(WhoString, sizeof WhoString, "WHO %s\r\n", Channel);
 	
-	return Net_Write(SocketDescriptor, ChanString);
+	return Net_Write(SocketDescriptor, ChanString) && Net_Write(SocketDescriptor, WhoString);
 }
 	
 bool IRC_LeaveChannel(const char *Channel)
@@ -976,6 +1024,7 @@ MessageType IRC_GetMessageType(const char *InStream_)
 	else if (!strcmp(Command, "332") || !strcmp(Command, "TOPIC")) return IMSG_TOPIC;
 	else if (!strcmp(Command, "333")) return IMSG_TOPICORIGIN;
 	else if (!strcmp(Command, "353") || !strcmp(Command, "NAMES")) return IMSG_NAMES;
+	else if (!strcmp(Command, "352")) return IMSG_WHO;
 	else return IMSG_UNKNOWN;
 }
 
@@ -1115,5 +1164,42 @@ StripLoopStart:
 	}
 	
 	return FoundBold || FoundColor;
+}
+
+struct _UserList *IRC_GetUserInChannel(const char *const ChannelName_, const char *const Nick_)
+{
+	char Nick[sizeof ((struct _UserList*)0)->Nick];
+
+	SubStrings.Copy(Nick, Nick_, sizeof Nick);
+	SubStrings.ASCII.LowerS(Nick);
+	
+	char ChannelName[sizeof ((struct ChannelTree*)0)->Channel];
+	
+	SubStrings.Copy(ChannelName, ChannelName_, sizeof ChannelName);
+	SubStrings.ASCII.LowerS(ChannelName);
+	
+	struct ChannelTree *Channel = IRC_GetChannelFromDB(ChannelName);
+	
+	
+	if (!Channel) return NULL;
+	
+	struct _UserList *Worker = Channel->UserList;
+	
+	if (!Worker) return NULL;
+	
+	char CompareNick[128];
+	
+	for (; Worker; Worker = Worker->Next)
+	{
+		SubStrings.Copy(CompareNick, Worker->Nick, sizeof CompareNick);
+		SubStrings.ASCII.LowerS(CompareNick);
+		
+		if (!strcmp(Nick, CompareNick))
+		{
+			return Worker;
+		}
+	}
+	
+	return NULL;
 }
 

@@ -101,7 +101,7 @@ static bool Main_ResumeFromSocket(void)
 	//Now we need to send a names request to every channel to repopulate the user lists.
 	for (struct ChannelTree *Worker = Channels; Worker; Worker = Worker->Next)
 	{
-		snprintf(OutBuf, sizeof OutBuf, "NAMES %s\r\n", Worker->Channel);
+		snprintf(OutBuf, sizeof OutBuf, "WHO %s\r\n", Worker->Channel);
 		Net_Write(SocketDescriptor, OutBuf);
 	}
 	
