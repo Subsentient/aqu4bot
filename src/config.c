@@ -226,7 +226,7 @@ bool Config_DumpBrain(void)
 	
 	for (struct ChannelTree *Worker = Channels; Worker != NULL; Worker = Worker->Next)
 	{ //Dump channels.
-		fprintf(Descriptor, "%s%s", Worker->AutoLinkTitle ? "@" : "", Worker->Channel);
+		fprintf(Descriptor, "%s%s%s", Worker->ExcludeFromLogs ? "!" : "", Worker->AutoLinkTitle ? "@" : "", Worker->Channel);
 		
 		if (*Worker->CmdPrefix)
 		{
@@ -279,7 +279,13 @@ bool Config_LoadBrain(void)
 		if (*CurrentLine == '\x1') break;
 		const char *Worker = CurrentLine;
 		const char *Prefix = NULL;
-		bool AutoLinkTitle = false;
+		bool AutoLinkTitle = false, ExcludeFromLogs = false;
+		
+		if (*Worker == '!')
+		{
+			ExcludeFromLogs = true;
+			++Worker;
+		}
 		
 		if (*Worker == '@')
 		{
@@ -299,6 +305,7 @@ bool Config_LoadBrain(void)
 		//Add the channel.
 		struct ChannelTree *Ret = IRC_AddChannelToTree(Channel, Prefix);
 		Ret->AutoLinkTitle = AutoLinkTitle;
+		Ret->ExcludeFromLogs = ExcludeFromLogs;
 	}
 		
 	//Admins.
