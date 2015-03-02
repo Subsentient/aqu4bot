@@ -83,6 +83,7 @@ struct _ServerInfo
 	char Ident[128];
 	char RealName[128];
 	char NickservPwd[256];
+	char NickservNick[128];
 	char ServerPassword[256];
 	unsigned short PortNum;
 	bool SetBotmode;

@@ -74,6 +74,10 @@ bool Config_ReadConfig(void)
 		{
 			SubStrings.Copy(ServerInfo.NickservPwd, LineData, sizeof ServerInfo.NickservPwd);
 		}
+		else if (!strcmp(LineID, "NickservNick"))
+		{
+			SubStrings.Copy(ServerInfo.NickservNick, LineData, sizeof ServerInfo.NickservNick);
+		}
 		else if (!strcmp(LineID, "ServerPassword"))
 		{
 			SubStrings.Copy(ServerInfo.ServerPassword, LineData, sizeof ServerInfo.ServerPassword);

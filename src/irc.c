@@ -439,13 +439,13 @@ void IRC_Loop(void)
 
 bool IRC_Connect(void)
 {
-	char UserString[2048], MessageBuf[2048], NickServNick[sizeof ServerInfo.Nick];
+	char UserString[2048], MessageBuf[2048], TNickServNick[sizeof ServerInfo.Nick];
 	struct ChannelTree *Worker = Channels;
 	bool ServerLikesUs = false;
 	int Code = 0;
 	
 	/*Back up the nick we start with so we can tell nickserv who we are even if our nick changes.*/
-	SubStrings.Copy(NickServNick, ServerInfo.Nick, sizeof NickServNick);
+	SubStrings.Copy(TNickServNick, ServerInfo.Nick, sizeof TNickServNick);
 	
 	printf("Connecting to \"%s:%hu\"... ", ServerInfo.Hostname, ServerInfo.PortNum), fflush(stdout);
 	
@@ -547,7 +547,7 @@ bool IRC_Connect(void)
 		char NickservString[2048];
 		
 		printf("Authenticating with NickServ...");
-		snprintf(NickservString, 2048, "identify %s %s", NickServNick, ServerInfo.NickservPwd);
+		snprintf(NickservString, 2048, "identify %s %s", *ServerInfo.NickservNick ? ServerInfo.NickservNick : TNickServNick, ServerInfo.NickservPwd);
 		IRC_Message("NickServ", NickservString);
 		puts(" Done.");
 	}
