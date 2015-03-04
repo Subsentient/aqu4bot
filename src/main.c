@@ -29,17 +29,8 @@ static void SigHandler(int Signal)
 	switch (Signal)
 	{
 		case SIGTERM:
-			puts("Caught SIGTERM, shutting down.");
-			IRC_Quit(NULL);
-			IRC_ShutdownChannelTree();
-			Auth_ShutdownAdmin();
-			CMD_SaveSeenDB();
-			CMD_SaveUserModes();
-			Auth_ShutdownBlacklist();
-			exit(0);
-			break;
 		case SIGINT:
-			puts("Caught SIGINT, shutting down.");
+			puts(Signal == SIGINT ? "Caught SIGINT, shutting down." : "Caught SIGTERM, shutting down.");
 			IRC_Quit(NULL);
 			IRC_ShutdownChannelTree();
 			Auth_ShutdownAdmin();
