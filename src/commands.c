@@ -550,7 +550,12 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		struct ChannelTree *Channel = IRC_GetChannelFromDB(SendTo);
+		char DupSendTo[128];
+		
+		SubStrings.Copy(DupSendTo, SendTo, sizeof DupSendTo);
+		SubStrings.ASCII.LowerS(DupSendTo);
+		
+		struct ChannelTree *Channel = IRC_GetChannelFromDB(DupSendTo);
 		
 		if (!Channel || !Channel->UserList)
 		{
