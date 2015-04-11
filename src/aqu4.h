@@ -100,6 +100,15 @@ struct AuthTree
 	struct AuthTree *Prev;
 };
 
+struct _CmdList
+{
+	char CmdName[64];
+	char HelpString[512];
+	enum ArgMode { NOARG, OPTARG, REQARG } AM;
+	enum HPerms { ANY, ADMIN, OWNER } P;
+	bool DisableCommand;
+};
+
 typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCOLOR = 0 } ConsoleColor;
 
 /*main.c*/
@@ -202,3 +211,5 @@ extern int _argc;
 extern char **_argv;
 extern struct AuthTree *AdminAuths;
 extern bool NoControlCodes;
+extern struct _CmdList CmdList[];
+

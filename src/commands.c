@@ -16,10 +16,10 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
+//Globals
 char GlobalCmdPrefix[sizeof ((struct ChannelTree*)0)->CmdPrefix] = "$";
-enum ArgMode { NOARG, OPTARG, REQARG };
-enum HPerms { ANY, ADMIN, OWNER };
 
+//Structs
 struct StickySpec
 {
 	unsigned ID;
@@ -41,13 +41,7 @@ static struct UserModeSpec
 	struct UserModeSpec *Prev;
 } *UserModeRoot;
 
-struct
-{
-	char CmdName[64];
-	char HelpString[512];
-	enum ArgMode AM;
-	enum HPerms P;
-} CmdHelpList[] = 
+struct _CmdList CmdList[] = 
 		{
 			{ "burrito", "Chucks a nasty, rotten burrito at someone.", REQARG, ANY },
 			{ "beer", "Gives someone a cold, Samuel Adams beer.", REQARG, ANY },
@@ -103,8 +97,9 @@ struct
 				"auto-link-titling, 'logexclude on/off' to control log exclusion, and 'prefix \"myprefix\"' to change per-channel prefix. "
 				"Use empty \"\" to use global prefix.", OPTARG, ADMIN },
 			{ "debug", "Subcommands include 'listchannels' to print all channels this bot is in, "
-				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel,"
-				"and 'togglecontrolcodes', to toggle whether or not color and bold is permitted to appear in this bot's messages.", 
+				"'dumpchanneldb' to list known users and their masks for either all channels, or you may specify a channel, "
+				"'togglecontrolcodes', to toggle whether or not color or bold is permitted to appear in this bot's messages, "
+				"and 'togglecmdenabled', for owners to disable or enable a bot command.",
 				REQARG, ADMIN },
 			{ "nickchange", "Changes my nickname to the selected nick. "
 				"Make sure the new nick is not taken before issuing this.", REQARG, OWNER },
@@ -296,8 +291,17 @@ void CMD_ProcessCommand(const char *InStream_)
 		/*Get rid of trailing spaces.*/
 		SubStrings.StripTrailingChars(Argument, " ");
 	}
+	
+	///Check if this command has been disabled.
+	for (int TInc = 0; TInc < sizeof CmdList / sizeof *CmdList; ++TInc)
+	{
+		if (!strcmp(CommandID, CmdList[TInc].CmdName) && !BotOwner && CmdList[TInc].DisableCommand) //Owners can use disabled commands.
+		{ //This command has been explicitly disabled. Do nothing (return)
+			return;
+		}
+	}
 		
-	/**		Start processing commands!		**/
+	/*====*//**		Start processing commands!		**//*====*/
 	if (!strcmp(CommandID, "help"))
 	{
 		char TmpBuf[2048];
@@ -315,19 +319,20 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		else
 		{
-			for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc)
+			for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
 			{
-				if (!strcmp(Argument, CmdHelpList[Inc].CmdName))
+				if (!strcmp(Argument, CmdList[Inc].CmdName) &&
+					(!CmdList[Inc].DisableCommand || (BotOwner && *SendTo != '#'))) //If it's disabled don't report its existance.
 				{
-					snprintf(TmpBuf, sizeof TmpBuf, "%s[%s%s%s]: %s", PermStrings[CmdHelpList[Inc].P],
-							CmdPrefix, CmdHelpList[Inc].CmdName, ArgRequired[CmdHelpList[Inc].AM],
-							CmdHelpList[Inc].HelpString);
+					snprintf(TmpBuf, sizeof TmpBuf, "%s[%s%s%s]: %s", PermStrings[CmdList[Inc].P],
+							CmdPrefix, CmdList[Inc].CmdName, ArgRequired[CmdList[Inc].AM],
+							CmdList[Inc].HelpString);
 					IRC_Message(SendTo, TmpBuf);
 					break;
 				}
 			}
 			
-			if (*CmdHelpList[Inc].CmdName == '\0')
+			if (*CmdList[Inc].CmdName == '\0')
 			{
 				IRC_Message(SendTo, "No help found for that command. Does it exist?"
 							" Try an empty help command for a list of commands.");
@@ -436,6 +441,37 @@ void CMD_ProcessCommand(const char *InStream_)
 			IRC_Message(SendTo, NoControlCodes ? "Control codes disabled." : "Control codes enabled.");
 			return;
 		}
+		else if (!strcmp(Subcommand, "togglecmdenabled"))
+		{
+			if (!BotOwner)
+			{
+				IRC_Message(SendTo, "You aren't authorized to do that. Only owners.");
+				return;
+			}
+			
+			if (!*Subargs)
+			{
+				IRC_Message(SendTo, "No command ID specified.");
+				return;
+			}
+			
+			for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
+			{
+				if (!strcmp(Subargs, CmdList[Inc].CmdName))
+				{
+					CmdList[Inc].DisableCommand = !CmdList[Inc].DisableCommand;
+					
+					char OutBuf[256];
+					snprintf(OutBuf, sizeof OutBuf, "The \"%s\" command has been %s.", Subargs, CmdList[Inc].DisableCommand ? "disabled" : "enabled");
+					IRC_Message(SendTo, OutBuf);
+					return;
+				}
+			}
+			
+			IRC_Message(SendTo, "Command ID was not found.");
+			return;
+			
+		}	
 		else
 		{
 			IRC_Message(SendTo, "Bad debug subcommand.");
@@ -690,15 +726,18 @@ void CMD_ProcessCommand(const char *InStream_)
 		IRC_Message(SendTo, "Commands with 1 star = admins only, 2 stars = owners only. \02Commands available\02:");
 		
 		/*Count number of commands.*/
-		for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc);
+		for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc);
 		
-		CommandList = malloc((sizeof(CmdHelpList->CmdName) + 10) * Inc + 1);
+		CommandList = malloc((sizeof(CmdList->CmdName) + 10) * Inc + 1);
 		*CommandList = '\0';
 		
-		for (Inc = 0; *CmdHelpList[Inc].CmdName != '\0'; ++Inc)
+		for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
 		{
-			strcat(CommandList, CmdHelpList[Inc].CmdName);
-			strcat(CommandList, PermStars[CmdHelpList[Inc].P]);
+			//Don't list disabled commands.
+			if (CmdList[Inc].DisableCommand && (!BotOwner || *SendTo == '#')) continue;
+			
+			strcat(CommandList, CmdList[Inc].CmdName);
+			strcat(CommandList, PermStars[CmdList[Inc].P]);
 			strcat(CommandList, ", ");
 		}
 		

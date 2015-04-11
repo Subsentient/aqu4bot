@@ -166,6 +166,21 @@ bool Config_ReadConfig(void)
 				return false;
 			}
 		}
+		else if (!strcmp(LineID, "DisableCommand"))
+		{
+			bool Located = false;
+			
+			for (int Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
+			{
+				if (!strcmp(LineData, CmdList[Inc].CmdName))
+				{
+					Located = CmdList[Inc].DisableCommand = true;
+					break;
+				}
+			}
+			
+			if (!Located) fputs("Invalid command name specified for DisableCommand attribute\n", stderr);
+		}	
 		else if (!strcmp(LineID, "SendDelay"))
 		{
 			SendDelay = atoi(LineData);
