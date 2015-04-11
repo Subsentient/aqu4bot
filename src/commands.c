@@ -261,8 +261,9 @@ void CMD_ProcessCommand(const char *InStream_)
 			
 			const char *Temp = InStream; //Don't want CopyUntilC() to modify InStream.
 
-			/*Copy in this link to the argument and jump to title command.*/			
-			SubStrings.CopyUntilC(Argument, sizeof Argument, &Temp, " ", true);
+			/*Copy in this link to the argument and jump to title command.*/
+			*Argument = '\1'; //Tells the title command that this is an autotitle.
+			SubStrings.CopyUntilC(Argument + 1, sizeof Argument - 1, &Temp, " ", true);
 
 
 #ifndef NO_LIBCURL	
@@ -815,10 +816,26 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
+		const char *BadExtensions[] = { ".jpg", ".jpeg", ".png", ".gif", ".mp3", ".mp4", ".iso", ".bin", ".img", NULL };
+		bool IsAutoTitle = false;
+		
+		//We're auto-titling and we want to ensure that we don't print titles for binary files then.
+		if (*Worker == '\1') IsAutoTitle = true, ++Worker;
+		
 		if ((Worker = SubStrings.Find("http://", 1, Worker))) Worker += sizeof "http://" - 1;
 		else Worker = Argument;
 		
 		RecvBuffer = malloc(MAX_TITLE_DATA_SIZE); //Allocate 2MB. Some platforms like Windows don't appreciate our large arrays on stack.
+		
+		
+		///Check if it's a known extension we want to ignore.
+		if (IsAutoTitle)
+		{
+			for (Inc = 0; BadExtensions[Inc]; ++Inc)
+			{
+				if (SubStrings.EndsWith(BadExtensions[Inc], Argument)) return;
+			}
+		}
 		
 		if (!CurlCore_GetHTTP(Worker, RecvBuffer, MAX_TITLE_DATA_SIZE))
 		{ /*Download the first 16K*/
@@ -860,7 +877,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "&#39;", "'");
 		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "&quot;", "\"");
 		
-		snprintf(OutBuf, sizeof OutBuf, "Title for page \"%s\": \"\2\0033%s\3\2\"", Argument, PageTitle);
+		snprintf(OutBuf, sizeof OutBuf, "\2 ^\2 \"\2\0033%s\3\2\"", PageTitle);
 		IRC_Message(SendTo, OutBuf);
 		
 		//Release the buffer we allocated on the heap for the scan.
