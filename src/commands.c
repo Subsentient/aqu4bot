@@ -823,7 +823,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		if (*Worker == '\1') IsAutoTitle = true, ++Worker;
 		
 		if ((Worker = SubStrings.Find("http://", 1, Worker))) Worker += sizeof "http://" - 1;
-		else Worker = Argument;
+		else Worker = *Argument == '\1' ? Argument + 1 : Argument;
 		
 		RecvBuffer = malloc(MAX_TITLE_DATA_SIZE); //Allocate 2MB. Some platforms like Windows don't appreciate our large arrays on stack.
 		
