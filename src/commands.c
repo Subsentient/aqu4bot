@@ -812,7 +812,7 @@ void CMD_ProcessCommand(const char *InStream_)
 #define MAX_TITLE_DATA_SIZE ((1024 * 1024) * 2)
 		if (!*Argument)
 		{
-			IRC_Message(SendTo, "You need to provide a valid http link. https is not supported.");
+			IRC_Message(SendTo, "You need to provide a valid link.");
 			return;
 		}
 		
