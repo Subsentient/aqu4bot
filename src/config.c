@@ -82,6 +82,18 @@ bool Config_ReadConfig(void)
 		{
 			SubStrings.Copy(ServerInfo.ServerPassword, LineData, sizeof ServerInfo.ServerPassword);
 		}
+		else if (!strcmp(LineID, "HelpGreeting"))
+		{
+			if (*LineData)
+			{
+				SubStrings.Copy(HelpGreeting, LineData, sizeof HelpGreeting);
+			}
+			else
+			{
+				fprintf(stderr, "Empty HelpGreeting on line %u\n", LineNum);
+				
+			}
+		}
 		else if (!strcmp(LineID, "Channel"))
 		{
 			char Chan[sizeof LineData], Prefix[sizeof Chan] = { 0 }, *Worker = Chan;
