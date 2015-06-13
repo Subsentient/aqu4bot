@@ -168,7 +168,7 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	GamesAvailable = ntohl(GamesAvailable);
 	
 	/*Allocate space for them.*/
-	GamesList = malloc(sizeof(GameStruct) * GamesAvailable);
+	GamesList = (GameStruct*)malloc(sizeof(GameStruct) * GamesAvailable);
 
 	for (; Inc < GamesAvailable; ++Inc)
 	{ /*Receive the listings.*/

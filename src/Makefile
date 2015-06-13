@@ -1,16 +1,27 @@
 CC = gcc
+CXX = g++
+USECPP = NO
+
+ifeq ($(USECPP),YES)
+	RCC = $(CXX)
+	LANGSTD = 
+else
+	RCC = $(CC)
+	LANGSTD = -std=gnu99
+endif
+
 OUTFILE = aqu4bot
 OS = UNIX
 AQ_CORE_OBJECTS = auth.o commands.o config.o ddg.o irc.o logging.o main.o netcore.o curlcore.o wz.o
 AQ_OBJECTS = $(AQ_CORE_OBJECTS)
 
 ifeq ($(USECURL),NO)
-	CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DNO_LIBCURL -DBOT_OS="\"UNIX (without libcurl)\""
+	CFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0 -DNO_LIBCURL -DBOT_OS="\"UNIX (without libcurl)\""
 	AQ_CORE_OBJECTS = auth.o commands.o config.o irc.o logging.o main.o netcore.o wz.o
 	AQ_OBJECTS = $(AQ_CORE_OBJECTS)
 	LDFLAGS =
 else
-	CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0
+	CFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0
 	LDFLAGS = -lcurl
 endif
 
@@ -18,10 +29,10 @@ ifeq ($(OS),WIN)
 	
 	ifeq ($(USECURL),NO)
 		LDFLAGS = -lws2_32
-		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS="\"Windows (without libcurl)\"" -DNO_LIBCURL
+		CFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS="\"Windows (without libcurl)\"" -DNO_LIBCURL
 	else
 		LDFLAGS = -lws2_32 `i686-pc-mingw32-pkg-config --libs libcurl`
-		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\" -DCURL_STATICLIB
+		CFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\" -DCURL_STATICLIB
 	endif
 
 	OUTFILE = aqu4bot.exe
@@ -32,11 +43,11 @@ endif
 
 ifeq ($(OS),HAIKU)
 	ifeq ($(USECURL),NO)
-		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS (without libcurl)\"" -DNO_LIBCURL
+		CFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS (without libcurl)\"" -DNO_LIBCURL
 		LDFLAGS = -lnetwork
 	else
 		LDFLAGS = -lcurl -lnetwork
-		CFLAGS = -std=gnu99 -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS\""
+		CFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0 -DHAIKU -DBOT_OS="\"Haiku OS\""
 	endif
 
 endif
@@ -46,17 +57,17 @@ all:
 ifeq ($(OS),WIN)
 	$(MAKE) -C ../win32
 endif
-	$(CC) auth.c -c $(CFLAGS)
-	$(CC) commands.c -c $(CFLAGS)
-	$(CC) config.c -c $(CFLAGS)
-	$(CC) irc.c -c $(CFLAGS)
-	$(CC) logging.c -c $(CFLAGS)
-	$(CC) main.c -c $(CFLAGS)
-	$(CC) netcore.c -c $(CFLAGS)
-	$(CC) wz.c -c $(CFLAGS)
+	$(RCC) auth.c -c $(CFLAGS)
+	$(RCC) commands.c -c $(CFLAGS)
+	$(RCC) config.c -c $(CFLAGS)
+	$(RCC) irc.c -c $(CFLAGS)
+	$(RCC) logging.c -c $(CFLAGS)
+	$(RCC) main.c -c $(CFLAGS)
+	$(RCC) netcore.c -c $(CFLAGS)
+	$(RCC) wz.c -c $(CFLAGS)
 ifneq ($(USECURL),NO)
-	$(CC) curlcore.c -c $(CFLAGS)
-	$(CC) ddg.c -c $(CFLAGS)
+	$(RCC) curlcore.c -c $(CFLAGS)
+	$(RCC) ddg.c -c $(CFLAGS)
 endif
 
 ifeq ($(OS),WIN)
@@ -65,7 +76,7 @@ else
 	$(MAKE) -C substrings static
 
 endif
-	$(CC) $(CFLAGS) -o ../$(OUTFILE) $(AQ_OBJECTS) substrings/libsubstrings.a $(LDFLAGS)
+	$(RCC) $(CFLAGS) -o ../$(OUTFILE) $(AQ_OBJECTS) substrings/libsubstrings.a $(LDFLAGS)
 
 clean:
 	rm -vf *.o

@@ -27,7 +27,7 @@ unsigned short SendDelay = 8; /*Ten is one second.*/
 bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_)
 {
 
-	char *FailMsg = "Failed to establish a connection to the server:";
+	const char *FailMsg = "Failed to establish a connection to the server:";
 	struct sockaddr_in SocketStruct;
 	struct hostent *HostnameStruct;
 	
@@ -53,7 +53,7 @@ bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescript
 	SocketStruct.sin_family = AF_INET;
 	SocketStruct.sin_port = htons(PortNum);
 	
-	if (connect(*SocketDescriptor_, (void*)&SocketStruct, sizeof SocketStruct) != 0)
+	if (connect(*SocketDescriptor_, (const struct sockaddr*)&SocketStruct, sizeof SocketStruct) != 0)
 	{
 		
 		fprintf(stderr, "Failed to connect to server \"%s\".\n", InHost);
@@ -72,7 +72,7 @@ bool Net_Write(int SockDescriptor, const char *InMsg)
 	do
 	{
 		Transferred = send(SockDescriptor, InMsg, (StringSize - TotalTransferred), 0);
-		if (Transferred == -1) /*This is ugly I know, but it's converted implicitly, so shut up.*/
+		if (Transferred == (unsigned)-1)
 		{
 			return false;
 		}
@@ -92,7 +92,7 @@ bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool Tex
 {
 	int Status = 0;
 	unsigned char Byte = 0;
-	unsigned char *OutStream = OutStream_;
+	unsigned char *OutStream = (unsigned char*)OutStream_;
 	unsigned Inc = 0;
 	
 	*OutStream = '\0';
@@ -113,7 +113,7 @@ bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool Tex
 	
 	if (Status == -1) return false;
 	
-	if (ShowOutput) puts(OutStream_), fflush(stdout);
+	if (ShowOutput) puts((const char*)OutStream_), fflush(stdout);
 	
 	return true;
 }
