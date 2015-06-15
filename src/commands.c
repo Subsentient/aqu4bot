@@ -213,8 +213,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			}
 		}
 	}
-	
-	const char *OIS = InStream;
+		
 	
 	if (*CmdPrefix && !strncmp(InStream, CmdPrefix, strlen(CmdPrefix)))
 	{ /*The prefix matches one of ours.*/
@@ -281,6 +280,8 @@ void CMD_ProcessCommand(const char *InStream_)
 		
 		return;
 	}
+
+	const char *OIS = InStream;
 	
 	SubStrings.CopyUntilC(CommandID, sizeof CommandID, &InStream, "\t ", true);
 	
@@ -298,7 +299,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	}
 	
 	///Check if this command has been disabled.
-	for (unsigned TInc = 0; TInc < sizeof CmdList / sizeof *CmdList; ++TInc)
+	for (int TInc = 0; TInc < sizeof CmdList / sizeof *CmdList; ++TInc)
 	{
 		if (!strcmp(CommandID, CmdList[TInc].CmdName) && !BotOwner && CmdList[TInc].DisableCommand) //Owners can use disabled commands.
 		{ //This command has been explicitly disabled. Do nothing (return)
@@ -541,7 +542,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		
-		SubStrings.CopyUntilC(TailChannel, sizeof TailChannel, (const char**)&Worker, " ", true);
+		SubStrings.CopyUntilC(TailChannel, sizeof TailChannel, (void*)&Worker, " ", true);
 		SubStrings.ASCII.LowerS(TailChannel);
 		
 		if (Worker != NULL)
@@ -617,7 +618,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		}
 		
 		
-		char *NickBuf = (char*)calloc(1, TotalLength);
+		char *NickBuf = calloc(1, TotalLength);
 		//Now we do that processing.
 		
 		Inc = 1;
@@ -728,7 +729,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		/*Count number of commands.*/
 		for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc);
 		
-		CommandList = (char*)malloc((sizeof(CmdList->CmdName) + 10) * Inc + 1);
+		CommandList = malloc((sizeof(CmdList->CmdName) + 10) * Inc + 1);
 		*CommandList = '\0';
 		
 		for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
@@ -824,7 +825,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		if ((Worker = SubStrings.Find("http://", 1, Worker))) Worker += sizeof "http://" - 1;
 		else Worker = *Argument == '\1' ? Argument + 1 : Argument;
 		
-		RecvBuffer = (char*)malloc(MAX_TITLE_DATA_SIZE); //Allocate 2MB. Some platforms like Windows don't appreciate our large arrays on stack.
+		RecvBuffer = malloc(MAX_TITLE_DATA_SIZE); //Allocate 2MB. Some platforms like Windows don't appreciate our large arrays on stack.
 		
 		
 		///Check if it's a known extension we want to ignore.
@@ -860,7 +861,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		for (Inc = 0; Worker + Inc != EndTerminator && Worker[Inc] != '\0' && (unsigned)Inc < sizeof PageTitle - 1; ++Inc)
+		for (Inc = 0; Worker + Inc != EndTerminator && Worker[Inc] != '\0' && Inc < sizeof PageTitle - 1; ++Inc)
 		{ /*Copy in the title.*/
 			PageTitle[Inc] = Worker[Inc];
 		}
@@ -901,7 +902,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			return;
 		}
 		
-		for (Inc = 0; Argument[Inc] != ' ' && Argument[Inc] != '\0' && (unsigned)Inc < sizeof Subcommand - 1; ++Inc)
+		for (Inc = 0; Argument[Inc] != ' ' && Argument[Inc] != '\0' && Inc < sizeof Subcommand - 1; ++Inc)
 		{
 			Subcommand[Inc] = Argument[Inc];
 		}
@@ -1152,7 +1153,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		else
 		{
 			puts("Restarting because 'restart' command was received from owner.");
-			execvp(*_argv, (char *const *)_argv);
+			execvp(*_argv, (void*)_argv);
 			fprintf(stderr, "Failed to restart! execvp() failed!");
 			exit(1);
 		}
@@ -2028,7 +2029,7 @@ bool CMD_ReadTellDB(const char *Target)
 	for (Inc = 0; Target[Inc] != '\0' && Inc < sizeof TargetL - 1; ++Inc) TargetL[Inc] = tolower(Target[Inc]);
 	TargetL[Inc] = '\0';
 	
-	Worker = TellDB = (char*)malloc(FileStat.st_size + 1);
+	Worker = TellDB = malloc(FileStat.st_size + 1);
 	
 	fread(TellDB, 1, FileStat.st_size, Descriptor);
 	fclose(Descriptor);
@@ -2132,7 +2133,7 @@ unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky, bool Private)
 		char Num[128];
 		unsigned TInc = 0, Temp = 0;
 		
-		Worker = StickyDB = (char*)malloc(FileStat.st_size + 1);
+		Worker = StickyDB = malloc(FileStat.st_size + 1);
 		fread(StickyDB, 1, FileStat.st_size, Descriptor);
 		StickyDB[FileStat.st_size] = '\0';
 		
@@ -2172,7 +2173,7 @@ static bool CMD_SearchStickies(const char *SendTo, const char *SearchQuery)
 	
 	if (!Descriptor || stat("db/sticky.db", &FileStat) != 0) return false;
 	
-	char *StickyDB = (char*)malloc(FileStat.st_size + 1);
+	char *StickyDB = malloc(FileStat.st_size + 1);
 	
 	fread(StickyDB, 1, FileStat.st_size, Descriptor);
 	StickyDB[FileStat.st_size] = '\0';
@@ -2246,7 +2247,7 @@ static bool CMD_ListStickies(const char *SendTo)
 		return false;
 	}
 	
-	Worker = StickyDB = (char*)malloc(FileStat.st_size + 1);
+	Worker = StickyDB = malloc(FileStat.st_size + 1);
 	fread(StickyDB, 1, FileStat.st_size, Descriptor);
 	fclose(Descriptor);
 	
@@ -2670,7 +2671,7 @@ static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete)
 	struct stat FileStat;
 	char StickyID_T[32], ATime[32], Owner[128], StickyData[2048];
 	bool Found = false;
-	struct StickySpec *OutSpec = (struct StickySpec*)OutSpec_;
+	struct StickySpec *OutSpec = OutSpec_;
 	
 	if (!Descriptor) return false;
 	
@@ -2680,7 +2681,7 @@ static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete)
 		return false;
 	}
 	
-	StickyDB = Worker = (char*)malloc(FileStat.st_size + 1);
+	StickyDB = Worker = malloc(FileStat.st_size + 1);
 	fread(StickyDB, 1, FileStat.st_size, Descriptor);
 	fclose(Descriptor);
 	StickyDB[FileStat.st_size] = '\0';
@@ -2773,7 +2774,7 @@ void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const ch
 	
 	if (!SeenRoot)
 	{
-		Worker = SeenRoot = (struct _SeenDB*)malloc(sizeof(struct _SeenDB));
+		Worker = SeenRoot = malloc(sizeof(struct _SeenDB));
 		memset(SeenRoot, 0, sizeof(struct _SeenDB));
 	}
 	else
@@ -2816,7 +2817,7 @@ void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const ch
 		
 		for (Worker = SeenRoot; Worker->Next; Worker = Worker->Next);
 		
-		Worker->Next = (struct _SeenDB*)malloc(sizeof(struct _SeenDB));
+		Worker->Next = malloc(sizeof(struct _SeenDB));
 		memset(Worker->Next, 0, sizeof(struct _SeenDB));
 		Worker->Next->Prev = Worker;
 		
@@ -2901,7 +2902,7 @@ void CMD_LoadSeenDB(void) /*Loads it from disk.*/
 		return;
 	}
 	
-	TextWorker = SeenDB = (char*)malloc(FileStat.st_size + 1);
+	TextWorker = SeenDB = malloc(FileStat.st_size + 1);
 	fread(SeenDB, 1, FileStat.st_size, Descriptor);
 	fclose(Descriptor);
 	SeenDB[FileStat.st_size] = '\0';
@@ -2984,14 +2985,14 @@ void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 	
 	if (!UserModeRoot)
 	{
-		Worker = UserModeRoot = (struct UserModeSpec*)malloc(sizeof(struct UserModeSpec));
+		Worker = UserModeRoot = malloc(sizeof(struct UserModeSpec));
 		memset(UserModeRoot, 0, sizeof(struct UserModeSpec));
 	}
 	else
 	{
 		while (Worker->Next) Worker = Worker->Next;
 		
-		Worker->Next = (struct UserModeSpec*)malloc(sizeof(struct UserModeSpec));
+		Worker->Next = malloc(sizeof(struct UserModeSpec));
 		memset(Worker->Next, 0, sizeof(struct UserModeSpec));
 		
 		Worker->Next->Prev = Worker;
@@ -3074,7 +3075,7 @@ bool CMD_LoadUserModes(void)
 	
 	if (stat("db/usermodes.db", &FileStat) != 0) return false;
 	
-	Stream = (char*)malloc(FileStat.st_size + 1);
+	Stream = malloc(FileStat.st_size + 1);
 	
 	fread(Stream, 1, FileStat.st_size, Descriptor);
 	Stream[FileStat.st_size] = '\0';

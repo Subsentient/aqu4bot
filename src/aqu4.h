@@ -26,9 +26,8 @@ See the file UNLICENSE.TXT for more information.
 #define BOT_OS "UNIX"
 #endif
 
-#ifndef __cplusplus
 #include <stdbool.h>
-#endif
+
 /*The commands that are found via IRC.*/
 typedef enum
 {
@@ -52,16 +51,6 @@ typedef enum
 	IMSG_WHO
 } MessageType;
 
-struct _UserList
-{
-	char Nick[128];
-	char Ident[128];
-	char Mask[128];
-	bool FullUser;
-	
-	struct _UserList *Next;
-	struct _UserList *Prev;
-};
 struct ChannelTree
 {
 	char Channel[128];
@@ -72,7 +61,16 @@ struct ChannelTree
 	bool AutoLinkTitle; /*Automatically get link titles?*/
 	bool ExcludeFromLogs; //Do not log this channel at all.
 	
-	struct _UserList *UserList;
+	struct _UserList
+	{
+		char Nick[128];
+		char Ident[128];
+		char Mask[128];
+		bool FullUser;
+		
+		struct _UserList *Next;
+		struct _UserList *Prev;
+	} *UserList;
 	
 	struct ChannelTree *Next;
 	struct ChannelTree *Prev;
@@ -102,14 +100,12 @@ struct AuthTree
 	struct AuthTree *Prev;
 };
 
-enum ArgMode { NOARG, OPTARG, REQARG };
-enum HPerms { ANY, ADMIN, OWNER };
 struct _CmdList
 {
 	char CmdName[64];
 	char HelpString[512];
-	enum ArgMode AM;
-	enum HPerms P;
+	enum ArgMode { NOARG, OPTARG, REQARG } AM;
+	enum HPerms { ANY, ADMIN, OWNER } P;
 	bool DisableCommand;
 };
 

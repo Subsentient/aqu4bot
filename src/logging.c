@@ -50,7 +50,7 @@ bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const
 		return false;
 	}
 	
-	Buf = (char*)malloc(FileStat.st_size + 1);
+	Buf = malloc(FileStat.st_size + 1);
 	
 	fread(Buf, 1, FileStat.st_size, Descriptor);
 	Buf[FileStat.st_size] = '\0';

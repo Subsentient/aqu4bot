@@ -19,9 +19,9 @@ struct HTTPStruct
 
 static size_t _HTTPWriteHandler(void *InStream, size_t SizePerUnit, size_t NumMembers, void *HTTPDesc_)
 {	
-	struct HTTPStruct *HTTPDesc = (struct HTTPStruct*)HTTPDesc_;
+	struct HTTPStruct *HTTPDesc = HTTPDesc_;
 
-	SubStrings.Cat(HTTPDesc->OutStream, (const char*)InStream, HTTPDesc->MaxWriteSize);
+	SubStrings.Cat(HTTPDesc->OutStream, InStream, HTTPDesc->MaxWriteSize);
 
 	return SizePerUnit * NumMembers; /*Just get something to pacify baby.*/
 }
@@ -33,7 +33,7 @@ bool CurlCore_GetHTTP(const char *const URL_, void *const OutStream_, const unsi
 	CURLcode Code;
 	CURL *Curl = NULL;
 	char URL[2048];
-	char *OutStream = (char*)OutStream_;
+	char *OutStream = OutStream_;
 
 	/*Get the correct URL.*/
 	if (!SubStrings.NCompare("http://", sizeof "http://" - 1, URL_) &&

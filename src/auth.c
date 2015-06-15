@@ -34,7 +34,7 @@ bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool B
 	
 	if (!AdminAuths)
 	{
-		Worker = AdminAuths = (struct AuthTree*)malloc(sizeof(struct AuthTree));
+		Worker = AdminAuths = malloc(sizeof(struct AuthTree));
 		memset(AdminAuths, 0, sizeof(struct AuthTree));
 		
 	}
@@ -42,7 +42,7 @@ bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool B
 	{
 		while (Worker->Next != NULL) Worker = Worker->Next;
 		
-		Worker->Next = (struct AuthTree*)malloc(sizeof(struct AuthTree));
+		Worker->Next = malloc(sizeof(struct AuthTree));
 		memset(Worker->Next, 0, sizeof(struct AuthTree));
 		Worker->Next->Prev = Worker;
 		
@@ -222,14 +222,14 @@ bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 	
 	if (!BLCore)
 	{
-		Worker = BLCore = (struct Blacklist*)malloc(sizeof(struct Blacklist));
+		Worker = BLCore = malloc(sizeof(struct Blacklist));
 		memset(BLCore, 0, sizeof(struct Blacklist));
 	}
 	else
 	{
 		while (Worker->Next) Worker = Worker->Next;
 		
-		Worker->Next = (struct Blacklist*)malloc(sizeof(struct Blacklist));
+		Worker->Next = malloc(sizeof(struct Blacklist));
 		memset(Worker->Next, 0, sizeof(struct Blacklist));
 		Worker->Next->Prev = Worker;
 		Worker = Worker->Next;
@@ -262,7 +262,7 @@ void Auth_BlacklistLoad(void)
 	
 	if (stat("db/blacklist.db", &FileStat) != 0) return;
 	
-	Worker = BlacklistDB = (char*)malloc(FileStat.st_size + 1);
+	Worker = BlacklistDB = malloc(FileStat.st_size + 1);
 	
 	fread(BlacklistDB, 1, FileStat.st_size, Descriptor);
 	fclose(Descriptor);

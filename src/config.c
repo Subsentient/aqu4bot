@@ -32,7 +32,7 @@ bool Config_ReadConfig(void)
 	
 	if (stat(CONFIG_FILE, &FileStat) != 0) goto Error;
 	
-	Worker = ConfigStream = (char*)malloc(FileStat.st_size + 1);
+	Worker = ConfigStream = malloc(FileStat.st_size + 1);
 	
 	fread(ConfigStream, 1, FileStat.st_size, Descriptor);
 	ConfigStream[FileStat.st_size] = '\0';
@@ -268,7 +268,7 @@ bool Config_DumpBrain(void)
 	}
 	
 	//Dump current bot admins.
-	fputc(1, Descriptor); //Tells the resume that we are now reading the admins.
+	fputc('\1', Descriptor); //Tells the resume that we are now reading the admins.
 	for (struct AuthTree *Worker = AdminAuths; Worker != NULL; Worker = Worker->Next)
 	{
 		fprintf(Descriptor, "%s!%s@%s %d\n", Worker->Nick, Worker->Ident, Worker->Mask, Worker->BotOwner);
@@ -290,7 +290,7 @@ bool Config_LoadBrain(void)
 	
 	if (stat("brain.resume", &FileStat) != 0) return false;
 
-	char *FileBuf = (char*)malloc(FileStat.st_size + 1);
+	char *FileBuf = malloc(FileStat.st_size + 1);
 	
 	fread(FileBuf, 1, FileStat.st_size, Descriptor);
 	FileBuf[FileStat.st_size] = '\0';
@@ -344,7 +344,7 @@ bool Config_LoadBrain(void)
 	}
 		
 	//Admins.
-	if ((Iter = strchr(FileBuf, 1)) != NULL)
+	if ((Iter = strchr(FileBuf, '\1')) != NULL)
 	{
 		char Nick[sizeof AdminAuths->Nick], Ident[sizeof AdminAuths->Ident], Mask[sizeof AdminAuths->Mask];
 		
