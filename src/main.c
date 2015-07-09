@@ -363,6 +363,19 @@ int main(int argc, char **argv)
 #endif
 			exit(0);
 		}
+		else if (SubStrings.StartsWith("--botrootdir=", argv[Inc]))
+		{
+			const char *const Path = argv[Inc] + strlen("--botrootdir=");
+			
+			if (!*Path)
+			{
+				fprintf(stderr, "No root directory for bot specified.\n");
+			}
+			
+			printf("Bot root directory specified to be \"%s\".\n", Path);
+			
+			chdir(Path);
+		}
 		else
 		{
 			fprintf(stderr, "Bad command line argument \"%s\".\n", argv[Inc]);
@@ -384,15 +397,6 @@ int main(int argc, char **argv)
 		"Compiled " __DATE__ " " __TIME__ "\n");
 	Bot_SetTextColor(ENDCOLOR);
 	
-#ifdef WIN
-	if (stat("db", &DirStat) != 0 && mkdir("db") != 0)
-#else
-	if (stat("db", &DirStat) != 0 && mkdir("db", 0755) != 0)
-#endif
-	{
-		fprintf(stderr, "Unable to create database directory 'db'! Cannot continue!\n");
-		exit(1);
-	}
 #ifndef WIN
 	if (Background)
 	{
@@ -428,6 +432,21 @@ int main(int argc, char **argv)
 	if (!Config_ReadConfig())
 	{
 		return 1;
+	}
+
+
+	if (stat("db", &DirStat) != 0)
+	{
+		printf("Database directory 'db' does not exist. Creating it.\n");
+#ifdef WIN
+		if (mkdir("db") != 0)
+#else
+		if (mkdir("db", 0755) != 0)
+#endif
+		{
+			fprintf(stderr, "Unable to create database directory 'db'! Cannot continue!\n");
+			exit(1);
+		}
 	}
 	
 	if (Config_LoadBrain()) //Restore if we are resuming from a restart.
