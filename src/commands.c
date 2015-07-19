@@ -18,6 +18,7 @@ See the file UNLICENSE.TXT for more information.
 
 //Globals
 char GlobalCmdPrefix[sizeof ((struct ChannelTree*)0)->CmdPrefix] = "$";
+bool NEXUSCompat;
 char HelpGreeting[1024]  = "Hi, I'm aqu4bot, version \"" BOT_VERSION
 						"\", running on " BOT_OS ". "
 						"I'm a bot written in pure C by Subsentient [" ROOT_URL "]. "
@@ -166,7 +167,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	/*Get the nick info from this user.*/
 	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask)) return;
 	
-	if (!strcmp(Nick, ServerInfo.Nick)) return; /*Don't let us order ourselves.*/
+	if (!strcmp(Nick, ServerInfo.Nick) && !NEXUSCompat) return; /*Don't let us order ourselves.*/
 	
 	/*Check authorization.*/
 	IsAdmin = Auth_IsAdmin(Nick, Ident, Mask, &BotOwner);
@@ -440,6 +441,19 @@ void CMD_ProcessCommand(const char *InStream_)
 			NoControlCodes = !NoControlCodes;
 			
 			IRC_Message(SendTo, NoControlCodes ? "Control codes disabled." : "Control codes enabled.");
+			return;
+		}
+		else if (!strcmp(Subcommand, "togglenexuscompat"))
+		{
+			if (!BotOwner)
+			{
+				IRC_Message(SendTo, "You aren't authorized to do that. Only owners.");
+				return;
+			}
+			
+			NEXUSCompat = !NEXUSCompat;
+			
+			IRC_Message(SendTo, NEXUSCompat ? "NEXUS Compatibility enabled" : "NEXUS Compatibility disabled");
 			return;
 		}
 		else if (!strcmp(Subcommand, "togglecmdenabled"))

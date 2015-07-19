@@ -94,6 +94,10 @@ bool Config_ReadConfig(void)
 				
 			}
 		}
+		else if (!strcmp(LineID, "NEXUSCompat"))
+		{
+			NEXUSCompat = !strcmp(LineData, "true");
+		}
 		else if (!strcmp(LineID, "Channel"))
 		{
 			char Chan[sizeof LineData], Prefix[sizeof Chan] = { 0 }, *Worker = Chan;
