@@ -357,9 +357,9 @@ int main(int argc, char **argv)
 		else if (!strcmp(argv[Inc], "--help"))
 		{
 #ifdef WIN
-			puts("Current options are --genconfig and --verbose.");
+			puts("Current options are --genconfig, --botrootdir=, and --verbose.");
 #else
-			puts("Current options are --genconfig, --verbose, and --background.");
+			puts("Current options are --genconfig, --botrootdir=, --verbose, and --background.");
 #endif
 			exit(0);
 		}
