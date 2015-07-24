@@ -374,7 +374,10 @@ int main(int argc, char **argv)
 			
 			printf("Bot root directory specified to be \"%s\".\n", Path);
 			
-			chdir(Path);
+			struct stat Derp;
+			
+			//If it exists, then cd to it. We don't check for errors because of bot restarts.
+			if (stat(Path, &Derp) == 0) chdir(Path);
 		}
 		else
 		{
