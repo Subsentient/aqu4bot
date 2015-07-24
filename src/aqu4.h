@@ -214,4 +214,3 @@ extern bool NoControlCodes;
 extern struct _CmdList CmdList[];
 extern char HelpGreeting[1024];
 extern bool NEXUSCompat;
-extern char BotRootDir[4096];

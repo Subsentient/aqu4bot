@@ -23,7 +23,6 @@ See the file UNLICENSE.TXT for more information.
 bool ShowOutput;
 int _argc;
 char **_argv;
-char BotRootDir[4096] = "";
 
 static void SigHandler(int Signal)
 {
@@ -374,7 +373,7 @@ int main(int argc, char **argv)
 			}
 			
 			printf("Bot root directory specified to be \"%s\".\n", Path);
-			SubStrings.Copy(BotRootDir, Path, sizeof Path);
+			
 			chdir(Path);
 		}
 		else

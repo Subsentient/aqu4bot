@@ -11,7 +11,6 @@ See the file UNLICENSE.TXT for more information.
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #include "substrings/substrings.h"
 #include "aqu4.h"
@@ -287,8 +286,6 @@ bool Config_DumpBrain(void)
 
 bool Config_LoadBrain(void)
 {
-	if (*BotRootDir) chdir(BotRootDir);
-	
 	FILE *Descriptor = fopen("brain.resume", "rb");
 	
 	if (!Descriptor) return false;
