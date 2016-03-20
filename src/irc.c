@@ -644,7 +644,7 @@ bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, con
 	
 			if (!Worker->UserList)
 			{
-				UWorker = Worker->UserList = malloc(sizeof(struct _UserList));
+				UWorker = Worker->UserList = (struct _UserList*)malloc(sizeof(struct _UserList));
 				memset(Worker->UserList, 0, sizeof(struct _UserList));
 			}
 			else
@@ -653,7 +653,7 @@ bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, con
 				
 				while (UWorker->Next) UWorker = UWorker->Next;
 				
-				UWorker->Next = malloc(sizeof(struct _UserList));
+				UWorker->Next = (struct _UserList*)malloc(sizeof(struct _UserList));
 				memset(UWorker->Next, 0, sizeof(struct _UserList));
 				UWorker->Next->Prev = UWorker;
 				
@@ -855,14 +855,14 @@ struct ChannelTree *IRC_AddChannelToTree(const char *const Channel, const char *
 	
 	if (Channels == NULL)
 	{
-		Worker = Channels = malloc(sizeof (struct ChannelTree));
+		Worker = Channels = (struct ChannelTree*)malloc(sizeof (struct ChannelTree));
 		memset(Channels, 0, sizeof(struct ChannelTree));
 	}
 	else
 	{
 		while (Worker->Next != NULL) Worker = Worker->Next;
 		
-		Worker->Next = malloc(sizeof(struct ChannelTree));
+		Worker->Next = (struct ChannelTree*)malloc(sizeof(struct ChannelTree));
 		memset(Worker->Next, 0, sizeof(struct ChannelTree));
 		Worker->Next->Prev = Worker;
 		
@@ -961,7 +961,7 @@ bool IRC_Message(const char *Target, const char *Message)
 	
 	if (NoControlCodes)
 	{
-		char *MessageT = malloc(strlen(Message) + 1);
+		char *MessageT = (char*)malloc(strlen(Message) + 1);
 		
 		/*Copy ourselves a new stream identical but that is guaranteed to be writable.*/
 		SubStrings.Copy(MessageT, Message, strlen(Message) + 1);
