@@ -1,7 +1,7 @@
 CC = gcc
 CXX = g++
 LANGSTD = -std=gnu++98
-
+STRIP = strip
 
 OUTFILE = aqu4bot
 OS = UNIX
@@ -33,6 +33,7 @@ ifeq ($(OS),WIN)
 	CC = i686-w64-mingw32.static-gcc
 	CXX = i686-w64-mingw32.static-g++
 	AQ_OBJECTS = $(AQ_CORE_OBJECTS) ../win32/aqu4bot-win.o
+	STRIP = i686-w64-mingw32.static-strip
 endif
 
 ifeq ($(OS),HAIKU)
@@ -71,7 +72,7 @@ else
 
 endif
 	$(CXX) $(CXXFLAGS) -o ../$(OUTFILE) $(AQ_OBJECTS) substrings/libsubstrings.a $(LDFLAGS)
-
+	$(STRIP) --strip-unneeded ../$(OUTFILE)
 clean:
 	rm -vf *.o
 	$(MAKE) -C substrings clean
