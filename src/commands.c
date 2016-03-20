@@ -21,7 +21,7 @@ char GlobalCmdPrefix[sizeof ((struct ChannelTree*)0)->CmdPrefix] = "$";
 bool NEXUSCompat;
 char HelpGreeting[1024]  = "Hi, I'm aqu4bot, version \"" BOT_VERSION
 						"\", running on " BOT_OS ". "
-						"I'm a bot written in pure C by Subsentient [" ROOT_URL "]. "
+						"I'm a bot written in C++ by Subsentient [" ROOT_URL "]. "
 						"My source code can be found at \"" SOURCECODE_URL "\". "
 						"Try the 'commands' command to get a list of what I can do, "
 						"or try 'help cmd' where 'cmd' is a particular command.";
@@ -155,7 +155,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	monolithic function that does wayyyy too much.*/
 	char Nick[128], Ident[128], Mask[128], Target[128];
 	char CommandID[128], Argument[4096];
-	int Inc = 0;
+	unsigned Inc = 0;
 	const char *SendTo = NULL;
 	const char *InStream = InStream_;
 	bool IsAdmin = false, BotOwner = false;
@@ -1733,7 +1733,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	{
 		struct _UserList *UW = NULL;
 		struct ChannelTree *ChanCore = NULL;
-		int MunchCount = 0, LuckyMunchee = 0, LuckyPooee = 0;
+		unsigned MunchCount = 0, LuckyMunchee = 0, LuckyPooee = 0;
 		char *Munch = NULL, *Poo = NULL;
 		char TempBuf[1024];
 		char NChan[sizeof Channels->Channel];
@@ -2732,7 +2732,7 @@ static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete)
 		
 		StartOfNextLine = Worker + Inc;
 		
-		if (StickyID == atol(StickyID_T))
+		if (StickyID == (unsigned long)atol(StickyID_T))
 		{
 			if (!JustDelete) /*Means we actually want the contents, not deleting.*/
 			{			
@@ -2992,7 +2992,7 @@ void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 					const char *Target, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
-	int Inc = 0;
+	unsigned Inc = 0;
 	
 	if (!Mode) return;
 	
@@ -3030,7 +3030,7 @@ bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, cons
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	char WChannel[128];
-	int Inc = 0;
+	unsigned Inc = 0;
 	
 	if (!UserModeRoot) return false;
 	
@@ -3160,7 +3160,8 @@ void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask,
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	char SendBuf[1024], WChannel[128];
-	int TempDescriptor = SocketDescriptor, Inc = 0;
+	int TempDescriptor = SocketDescriptor;
+	unsigned Inc = 0;
 	
 	for (; Channel[Inc] != '\0' && Inc < sizeof WChannel - 1; ++Inc)
 	{ /*Convert incoming to lowercase.*/

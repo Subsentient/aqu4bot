@@ -33,7 +33,7 @@ bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const
 	FILE *Descriptor = NULL;
 	char Filename[256], *Buf = NULL, *Worker = NULL;
 	struct stat FileStat;
-	unsigned Inc = 0;
+	int Inc = 0;
 	int Lines = 1;
 	
 	snprintf(Filename, sizeof Filename, "logs/%s.txt", ChannelOrNick);
