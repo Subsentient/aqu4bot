@@ -71,7 +71,7 @@ bool Net_Write(int SockDescriptor, const char *InMsg)
 
 	do
 	{
-		Transferred = send(SockDescriptor, InMsg, (StringSize - TotalTransferred), 0);
+		Transferred = send(SockDescriptor, InMsg + TotalTransferred, (StringSize - TotalTransferred), 0);
 		if (Transferred == (unsigned)-1)
 		{
 			return false;
