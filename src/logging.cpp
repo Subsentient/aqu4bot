@@ -25,10 +25,10 @@ bool LogPMs;
 static bool NoLogToConsole;
 
 /*Prototypes.*/
-static bool Log_TopicLog(const char *InStream);
-static bool Log_ModeLog(const char *InStream);
+static bool TopicLog(const char *InStream);
+static bool ModeLog(const char *InStream);
 
-bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const OutStream, const int Capacity)
+bool Log::TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const OutStream, const int Capacity)
 {
 	FILE *Descriptor = NULL;
 	char Filename[256], *Buf = NULL, *Worker = NULL;
@@ -90,7 +90,7 @@ bool Log_TailLog(const char *const ChannelOrNick, int NumLinesToOut, char *const
 	return true;
 }
 			
-bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
+bool Log::CoreWrite(const char *InStream, const char *FileTitle_)
 {
 	char TimeString[128];
 	time_t Time = time(NULL);
@@ -104,7 +104,7 @@ bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 	for (; FileTitle[Inc] != '\0'; ++Inc) FileTitle[Inc] = tolower(FileTitle[Inc]);
 	
 	//Discard any logs that would be written to files we don't want to write to.
-	struct ChannelTree *const TempChan = *FileTitle == '#' ? IRC_GetChannelFromDB(FileTitle_) : NULL;
+	struct ChannelTree *const TempChan = *FileTitle == '#' ? IRC::GetChannelFromDB(FileTitle_) : NULL;
 	
 	if (TempChan && TempChan->ExcludeFromLogs) return true; //Silently bury the data in the dirt.
 	
@@ -148,7 +148,7 @@ bool Log_CoreWrite(const char *InStream, const char *FileTitle_)
 }
 
 
-static bool Log_ModeLog(const char *InStream)
+static bool ModeLog(const char *InStream)
 {
 	char Nick[128], Channel[128], Mode[256];
 	char OutBuf[1024];
@@ -184,12 +184,12 @@ static bool Log_ModeLog(const char *InStream)
 	Mode[Inc] = '\0';
 	
 	snprintf(OutBuf, sizeof OutBuf, "<%s sets mode %s on %s>", Nick, Mode, Channel);
-	Log_CoreWrite(OutBuf, Channel);
+	Log::CoreWrite(OutBuf, Channel);
 	
 	return true;
 }
 
-static bool Log_TopicLog(const char *InStream)
+static bool TopicLog(const char *InStream)
 {
 	char Channel[128], Topic[1024], OutBuf[1024];
 	char *Worker = SubStrings.CFind('#', 1, InStream);
@@ -215,23 +215,23 @@ static bool Log_TopicLog(const char *InStream)
 	
 	snprintf(OutBuf, sizeof OutBuf, "<Topic for %s is \"%s\">", Channel, Topic);
 	
-	Log_CoreWrite(OutBuf, Channel);
+	Log::CoreWrite(OutBuf, Channel);
 	
 	return true;
 }
 	
 	
-bool Log_WriteMsg(const char *InStream, MessageType MType)
+bool Log::WriteMsg(const char *InStream, MessageType MType)
 {
 	char OutBuf[2048], Origin[2048], Message[2048];
 	char Nick[128], Ident[128], Mask[128], *Worker = Origin;
 	
-	if (MType == IMSG_TOPIC) return Log_TopicLog(InStream);
-	else if (MType == IMSG_MODE) return Log_ModeLog(InStream);
+	if (MType == IMSG_TOPIC) return TopicLog(InStream);
+	else if (MType == IMSG_MODE) return ModeLog(InStream);
 	
-	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask) || !*Nick || !*Ident || !*Mask) return true;
+	if (!IRC::BreakdownNick(InStream, Nick, Ident, Mask) || !*Nick || !*Ident || !*Mask) return true;
 		
-	IRC_GetMessageData(InStream, Origin);
+	IRC::GetMessageData(InStream, Origin);
 	
 	
 	if (MType != IMSG_JOIN && MType != IMSG_QUIT && MType != IMSG_NICK && MType != IMSG_PART)
@@ -298,15 +298,15 @@ bool Log_WriteMsg(const char *InStream, MessageType MType)
 			
 			if (!Channels)
 			{
-				Log_CoreWrite(OutBuf, Nick);
+				Log::CoreWrite(OutBuf, Nick);
 				return true;
 			}
 			
 			for (; Worker; Worker = Worker->Next)
 			{
-				if (IRC_UserInChannelP(Worker, Nick))
+				if (IRC::UserInChannelP(Worker, Nick))
 				{
-					Log_CoreWrite(OutBuf, Worker->Channel);
+					Log::CoreWrite(OutBuf, Worker->Channel);
 					NoLogToConsole = true;
 				}
 			}
@@ -318,7 +318,7 @@ bool Log_WriteMsg(const char *InStream, MessageType MType)
 			return false;
 	}
 
-	Log_CoreWrite(OutBuf, *Origin == '#' ? Origin : Nick);
+	Log::CoreWrite(OutBuf, *Origin == '#' ? Origin : Nick);
 	
 	return true;
 }

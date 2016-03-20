@@ -31,12 +31,12 @@ static void SigHandler(int Signal)
 		case SIGTERM:
 		case SIGINT:
 			puts(Signal == SIGINT ? "Caught SIGINT, shutting down." : "Caught SIGTERM, shutting down.");
-			IRC_Quit(NULL);
-			IRC_ShutdownChannelTree();
-			Auth_ShutdownAdmin();
-			CMD_SaveSeenDB();
-			CMD_SaveUserModes();
-			Auth_ShutdownBlacklist();
+			IRC::Quit(NULL);
+			IRC::ShutdownChannelTree();
+			Auth::ShutdownAdmin();
+			CMD::SaveSeenDB();
+			CMD::SaveUserModes();
+			Auth::ShutdownBlacklist();
 			exit(0);
 			break;
 		default:
@@ -45,7 +45,7 @@ static void SigHandler(int Signal)
 }
 
 #ifndef NOSOCKETINHERIT
-bool Main_SaveSocket(const char *OkMessageTarget)
+bool Main::SaveSocket(const char *OkMessageTarget)
 { //Writes the socket to config.
 	FILE *Descriptor = fopen("aqu4bot.socket", "wb");
 	
@@ -61,7 +61,7 @@ bool Main_SaveSocket(const char *OkMessageTarget)
 	return true;
 }
 
-static bool Main_ResumeFromSocket(void)
+static bool ResumeFromSocket(void)
 { //Resumes our session from a socket.
 	FILE *Descriptor = fopen("aqu4bot.socket", "rb");
 	char OkMessageTarget[128];
@@ -86,23 +86,23 @@ static bool Main_ResumeFromSocket(void)
 	//Delete the file.
 	remove("aqu4bot.socket");
 	
-	IRC_Message(OkMessageTarget, "New aqu4bot instance loaded. Rebuilding list of users in channels. Please wait...");
+	IRC::Message(OkMessageTarget, "New aqu4bot instance loaded. Rebuilding list of users in channels. Please wait...");
 	
 	char OutBuf[1024];
 	//Now we need to send a names request to every channel to repopulate the user lists.
 	for (struct ChannelTree *Worker = Channels; Worker; Worker = Worker->Next)
 	{
 		snprintf(OutBuf, sizeof OutBuf, "WHO %s\r\n", Worker->Channel);
-		Net_Write(SocketDescriptor, OutBuf);
+		Net::Write(SocketDescriptor, OutBuf);
 	}
 	
 	//Now send our I'm ok mommy speech.
-	IRC_Message(OkMessageTarget, "Restart completed.");
+	IRC::Message(OkMessageTarget, "Restart completed.");
 	return true;
 }
 
 #endif //NOSOCKETINHERIT
-static bool Main_GenConfig(void)
+static bool GenConfig(void)
 {
 	FILE *Descriptor = NULL;
 	char LineBuf[4096], CurChan[128], *Worker = LineBuf;
@@ -213,7 +213,7 @@ OwnerGet:
 	
 	fgets(LineBuf, sizeof LineBuf, stdin); LineBuf[strlen(LineBuf) - 1] = '\0';
 	
-	if (!IRC_BreakdownNick(LineBuf, Nick, Ident, Mask))
+	if (!IRC::BreakdownNick(LineBuf, Nick, Ident, Mask))
 	{
 		puts("That's not a valid vhost. Try again.");
 		goto OwnerGet;
@@ -233,9 +233,9 @@ OwnerGet:
 	
 	if (stat(OutPath, &FileStat) == 0)
 	{
-		Bot_SetTextColor(YELLOW);
+		Main::SetTextColor(YELLOW);
 		printf("WARNING: ");
-		Bot_SetTextColor(ENDCOLOR);
+		Main::SetTextColor(ENDCOLOR);
 		
 		printf("The config file \"%s\" already exists! Overwrite it?\n"
 			"Please enter y or n\n--> ", OutPath);
@@ -249,15 +249,15 @@ OwnerGet:
 		}
 	}
 	
-	Bot_SetTextColor(YELLOW);
+	Main::SetTextColor(YELLOW);
 	printf("Writing config file to \"%s\"...\n", OutPath);
-	Bot_SetTextColor(ENDCOLOR);
+	Main::SetTextColor(ENDCOLOR);
 	
 	if (!(Descriptor = fopen(OutPath, "w")))
 	{
-		Bot_SetTextColor(RED);
+		Main::SetTextColor(RED);
 		puts("\nFailed to save config file!");
-		Bot_SetTextColor(ENDCOLOR);
+		Main::SetTextColor(ENDCOLOR);
 		
 		puts("Make sure it's a valid location,\nand that you have permission to write there.");
 		return false;
@@ -277,9 +277,9 @@ OwnerGet:
 	
 	fflush(NULL); fclose(Descriptor);
 	
-	Bot_SetTextColor(GREEN);
+	Main::SetTextColor(GREEN);
 	puts("Done!");
-	Bot_SetTextColor(ENDCOLOR);
+	Main::SetTextColor(ENDCOLOR);
 	
 	return true;
 }
@@ -315,7 +315,7 @@ int main(int argc, char **argv)
 		
 		if (MBReturn == IDYES)
 		{
-			Main_GenConfig();
+			GenConfig();
 			puts("Press any key to exit.");
 			getchar();
 			exit(0);
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
 		}
 		else if (!strcmp(argv[Inc], "--genconfig"))
 		{ /*Config file builder.*/
-			exit(!Main_GenConfig());
+			exit(!GenConfig());
 		}	
 #ifndef WIN
 		else if (!strcmp(argv[Inc], "--background"))
@@ -395,10 +395,10 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	Bot_SetTextColor(CYAN);
+	Main::SetTextColor(CYAN);
 	puts("aqu4bot " BOT_VERSION " (" BOT_OS ") starting up.\n"
 		"Compiled " __DATE__ " " __TIME__ "\n");
-	Bot_SetTextColor(ENDCOLOR);
+	Main::SetTextColor(ENDCOLOR);
 	
 #ifndef WIN
 	if (Background)
@@ -432,7 +432,7 @@ int main(int argc, char **argv)
 		}
 	}
 #endif
-	if (!Config_ReadConfig())
+	if (!Config::ReadConfig())
 	{
 		return 1;
 	}
@@ -452,37 +452,37 @@ int main(int argc, char **argv)
 		}
 	}
 	
-	if (Config_LoadBrain()) //Restore if we are resuming from a restart.
+	if (Config::LoadBrain()) //Restore if we are resuming from a restart.
 	{
 		fputs("Resuming session from brain.resume.\n", stderr);
 	}
 
 #ifndef NOSOCKETINHERIT
-	if (Main_ResumeFromSocket())
+	if (ResumeFromSocket())
 	{
 		fputs("Loaded saved socket descriptor. Resuming session.\n", stderr);
 	}
 	else
 #endif
-	if (!IRC_Connect()) return 1;
+	if (!IRC::Connect()) return 1;
 	
 	/*Load the seen command data.*/
-	CMD_LoadSeenDB();
+	CMD::LoadSeenDB();
 	
 	/*Load the blacklist data.*/
-	Auth_BlacklistLoad();
+	Auth::BlacklistLoad();
 	
 	/*Load user modes.*/
-	CMD_LoadUserModes();
+	CMD::LoadUserModes();
 	
 	/*The main IRC loop.*/
-	IRC_Loop();
+	IRC::Loop();
 	
 	return 0;
 }
 
 
-void Bot_SetTextColor(ConsoleColor Color)
+void Main::SetTextColor(ConsoleColor Color)
 {
 #ifndef WIN
 	printf("\033[%dm", Color);

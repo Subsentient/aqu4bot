@@ -26,11 +26,11 @@ static struct Blacklist
 	struct Blacklist *Prev;
 } *BLCore;
 
-bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool BotOwner)
+bool Auth::AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool BotOwner)
 {
 	struct AuthTree *Worker = AdminAuths;
 	
-	if (Auth_IsAdmin(Nick, Ident, Mask, NULL)) return false;
+	if (Auth::IsAdmin(Nick, Ident, Mask, NULL)) return false;
 	
 	if (!AdminAuths)
 	{
@@ -58,7 +58,7 @@ bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool B
 	return true;
 }
 
-bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, bool OwnersToo)
+bool Auth::DelAdmin(const char *Nick, const char *Ident, const char *Mask, bool OwnersToo)
 {
 	struct AuthTree *Worker = AdminAuths;
 	bool Success = false;
@@ -97,26 +97,26 @@ bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, bool O
 	return Success;
 }
 
-void Auth_ListAdmins(const char *SendTo)
+void Auth::ListAdmins(const char *SendTo)
 {
 	struct AuthTree *Worker = AdminAuths;
 	char OutBuf[2048];
 	int Count = 1;
 	
-	IRC_Message(SendTo, "List of admins:");
+	IRC::Message(SendTo, "List of admins:");
 	
 	for (; Worker; Worker = Worker->Next, ++Count)
 	{
 		snprintf(OutBuf, sizeof OutBuf, "[%d] (%s) %s!%s@%s", Count, 
 				Worker->BotOwner ? "\0034OWNER\003" : "\0038ADMIN\003", *Worker->Nick ? Worker->Nick : "*",
 				*Worker->Ident ? Worker->Ident : "*", *Worker->Mask ? Worker->Mask : "*");
-		IRC_Message(SendTo, OutBuf);
+		IRC::Message(SendTo, OutBuf);
 	}
 	
-	IRC_Message(SendTo, "End of list.");
+	IRC::Message(SendTo, "End of list.");
 }
 
-void Auth_ShutdownAdmin(void)
+void Auth::ShutdownAdmin(void)
 {
 	struct AuthTree *Worker = AdminAuths, *Del = NULL;
 	
@@ -129,7 +129,7 @@ void Auth_ShutdownAdmin(void)
 	AdminAuths = NULL;
 }
 
-bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, bool *BotOwner)
+bool Auth::IsAdmin(const char *Nick, const char *Ident, const char *Mask, bool *BotOwner)
 {
 	struct AuthTree *Worker = AdminAuths;
 	
@@ -152,7 +152,7 @@ bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, bool *B
 /*Beyond this point, stuff for blacklisting.*/
 
 
-bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask)
+bool Auth::BlacklistDel(const char *Nick, const char *Ident, const char *Mask)
 {
 	struct Blacklist *Worker = BLCore;
 	bool Success = false;
@@ -189,11 +189,11 @@ bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask)
 		}
 	}
 	
-	Auth_BlacklistSave();
+	Auth::BlacklistSave();
 	return Success;
 }
 
-bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask)
+bool Auth::IsBlacklisted(const char *Nick, const char *Ident, const char *Mask)
 {
 	struct Blacklist *Worker = BLCore;
 	
@@ -212,13 +212,13 @@ bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask)
 	return false;
 }
 
-bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
+bool Auth::BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 {
 	struct Blacklist *Worker = BLCore;
 	
-	if (Auth_IsAdmin(Nick, Ident, Mask, NULL)) return false;
+	if (Auth::IsAdmin(Nick, Ident, Mask, NULL)) return false;
 	
-	if (Auth_IsBlacklisted(Nick, Ident, Mask)) return false;
+	if (Auth::IsBlacklisted(Nick, Ident, Mask)) return false;
 	
 	if (!BLCore)
 	{
@@ -246,11 +246,11 @@ bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask)
 	Worker->Mask[sizeof Worker->Mask - 1] = '\0';
 
 
-	Auth_BlacklistSave();
+	Auth::BlacklistSave();
 	return true;
 }
 
-void Auth_BlacklistLoad(void)
+void Auth::BlacklistLoad(void)
 {
 	FILE *Descriptor = fopen("db/blacklist.db", "rb");
 	char *BlacklistDB = NULL, *Worker = NULL;
@@ -276,13 +276,13 @@ void Auth_BlacklistLoad(void)
 		}
 		CurLine[Inc] = '\0';
 		
-		if (!IRC_BreakdownNick(CurLine, Nick, Ident, Mask))
+		if (!IRC::BreakdownNick(CurLine, Nick, Ident, Mask))
 		{
 			fprintf(stderr, "Bad blacklist in db/blacklist.db");
 			continue;
 		}
 		
-		if (!Auth_BlacklistAdd(Nick, Ident, Mask))
+		if (!Auth::BlacklistAdd(Nick, Ident, Mask))
 		{
 			fprintf(stderr, "Unable to add blacklist %s!%s@%s", Nick, Ident, Mask);
 			continue;
@@ -292,7 +292,7 @@ void Auth_BlacklistLoad(void)
 	free(BlacklistDB);
 }
 
-bool Auth_BlacklistSave(void)
+bool Auth::BlacklistSave(void)
 {
 	FILE *Descriptor = NULL;
 	struct Blacklist *Worker = BLCore;
@@ -317,7 +317,7 @@ bool Auth_BlacklistSave(void)
 	return true;
 }
 	
-void Auth_BlacklistSendList(const char *SendTo)
+void Auth::BlacklistSendList(const char *SendTo)
 {
 	char OutBuf[2048];
 	struct Blacklist *Worker = BLCore;
@@ -325,7 +325,7 @@ void Auth_BlacklistSendList(const char *SendTo)
 	
 	if (!BLCore)
 	{
-		IRC_Message(SendTo, "No blacklisted vhosts exist.");
+		IRC::Message(SendTo, "No blacklisted vhosts exist.");
 		return;
 	}
 	
@@ -333,18 +333,18 @@ void Auth_BlacklistSendList(const char *SendTo)
 	
 	snprintf(OutBuf, sizeof OutBuf, "%d blacklisted vhosts found:", Count);
 	
-	IRC_Message(SendTo, OutBuf);
+	IRC::Message(SendTo, OutBuf);
 	
 	for (Count = 1, Worker = BLCore; Worker; Worker = Worker->Next, ++Count)
 	{
 		snprintf(OutBuf, sizeof OutBuf, "[%d] %s!%s@%s", Count, Worker->Nick, Worker->Ident, Worker->Mask);
-		IRC_Message(SendTo, OutBuf);
+		IRC::Message(SendTo, OutBuf);
 	}
 	
-	IRC_Message(SendTo, "End of blacklist list.");
+	IRC::Message(SendTo, "End of blacklist list.");
 }
 	
-void Auth_ShutdownBlacklist(void)
+void Auth::ShutdownBlacklist(void)
 {
 	struct Blacklist *Worker = BLCore, *Del;
 	
