@@ -99,7 +99,7 @@ bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool Tex
 	
 	do
 	{
-		Status = recv(SockDescriptor, (void*)&Byte, 1, 0);
+		Status = recv(SockDescriptor, (char*)&Byte, 1, 0);
 		if (TextStream && Byte == '\n') break;
 		
 		*OutStream++ = Byte;

@@ -24,14 +24,14 @@ ifeq ($(OS),WIN)
 		LDFLAGS = -lws2_32
 		CXXFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS="\"Windows (without libcurl)\"" -DNO_LIBCURL -static
 	else
-		LDFLAGS = -lws2_32 `i686-pc-mingw32-pkg-config --libs libcurl` -static
+		LDFLAGS = -lws2_32 `i686-w64-mingw32.static-pkg-config --libs libcurl` -static
 		CXXFLAGS =  $(LANGSTD) -pedantic -Wall -g3 -O0 -DWIN -DBOT_OS=\"Windows\" -DCURL_STATICLIB
 	endif
 
 	OUTFILE = aqu4bot.exe
-	RANLIB = i686-pc-mingw32-ranlib
-	CC = i686-pc-mingw32-gcc
-	CXX = i686-pc-mingw32-g++
+	RANLIB = i686-w64-mingw32.static-ranlib
+	CC = i686-w64-mingw32.static-gcc
+	CXX = i686-w64-mingw32.static-g++
 	AQ_OBJECTS = $(AQ_CORE_OBJECTS) ../win32/aqu4bot-win.o
 endif
 
@@ -49,7 +49,7 @@ endif
 all:
 
 ifeq ($(OS),WIN)
-	$(MAKE) -C ../win32
+	$(MAKE) -C ../win32 WINDRES=i686-w64-mingw32.static-windres
 endif
 	$(CXX) auth.cpp -c $(CXXFLAGS)
 	$(CXX) commands.cpp -c $(CXXFLAGS)
