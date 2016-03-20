@@ -51,17 +51,17 @@ all:
 ifeq ($(OS),WIN)
 	$(MAKE) -C ../win32
 endif
-	$(CXX) auth.c -c $(CXXFLAGS)
-	$(CXX) commands.c -c $(CXXFLAGS)
-	$(CXX) config.c -c $(CXXFLAGS)
-	$(CXX) irc.c -c $(CXXFLAGS)
-	$(CXX) logging.c -c $(CXXFLAGS)
-	$(CXX) main.c -c $(CXXFLAGS)
-	$(CXX) netcore.c -c $(CXXFLAGS)
-	$(CXX) wz.c -c $(CXXFLAGS)
+	$(CXX) auth.cpp -c $(CXXFLAGS)
+	$(CXX) commands.cpp -c $(CXXFLAGS)
+	$(CXX) config.cpp -c $(CXXFLAGS)
+	$(CXX) irc.cpp -c $(CXXFLAGS)
+	$(CXX) logging.cpp -c $(CXXFLAGS)
+	$(CXX) main.cpp -c $(CXXFLAGS)
+	$(CXX) netcore.cpp -c $(CXXFLAGS)
+	$(CXX) wz.cpp -c $(CXXFLAGS)
 ifneq ($(USECURL),NO)
-	$(CXX) curlcore.c -c $(CXXFLAGS)
-	$(CXX) ddg.c -c $(CXXFLAGS)
+	$(CXX) curlcore.cpp -c $(CXXFLAGS)
+	$(CXX) ddg.cpp -c $(CXXFLAGS)
 endif
 
 ifeq ($(OS),WIN)
