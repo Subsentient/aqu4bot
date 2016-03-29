@@ -28,6 +28,9 @@ See the file UNLICENSE.TXT for more information.
 
 #ifndef __cplusplus
 #include <stdbool.h>
+#else
+extern "C"
+{
 #endif
 /*The commands that are found via IRC.*/
 typedef enum
@@ -218,3 +221,7 @@ extern bool NoControlCodes;
 extern struct _CmdList CmdList[];
 extern char HelpGreeting[1024];
 extern bool NEXUSCompat;
+
+#ifdef __cplusplus
+}
+#endif
