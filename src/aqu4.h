@@ -118,22 +118,22 @@ struct _CmdList
 
 typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCOLOR = 0 } ConsoleColor;
 
-/*main.c*/
+/*main.cpp*/
 void Bot_SetTextColor(ConsoleColor Color);
 bool Main_SaveSocket(const char *OkMessageTarget);
 
-/*config.c*/
+/*config.cpp*/
 bool Config_ReadConfig(void);
 bool Config_LoadBrain(void);
 bool Config_DumpBrain(void);
 
-/*netcore.c*/
+/*netcore.cpp*/
 bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);
 bool Net_Write(int SockDescriptor, const char *InMsg);
 bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool TextStream);
 bool Net_Disconnect(int SockDescriptor);
 
-/*irc.c*/
+/*irc.cpp*/
 bool IRC_Connect(void);
 void IRC_Loop(void);
 bool IRC_Quit(const char *QuitMSG);
@@ -161,7 +161,7 @@ struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel);
 bool IRC_StripControlCodes(char *Stream);
 struct _UserList *IRC_GetUserInChannel(const char *const ChannelName, const char *Nick_);
 
-/*commands.c*/
+/*commands.cpp*/
 void CMD_ProcessCommand(const char *InStream);
 bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message);
 bool CMD_ReadTellDB(const char *Target);
@@ -177,7 +177,7 @@ bool CMD_SaveUserModes(void);
 void CMD_ListUserModes(const char *SendTo);
 void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel);
 
-/*auth.c*/
+/*auth.cpp*/
 bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool BotOwner);
 bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, bool OwnersToo);
 bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, bool *BotOwner);
@@ -191,18 +191,18 @@ void Auth_BlacklistLoad(void);
 bool Auth_BlacklistSave(void);
 void Auth_BlacklistSendList(const char *SendTo);
 
-/*logging.c*/
+/*logging.cpp*/
 bool Log_WriteMsg(const char *InStream, MessageType MType);
 bool Log_CoreWrite(const char *InStream, const char *FileTitle);
 bool Log_TailLog(const char *const ChannelOrNick, const int NumLinesToOut, char *const OutStream, const int Capacity);
 
-/*wz.c*/
+/*wz.cpp*/
 bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy);
 
-/*ddg.c*/
+/*ddg.cpp*/
 bool DDG_Query(const char *Search, const char *SendTo);
 
-/*curlcore.c*/
+/*curlcore.cpp*/
 bool CurlCore_GetHTTP(const char *const URL, void *const OutStream, const unsigned MaxOutBytes);
 
 /*Various globals.*/
