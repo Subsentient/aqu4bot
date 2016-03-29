@@ -15,7 +15,7 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-bool Config::ReadConfig(void)
+bool Config_ReadConfig(void)
 {
 	FILE *Descriptor = fopen(CONFIG_FILE, "r");
 	char *ConfigStream = NULL;
@@ -110,9 +110,9 @@ bool Config::ReadConfig(void)
 				
 				if (!*Worker)
 				{
-					Main::SetTextColor(RED);
+					Bot_SetTextColor(RED);
 					putc('*', stderr);
-					Main::SetTextColor(ENDCOLOR);
+					Bot_SetTextColor(ENDCOLOR);
 					
 					fprintf(stderr, " Bad channel prefix value \"%s\" in config, line %u.\n", Prefix, LineNum);
 				}
@@ -143,16 +143,16 @@ bool Config::ReadConfig(void)
 					AutoLinkTitle = true;
 				}
 				
-				struct ChannelTree *NewChannel = IRC::AddChannelToTree(ToChannel, TPrefix);
+				struct ChannelTree *NewChannel = IRC_AddChannelToTree(ToChannel, TPrefix);
 				
 				NewChannel->AutoLinkTitle = AutoLinkTitle;
 				NewChannel->ExcludeFromLogs = ExcludeFromLogs;
 			}
 			else
 			{
-				Main::SetTextColor(RED);
+				Bot_SetTextColor(RED);
 				putc('*', stderr);
-				Main::SetTextColor(ENDCOLOR);
+				Bot_SetTextColor(ENDCOLOR);
 				
 				fprintf(stderr, " Bad channel value \"%s\" in config, line %u.\n", Chan, LineNum);
 			}
@@ -170,13 +170,13 @@ bool Config::ReadConfig(void)
 			char Nick[128], Ident[128], Mask[128];
 			bool BotOwner = !strcmp(LineID, "BotOwner");
 			
-			if (!IRC::BreakdownNick(LineData, Nick, Ident, Mask))
+			if (!IRC_BreakdownNick(LineData, Nick, Ident, Mask))
 			{
 				fprintf(stderr, "Invalid vhost format, line %u\n", LineNum);
 				return false;
 			}
 
-			if (!Auth::AddAdmin(Nick, Ident, Mask, BotOwner))
+			if (!Auth_AddAdmin(Nick, Ident, Mask, BotOwner))
 			{
 				fprintf(stderr, "Failed to add admin, line %u\n", LineNum);
 				return false;
@@ -219,9 +219,9 @@ bool Config::ReadConfig(void)
 		}
 		else
 		{
-			Main::SetTextColor(RED);
+			Bot_SetTextColor(RED);
 			putc('*', stderr);
-			Main::SetTextColor(ENDCOLOR);
+			Bot_SetTextColor(ENDCOLOR);
 			
 			fprintf(stderr, " Bad value in config, at line %u.\n", LineNum);
 			continue;
@@ -250,7 +250,7 @@ Error:
 }
 
 
-bool Config::DumpBrain(void)
+bool Config_DumpBrain(void)
 { //Dumps restore state for resuming from a restart.
 	FILE *Descriptor = fopen("brain.resume", "wb");
 
@@ -284,7 +284,7 @@ bool Config::DumpBrain(void)
 	return true;
 }
 
-bool Config::LoadBrain(void)
+bool Config_LoadBrain(void)
 {
 	FILE *Descriptor = fopen("brain.resume", "rb");
 	
@@ -303,7 +303,7 @@ bool Config::LoadBrain(void)
 	
 	
 	//Destroy any existing channel tree to prevent channels reported joined that are not.
-	IRC::ShutdownChannelTree();
+	IRC_ShutdownChannelTree();
 	
 	char CurrentLine[2048];
 	const char *Iter = FileBuf;
@@ -342,7 +342,7 @@ bool Config::LoadBrain(void)
 		}
 		
 		//Add the channel.
-		struct ChannelTree *Ret = IRC::AddChannelToTree(Channel, Prefix);
+		struct ChannelTree *Ret = IRC_AddChannelToTree(Channel, Prefix);
 		Ret->AutoLinkTitle = AutoLinkTitle;
 		Ret->ExcludeFromLogs = ExcludeFromLogs;
 	}
@@ -356,11 +356,11 @@ bool Config::LoadBrain(void)
 		
 		while (SubStrings.Line.GetLine(CurrentLine, sizeof CurrentLine, &Iter))
 		{
-			IRC::BreakdownNick(CurrentLine, Nick, Ident, Mask); //Get the nick.
+			IRC_BreakdownNick(CurrentLine, Nick, Ident, Mask); //Get the nick.
 			
 			bool BotOwner = atoi(strchr(CurrentLine, ' ') + 1);
 	
-			Auth::AddAdmin(Nick, Ident, Mask, BotOwner);
+			Auth_AddAdmin(Nick, Ident, Mask, BotOwner);
 		}
 	}
 	

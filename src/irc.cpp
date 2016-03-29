@@ -24,20 +24,20 @@ struct _ServerInfo ServerInfo;
 struct ChannelTree *Channels;
 bool NoControlCodes;
 
-void IRC::Loop(void)
+void IRC_Loop(void)
 { /*Most of the action is triggered here.*/
 	char MessageBuf[2048];
 	char Nick[128], Ident[128], Mask[128];
 	
 	while (1)
 	{
-		if (!Net::Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true))
-		{ /*No command should ever call Net::Read() besides us and the connecting stuff that comes before us.*/
+		if (!Net_Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true))
+		{ /*No command should ever call Net_Read() besides us and the connecting stuff that comes before us.*/
 			int MaxTry = 0;
 			
-			Main::SetTextColor(RED);
+			Bot_SetTextColor(RED);
 			puts("CONNECTION LOST");
-			Main::SetTextColor(ENDCOLOR);
+			Bot_SetTextColor(ENDCOLOR);
 			
 			do
 			{
@@ -51,30 +51,30 @@ void IRC::Loop(void)
 				}
 				SocketDescriptor = 0;
 
-				Main::SetTextColor(GREEN);
+				Bot_SetTextColor(GREEN);
 				puts("Attempting to reconnect...");
-				Main::SetTextColor(ENDCOLOR);
+				Bot_SetTextColor(ENDCOLOR);
 				
-				if (IRC::Connect())
+				if (IRC_Connect())
 				{
-					Main::SetTextColor(GREEN);
+					Bot_SetTextColor(GREEN);
 					printf("\nConnection reestablished after %d attempts.\n", MaxTry + 1);
-					Main::SetTextColor(ENDCOLOR);
+					Bot_SetTextColor(ENDCOLOR);
 					break;
 				}
 				else
 				{
-					Main::SetTextColor(RED);
+					Bot_SetTextColor(RED);
 					printf("\nReconnect attempt %d failed.\n", MaxTry + 1);
-					Main::SetTextColor(ENDCOLOR);
+					Bot_SetTextColor(ENDCOLOR);
 				}
 			} while (++MaxTry, MaxTry < 3);
 			
 			if (MaxTry == 3)
 			{
-				Main::SetTextColor(RED);
+				Bot_SetTextColor(RED);
 				puts("** After three attempts, cannot reconnect to IRC server! Shutting down. **");
-				Main::SetTextColor(ENDCOLOR);
+				Bot_SetTextColor(ENDCOLOR);
 				
 				if (SocketDescriptor)
 				{
@@ -88,18 +88,18 @@ void IRC::Loop(void)
 			}
 		}
 		
-		if (!strncmp(MessageBuf, "PING ", strlen("PING "))) IRC::Pong(MessageBuf); /*Respond to pings.*/
+		if (!strncmp(MessageBuf, "PING ", strlen("PING "))) IRC_Pong(MessageBuf); /*Respond to pings.*/
 		
-		switch (IRC::GetMessageType(MessageBuf))
+		switch (IRC_GetMessageType(MessageBuf))
 		{
 			case IMSG_PRIVMSG:
 			{
 				char MessageData[2048], *TC = NULL, Channel[128];
 				unsigned Inc = 0;
 								
-				if (!IRC::BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
-				IRC::GetMessageData(MessageBuf, MessageData);
+				IRC_GetMessageData(MessageBuf, MessageData);
 				
 				for (; MessageData[Inc] != ' ' && MessageData[Inc] && Inc < sizeof Channel - 1; ++Inc)
 				{
@@ -108,11 +108,11 @@ void IRC::Loop(void)
 				}
 				Channel[Inc] = '\0';
 				
-				IRC::CompleteChannelUser(Nick, Ident, Mask); /*In case we only have the nick available.*/
+				IRC_CompleteChannelUser(Nick, Ident, Mask); /*In case we only have the nick available.*/
 				
-				if (Auth::IsBlacklisted(Nick, Ident, Mask)) continue; /*Says "you are not going to be listened to bud.*/
+				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue; /*Says "you are not going to be listened to bud.*/
 				
-				if (strcmp(Nick, ServerInfo.Nick) != 0) Log::WriteMsg(MessageBuf, IMSG_PRIVMSG);
+				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_PRIVMSG);
 								
 				TC = strchr(MessageData, ' ') + 1;
 				
@@ -120,60 +120,60 @@ void IRC::Loop(void)
 				
 				if (!strcmp(TC, "\1VERSION\1"))
 				{ /*CTCP VERSION request*/
-					IRC::Notice(Nick, "\01VERSION aqu4bot " BOT_VERSION ", compiled " __DATE__ " " __TIME__ "\01");
+					IRC_Notice(Nick, "\01VERSION aqu4bot " BOT_VERSION ", compiled " __DATE__ " " __TIME__ "\01");
 				}
 				else if (!strncmp(TC, "\1PING", sizeof "\1PING" - 1))
 				{ /*CTCP PING request.*/
-					IRC::Notice(Nick, TC); /*The protocol wants us to send the same thing back as a notice.*/
+					IRC_Notice(Nick, TC); /*The protocol wants us to send the same thing back as a notice.*/
 				}
 				else
 				{ /*Normal PRIVMSG.*/
 					if (strncmp(TC, "\1ACTION", sizeof "\1ACTION" - 1) != 0)
 					{ /*Only process commands that aren't some warped /me message*/		
-						CMD::ProcessCommand(MessageBuf);
+						CMD_ProcessCommand(MessageBuf);
 					}
 					
 					if (strcmp(Nick, ServerInfo.Nick) != 0)
 					{ /*Don't update the seen database for ourselves.*/
-						CMD::UpdateSeenDB(time(NULL), Nick, Channel, TC);
+						CMD_UpdateSeenDB(time(NULL), Nick, Channel, TC);
 					}
 				}
 				break;
 			}
 			case IMSG_NOTICE:
-				if (!IRC::BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
-				if (Auth::IsBlacklisted(Nick, Ident, Mask)) continue;
+				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue;
 				
-				if (strcmp(Nick, ServerInfo.Nick) != 0) Log::WriteMsg(MessageBuf, IMSG_NOTICE);
+				if (strcmp(Nick, ServerInfo.Nick) != 0) Log_WriteMsg(MessageBuf, IMSG_NOTICE);
 				
 				break;				
 			case IMSG_INVITE:
 			{
-				if (!IRC::BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
-				if (Auth::IsBlacklisted(Nick, Ident, Mask)) continue;
+				if (Auth_IsBlacklisted(Nick, Ident, Mask)) continue;
 				
-				if (Auth::IsAdmin(Nick, Ident, Mask, NULL))
+				if (Auth_IsAdmin(Nick, Ident, Mask, NULL))
 				{
 					unsigned Inc = 0;
 					char *TWorker = strchr(MessageBuf, '#');
 					
 					if (!TWorker)
 					{
-						IRC::Message(Nick, "There is something wrong, and although you are an admin,"
+						IRC_Message(Nick, "There is something wrong, and although you are an admin,"
 									"your invite request is either malformed or it's my fault.");
 						break;
 					}
 					
 					for (; TWorker[Inc] != '\0'; ++Inc) TWorker[Inc] = tolower(TWorker[Inc]);
-					IRC::Message(Nick, "Coming.");
+					IRC_Message(Nick, "Coming.");
 					
-					if (IRC::JoinChannel(TWorker)) IRC::AddChannelToTree(TWorker, NULL);
+					if (IRC_JoinChannel(TWorker)) IRC_AddChannelToTree(TWorker, NULL);
 				}
 				else
 				{
-					IRC::Message(Nick, "I'm sorry, I can only accept invite requests from my admins.");
+					IRC_Message(Nick, "I'm sorry, I can only accept invite requests from my admins.");
 				}
 				break;
 			}
@@ -184,10 +184,10 @@ void IRC::Loop(void)
 				unsigned Inc = 0;
 				
 				/*Get initial kick data into InBuf*/
-				IRC::GetMessageData(MessageBuf, InBuf);
+				IRC_GetMessageData(MessageBuf, InBuf);
 
 				/*Write the kick to logs.*/
-				Log::WriteMsg(MessageBuf, IMSG_KICK);
+				Log_WriteMsg(MessageBuf, IMSG_KICK);
 				
 				for (; Inc < sizeof KChan - 1 && Worker[Inc] != ' ' && Worker[Inc] != '\0'; ++Inc)
 				{ /*Channel.*/
@@ -208,11 +208,11 @@ void IRC::Loop(void)
 
 				if (!strcmp(KNick, ServerInfo.Nick))
 				{ /*we have been kicked.*/
-					IRC::DelChannelFromTree(KChan);
+					IRC_DelChannelFromTree(KChan);
 				}
 				else
 				{ /*Someone else has been kicked.*/
-					IRC::DelUserFromChannel(KChan, KNick);
+					IRC_DelUserFromChannel(KChan, KNick);
 				}
 				break;
 			}
@@ -221,26 +221,26 @@ void IRC::Loop(void)
 				struct ChannelTree *Worker = Channels;
 				
 				
-				if (!IRC::BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
 				if (!strcmp(Nick, ServerInfo.Nick))
 				{
-					IRC::Quit(NULL);
-					IRC::ShutdownChannelTree();
-					Auth::ShutdownAdmin();
-					CMD::SaveSeenDB();
-					CMD::SaveUserModes();
-					Auth::ShutdownBlacklist();
+					IRC_Quit(NULL);
+					IRC_ShutdownChannelTree();
+					Auth_ShutdownAdmin();
+					CMD_SaveSeenDB();
+					CMD_SaveUserModes();
+					Auth_ShutdownBlacklist();
 					exit(0);
 				}
 				
-				Log::WriteMsg(MessageBuf, IMSG_QUIT);
+				Log_WriteMsg(MessageBuf, IMSG_QUIT);
 				 
 				if (!Channels) continue;
 				
 				for (; Worker; Worker = Worker->Next)
 				{
-					IRC::DelUserFromChannelP(Worker, Nick);
+					IRC_DelUserFromChannelP(Worker, Nick);
 				}
 				
 				break;
@@ -252,19 +252,19 @@ void IRC::Loop(void)
 				
 				for (; Search[Inc] != '\0'; ++Inc) Search[Inc] = tolower(Search[Inc]);
 				
-				if (!IRC::BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
-				IRC::AddUserToChannel(Search, Nick, Ident, Mask, true);
+				IRC_AddUserToChannel(Search, Nick, Ident, Mask, true);
 				
-				Log::WriteMsg(MessageBuf, IMSG_JOIN);
+				Log_WriteMsg(MessageBuf, IMSG_JOIN);
 				
 				if (!Search) printf("Unable to process modes for join by %s!%s@%s to bad channel.", Nick, Ident, Mask);
 				else
 				{
-					CMD::ProcessUserModes(Nick, Ident, Mask, Search);
+					CMD_ProcessUserModes(Nick, Ident, Mask, Search);
 				}
 				
-				while (CMD::ReadTellDB(Nick));
+				while (CMD_ReadTellDB(Nick));
 				break;
 			}
 			case IMSG_PART:
@@ -276,11 +276,11 @@ void IRC::Loop(void)
 
 				if ((Two = SubStrings.CFind(' ', 1, Two))) *Two = '\0';
 				
-				if (!IRC::BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 
-				IRC::DelUserFromChannel(Search, Nick);
+				IRC_DelUserFromChannel(Search, Nick);
 				
-				Log::WriteMsg(MessageBuf, IMSG_PART);
+				Log_WriteMsg(MessageBuf, IMSG_PART);
 				break;
 			}
 			case IMSG_NICK:
@@ -288,27 +288,27 @@ void IRC::Loop(void)
 				char NewNick[128];
 				struct ChannelTree *Worker = Channels;
 				
-				if (!IRC::BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
+				if (!IRC_BreakdownNick(MessageBuf, Nick, Ident, Mask)) continue;
 				
-				IRC::GetMessageData(MessageBuf, NewNick);
+				IRC_GetMessageData(MessageBuf, NewNick);
 				
-				Log::WriteMsg(MessageBuf, IMSG_NICK);
+				Log_WriteMsg(MessageBuf, IMSG_NICK);
 				
-				while (CMD::ReadTellDB(*NewNick == ':' ? NewNick + 1 : NewNick));
+				while (CMD_ReadTellDB(*NewNick == ':' ? NewNick + 1 : NewNick));
 				
 				for (; Worker; Worker = Worker->Next)
 				{
-					if (IRC::UserInChannelP(Worker, Nick))
+					if (IRC_UserInChannelP(Worker, Nick))
 					{
-						IRC::DelUserFromChannelP(Worker, Nick);
-						IRC::AddUserToChannel(Worker->Channel, *NewNick == ':' ? NewNick + 1 : NewNick, Ident, Mask, true);
+						IRC_DelUserFromChannelP(Worker, Nick);
+						IRC_AddUserToChannel(Worker->Channel, *NewNick == ':' ? NewNick + 1 : NewNick, Ident, Mask, true);
 					}
 				}
 				
 				break;
 			}
 			case IMSG_MODE:
-				Log::WriteMsg(MessageBuf, IMSG_MODE);
+				Log_WriteMsg(MessageBuf, IMSG_MODE);
 				break;
 			case IMSG_TOPIC:
 			{
@@ -342,7 +342,7 @@ void IRC::Loop(void)
 					}
 				}
 				
-				Log::WriteMsg(MessageBuf, IMSG_TOPIC);
+				Log_WriteMsg(MessageBuf, IMSG_TOPIC);
 				break;
 			}
 			case IMSG_NAMES:
@@ -379,7 +379,7 @@ void IRC::Loop(void)
 					}
 					Nick[Inc] = '\0';
 					
-					IRC::AddUserToChannel(Channel, Nick, NULL, NULL, false);
+					IRC_AddUserToChannel(Channel, Nick, NULL, NULL, false);
 				} while ((NamesList = SubStrings.Line.WhitespaceJump(NamesList)));
 				
 				break;
@@ -415,7 +415,7 @@ void IRC::Loop(void)
 				//Nick
 				SubStrings.CopyUntilC(Nick, sizeof Nick, &Worker, " ", false);
 				
-				struct _UserList *User = IRC::GetUserInChannel(Channel, Nick);
+				struct _UserList *User = IRC_GetUserInChannel(Channel, Nick);
 				
 				if (User != NULL)
 				{ //It exists. We update.
@@ -426,7 +426,7 @@ void IRC::Loop(void)
 				}
 				else
 				{
-					IRC::AddUserToChannel(Channel, Nick, Ident, Mask, true);
+					IRC_AddUserToChannel(Channel, Nick, Ident, Mask, true);
 				}
 					
 				break;
@@ -437,7 +437,7 @@ void IRC::Loop(void)
 	}
 }
 
-bool IRC::Connect(void)
+bool IRC_Connect(void)
 {
 	char UserString[2048], MessageBuf[2048], TNickServNick[sizeof ServerInfo.Nick];
 	struct ChannelTree *Worker = Channels;
@@ -449,7 +449,7 @@ bool IRC::Connect(void)
 	
 	printf("Connecting to \"%s:%hu\"... ", ServerInfo.Hostname, ServerInfo.PortNum), fflush(stdout);
 	
-	if (!Net::Connect(ServerInfo.Hostname, ServerInfo.PortNum, &SocketDescriptor)) goto Error;
+	if (!Net_Connect(ServerInfo.Hostname, ServerInfo.PortNum, &SocketDescriptor)) goto Error;
 	
 	/*Check if there is a password.*/
 	if (*ServerInfo.ServerPassword)
@@ -457,31 +457,31 @@ bool IRC::Connect(void)
 		char OutBuf[1024];
 		
 		snprintf(OutBuf, sizeof OutBuf, "PASS %s\r\n", ServerInfo.ServerPassword);
-		Net::Write(SocketDescriptor, OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 	}
 	
 	/*set user mode.*/
 	snprintf(UserString, sizeof UserString, "USER %s 8 * :%s\r\n", ServerInfo.Ident, ServerInfo.RealName);
-	Net::Write(SocketDescriptor, UserString);
+	Net_Write(SocketDescriptor, UserString);
 	
 	/*set nick.*/
-	IRC::NickChange(ServerInfo.Nick);
+	IRC_NickChange(ServerInfo.Nick);
 	
 	/*Check if the server likes us.*/
 	while (!ServerLikesUs)
 	{
-		if (!Net::Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true)) goto Error;
+		if (!Net_Read(SocketDescriptor, MessageBuf, sizeof MessageBuf, true)) goto Error;
 		
 		/*Some servers ping right after you connect. It's horrible, but true.*/
 		if (!strncmp("PING ", MessageBuf,  sizeof("PING ") - 1))
 		{
 			*strchr(MessageBuf, 'I') = 'O';
-			Net::Write(SocketDescriptor, MessageBuf);
-			Net::Write(SocketDescriptor, "\r\n");
+			Net_Write(SocketDescriptor, MessageBuf);
+			Net_Write(SocketDescriptor, "\r\n");
 			continue;
 		}
 		
-		IRC::GetStatusCode(MessageBuf, &Code);
+		IRC_GetStatusCode(MessageBuf, &Code);
 		
 		if (Code == 0) continue;
 		
@@ -501,7 +501,7 @@ bool IRC::Connect(void)
 					fprintf(stderr, "\nServer reports a password is required,\n"
 							"but there is no password in aqu4bot.conf.\n"); fflush(NULL);
 				}
-				Net::Disconnect(SocketDescriptor);
+				Net_Disconnect(SocketDescriptor);
 				exit(1);
 				break;
 			}		
@@ -512,13 +512,13 @@ bool IRC::Connect(void)
 				if (strlen(ServerInfo.Nick) > 16)
 				{ /*Sixteen characters is a reasonable compromise.*/
 					fprintf(stderr, "Our nickname is too long to append! Failed to get a nickname.\n"); fflush(NULL);
-					Net::Disconnect(SocketDescriptor);
+					Net_Disconnect(SocketDescriptor);
 					exit(1);
 				}
 					
 				SubStrings.Cat(ServerInfo.Nick, "_", sizeof ServerInfo.Nick); /*Append a _ to the nickname.*/
 				
-				IRC::NickChange(ServerInfo.Nick); /*Resend our new nickname.*/
+				IRC_NickChange(ServerInfo.Nick); /*Resend our new nickname.*/
 				continue; /*Restart the loop.*/
 				break;
 			}
@@ -537,7 +537,7 @@ bool IRC::Connect(void)
 		
 		snprintf(OutBuf, sizeof OutBuf, "MODE %s +B\r\n", ServerInfo.Nick);
 		
-		Net::Write(SocketDescriptor, OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		puts(" Done.");
 	}
@@ -548,7 +548,7 @@ bool IRC::Connect(void)
 		
 		printf("Authenticating with NickServ...");
 		snprintf(NickservString, 2048, "identify %s %s", *ServerInfo.NickservNick ? ServerInfo.NickservNick : TNickServNick, ServerInfo.NickservPwd);
-		IRC::Message("NickServ", NickservString);
+		IRC_Message("NickServ", NickservString);
 		puts(" Done.");
 	}
 	
@@ -558,7 +558,7 @@ bool IRC::Connect(void)
 		
 		for (; Worker != NULL; Worker = Worker->Next)
 		{
-			IRC::JoinChannel(Worker->Channel);
+			IRC_JoinChannel(Worker->Channel);
 			printf(" %s", Worker->Channel), fflush(stdout);
 		}
 		
@@ -573,7 +573,7 @@ Error:
 	return false;
 }
 
-bool IRC::Quit(const char *QuitMSG)
+bool IRC_Quit(const char *QuitMSG)
 {
 	if (!SocketDescriptor) return false;
 
@@ -582,11 +582,11 @@ bool IRC::Quit(const char *QuitMSG)
 		char OutBuf[2048];
 		
 		snprintf(OutBuf, sizeof OutBuf, "QUIT :%s\r\n", QuitMSG);
-		Net::Write(SocketDescriptor, OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 	}
-	else Net::Write(SocketDescriptor, "QUIT :aqu4bot " BOT_VERSION " shutting down.\r\n");
+	else Net_Write(SocketDescriptor, "QUIT :aqu4bot " BOT_VERSION " shutting down.\r\n");
 	
-	if (Net::Disconnect(SocketDescriptor))
+	if (Net_Disconnect(SocketDescriptor))
 	{
 		SocketDescriptor = 0;
 		return true;
@@ -595,7 +595,7 @@ bool IRC::Quit(const char *QuitMSG)
 	return false;
 }
 
-void IRC::CompleteChannelUser(const char *const Nick, const char *const Ident, const char *const Mask)
+void IRC_CompleteChannelUser(const char *const Nick, const char *const Ident, const char *const Mask)
 {
 	struct ChannelTree *Worker = Channels;
 	struct _UserList *UWorker = NULL;
@@ -617,7 +617,7 @@ void IRC::CompleteChannelUser(const char *const Nick, const char *const Ident, c
 	}
 }
 
-struct ChannelTree *IRC::GetChannelFromDB(const char *const Channel)
+struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel)
 {
 	struct ChannelTree *Worker = Channels;
 	
@@ -632,7 +632,7 @@ struct ChannelTree *IRC::GetChannelFromDB(const char *const Channel)
 	return NULL;
 }
 
-bool IRC::AddUserToChannel(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask, bool FullUser)
+bool IRC_AddUserToChannel(const char *const Channel, const char *const Nick, const char *const Ident, const char *const Mask, bool FullUser)
 {
 	struct ChannelTree *Worker = Channels;
 	
@@ -649,7 +649,7 @@ bool IRC::AddUserToChannel(const char *const Channel, const char *const Nick, co
 			}
 			else
 			{
-				if (IRC::UserInChannelP(Worker, Nick)) return true; /*Same result, so just say OK.*/
+				if (IRC_UserInChannelP(Worker, Nick)) return true; /*Same result, so just say OK.*/
 				
 				while (UWorker->Next) UWorker = UWorker->Next;
 				
@@ -674,7 +674,7 @@ bool IRC::AddUserToChannel(const char *const Channel, const char *const Nick, co
 	return false;
 }
 	
-bool IRC::DelUserFromChannel(const char *const Channel, const char *const Nick)
+bool IRC_DelUserFromChannel(const char *const Channel, const char *const Nick)
 {
 	struct ChannelTree *Worker = Channels;
 	char InNick[128], OutNick[128];
@@ -729,7 +729,7 @@ bool IRC::DelUserFromChannel(const char *const Channel, const char *const Nick)
 	return false;
 }
 
-bool IRC::DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick)
+bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick)
 {
 	struct _UserList *UWorker = Channel->UserList;
 	char InNick[128], OutNick[128];
@@ -774,7 +774,7 @@ bool IRC::DelUserFromChannelP(struct ChannelTree *const Channel, const char *con
 	return false;
 }
 
-void IRC::ShutdownChannelUsers(struct ChannelTree *const Channel)
+void IRC_ShutdownChannelUsers(struct ChannelTree *const Channel)
 {
 	struct _UserList *UWorker = Channel->UserList, *Del;
 	
@@ -786,7 +786,7 @@ void IRC::ShutdownChannelUsers(struct ChannelTree *const Channel)
 	Channel->UserList = NULL;
 }
 
-bool IRC::UserInChannel(const char *const Channel_, const char *const Nick_)
+bool IRC_UserInChannel(const char *const Channel_, const char *const Nick_)
 {
 	struct ChannelTree *Worker = Channels;
 	char Nick[128], OurNick[128], Channel[128];
@@ -820,7 +820,7 @@ bool IRC::UserInChannel(const char *const Channel_, const char *const Nick_)
 	return false;
 }
 
-bool IRC::UserInChannelP(const struct ChannelTree *const Channel, const char *const Nick_)
+bool IRC_UserInChannelP(const struct ChannelTree *const Channel, const char *const Nick_)
 {
 	struct _UserList *UWorker = Channel->UserList;
 	char Nick[128], OurNick[128];
@@ -843,7 +843,7 @@ bool IRC::UserInChannelP(const struct ChannelTree *const Channel, const char *co
 	return false;
 }
 
-struct ChannelTree *IRC::AddChannelToTree(const char *const Channel, const char *const Prefix)
+struct ChannelTree *IRC_AddChannelToTree(const char *const Channel, const char *const Prefix)
 {
 	struct ChannelTree *Worker = Channels;
 
@@ -881,7 +881,7 @@ struct ChannelTree *IRC::AddChannelToTree(const char *const Channel, const char 
 	return Worker;
 }
 
-bool IRC::DelChannelFromTree(const char *Channel)
+bool IRC_DelChannelFromTree(const char *Channel)
 {
 	struct ChannelTree *Worker = Channels;
 
@@ -891,7 +891,7 @@ bool IRC::DelChannelFromTree(const char *Channel)
 	{
 		if (!strcmp(Channel, Worker->Channel))
 		{
-			IRC::ShutdownChannelUsers(Worker);
+			IRC_ShutdownChannelUsers(Worker);
 			
 			if (Worker->Prev == NULL)
 			{
@@ -922,40 +922,40 @@ bool IRC::DelChannelFromTree(const char *Channel)
 	return false;
 }
 
-void IRC::ShutdownChannelTree(void)
+void IRC_ShutdownChannelTree(void)
 {
 	struct ChannelTree *Worker = Channels, *Del = NULL;
 	
 	for (; Worker; Worker = Del)
 	{
 		Del = Worker->Next;
-		IRC::ShutdownChannelUsers(Worker);
+		IRC_ShutdownChannelUsers(Worker);
 		free(Worker);
 	}
 	
 	Channels = NULL;
 }
 
-bool IRC::JoinChannel(const char *Channel)
+bool IRC_JoinChannel(const char *Channel)
 {
 	char ChanString[2048], WhoString[2048];
 	
 	snprintf(ChanString, sizeof ChanString, "JOIN %s\r\n", Channel);
 	snprintf(WhoString, sizeof WhoString, "WHO %s\r\n", Channel);
 	
-	return Net::Write(SocketDescriptor, ChanString) && Net::Write(SocketDescriptor, WhoString);
+	return Net_Write(SocketDescriptor, ChanString) && Net_Write(SocketDescriptor, WhoString);
 }
 	
-bool IRC::LeaveChannel(const char *Channel)
+bool IRC_LeaveChannel(const char *Channel)
 {
 	char ChanString[2048];
 	
 	snprintf(ChanString, sizeof ChanString, "PART %s\r\n", Channel);
 	
-	return Net::Write(SocketDescriptor, ChanString);
+	return Net_Write(SocketDescriptor, ChanString);
 }
 
-bool IRC::Message(const char *Target, const char *Message)
+bool IRC_Message(const char *Target, const char *Message)
 {
 	char OutString[2048];
 	
@@ -967,31 +967,31 @@ bool IRC::Message(const char *Target, const char *Message)
 		SubStrings.Copy(MessageT, Message, strlen(Message) + 1);
 		Message = MessageT;
 		
-		IRC::StripControlCodes(MessageT);
+		IRC_StripControlCodes(MessageT);
 		
 	}
 	
 	snprintf(OutString, sizeof OutString, "PRIVMSG %s :%s\r\n", Target, Message);
 	if (NoControlCodes) free((void*)Message); /*Release that memory if applicable.*/
-	return Net::Write(SocketDescriptor, OutString);
+	return Net_Write(SocketDescriptor, OutString);
 }
 
-bool IRC::Notice(const char *Target, const char *Notice)
+bool IRC_Notice(const char *Target, const char *Notice)
 {
 	char OutString[2048];
 	snprintf(OutString, sizeof OutString, "NOTICE %s :%s\r\n", Target, Notice);
-	return Net::Write(SocketDescriptor, OutString);
+	return Net_Write(SocketDescriptor, OutString);
 }
 
-bool IRC::NickChange(const char *Nick)
+bool IRC_NickChange(const char *Nick)
 {
 	char OutString[2048];
 	
 	snprintf(OutString, sizeof OutString, "NICK %s\r\n", Nick);
-	return Net::Write(SocketDescriptor, OutString);
+	return Net_Write(SocketDescriptor, OutString);
 }
 
-MessageType IRC::GetMessageType(const char *InStream_)
+MessageType IRC_GetMessageType(const char *InStream_)
 {
 	const char *InStream = InStream_;
 	char Command[32];
@@ -1028,7 +1028,7 @@ MessageType IRC::GetMessageType(const char *InStream_)
 	else return IMSG_UNKNOWN;
 }
 
-bool IRC::GetMessageData(const char *Message, char *OutData)
+bool IRC_GetMessageData(const char *Message, char *OutData)
 {
 	const char *Worker = Message;
 	
@@ -1044,7 +1044,7 @@ bool IRC::GetMessageData(const char *Message, char *OutData)
 	return true;
 }
 
-bool IRC::BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
+bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut)
 {
 	char ComplexNick[128], *Worker = ComplexNick;
 	unsigned Inc = 0;
@@ -1100,7 +1100,7 @@ bool IRC::BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char
 	return true;
 }
 
-bool IRC::GetStatusCode(const char *Message, int *OutNumber)
+bool IRC_GetStatusCode(const char *Message, int *OutNumber)
 { /*Returns true if we get a status code.*/
 	unsigned Inc = 0;
 	char Num[64];
@@ -1119,15 +1119,15 @@ bool IRC::GetStatusCode(const char *Message, int *OutNumber)
 	return true;
 }
 
-void IRC::Pong(const char *Param)
+void IRC_Pong(const char *Param)
 {
 	char OutBuf[2048];
 	
 	snprintf(OutBuf, sizeof OutBuf, "PONG%s\r\n", Param + strlen("PING"));
-	Net::Write(SocketDescriptor, OutBuf);
+	Net_Write(SocketDescriptor, OutBuf);
 }
 
-bool IRC::StripControlCodes(char *const Stream_)
+bool IRC_StripControlCodes(char *const Stream_)
 {
 	bool EndColor = false;
 	const int StreamSize = strlen(Stream_) + 1;
@@ -1166,7 +1166,7 @@ StripLoopStart:
 	return FoundBold || FoundColor;
 }
 
-struct _UserList *IRC::GetUserInChannel(const char *const ChannelName_, const char *const Nick_)
+struct _UserList *IRC_GetUserInChannel(const char *const ChannelName_, const char *const Nick_)
 {
 	char Nick[sizeof ((struct _UserList*)0)->Nick];
 
@@ -1178,7 +1178,7 @@ struct _UserList *IRC::GetUserInChannel(const char *const ChannelName_, const ch
 	SubStrings.Copy(ChannelName, ChannelName_, sizeof ChannelName);
 	SubStrings.ASCII.LowerS(ChannelName);
 	
-	struct ChannelTree *Channel = IRC::GetChannelFromDB(ChannelName);
+	struct ChannelTree *Channel = IRC_GetChannelFromDB(ChannelName);
 	
 	
 	if (!Channel) return NULL;

@@ -54,9 +54,9 @@ typedef struct
 	uint32_t Unused3;
 } GameStruct;
 
-static bool RecvGameStruct(int SockDescriptor, void *OutStruct);
+static bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct);
 
-static bool RecvGameStruct(int SockDescriptor, void *OutStruct)
+static bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct)
 {
 	uint32_t Inc = 0;
 	GameStruct RV = { 0 };
@@ -72,7 +72,7 @@ static bool RecvGameStruct(int SockDescriptor, void *OutStruct)
 							sizeof RV.ModList + 
 							sizeof(uint32_t) * 9] = { 0 }, *Worker = SuperBuffer;
 	
-	if (!Net::Read(SockDescriptor, SuperBuffer, sizeof SuperBuffer, false)) return false;
+	if (!Net_Read(SockDescriptor, SuperBuffer, sizeof SuperBuffer, false)) return false;
 	
 	memcpy(&RV.StructVer, Worker, sizeof RV.StructVer);
 	RV.StructVer = ntohl(RV.StructVer);
@@ -138,7 +138,7 @@ static bool RecvGameStruct(int SockDescriptor, void *OutStruct)
 	return true;
 }
 
-bool WZ::GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy)
+bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy)
 {
 	GameStruct *GamesList = NULL;
 	int WZSocket = 0;
@@ -146,22 +146,22 @@ bool WZ::GetGamesList(const char *Server, unsigned short Port, const char *SendT
 	uint32_t GamesAvailable = 0, Inc = 0;
 	uint32_t LastHosted = 0;
 	
-	if (!Net::Connect(Server, Port, &WZSocket))
+	if (!Net_Connect(Server, Port, &WZSocket))
 	{
-		IRC::Message(SendTo, "Unable to connect to lobby server!");
+		IRC_Message(SendTo, "Unable to connect to lobby server!");
 		return false;
 	}
 	
-	if (!Net::Write(WZSocket, "list\r\n"))
+	if (!Net_Write(WZSocket, "list\r\n"))
 	{
-		IRC::Message(SendTo, "Unable to write LIST command to lobby server!");
+		IRC_Message(SendTo, "Unable to write LIST command to lobby server!");
 		return false;
 	}
 	
 	/*Get number of available games.*/
-	if (!Net::Read(WZSocket, &GamesAvailable, sizeof(uint32_t), false))
+	if (!Net_Read(WZSocket, &GamesAvailable, sizeof(uint32_t), false))
 	{
-		IRC::Message(SendTo, "Unable to read data from connection to lobby server!");
+		IRC_Message(SendTo, "Unable to read data from connection to lobby server!");
 		return false;
 	}
 	
@@ -172,7 +172,7 @@ bool WZ::GetGamesList(const char *Server, unsigned short Port, const char *SendT
 
 	for (; Inc < GamesAvailable; ++Inc)
 	{ /*Receive the listings.*/
-		if (!RecvGameStruct(WZSocket, GamesList + Inc))
+		if (!WZ_RecvGameStruct(WZSocket, GamesList + Inc))
 		{
 			free(GamesList);
 			return false;
@@ -182,7 +182,7 @@ bool WZ::GetGamesList(const char *Server, unsigned short Port, const char *SendT
 	/*If we're Legacy protocol, retrieve the time since last hosted.*/
 	if (WZLegacy)
 	{
-		if (!Net::Read(WZSocket, &LastHosted, sizeof(uint32_t), false))
+		if (!Net_Read(WZSocket, &LastHosted, sizeof(uint32_t), false))
 		{
 			free(GamesList);
 			return false;
@@ -191,7 +191,7 @@ bool WZ::GetGamesList(const char *Server, unsigned short Port, const char *SendT
 		LastHosted = ntohl(LastHosted);
 	}
 	
-	Net::Disconnect(WZSocket);
+	Net_Disconnect(WZSocket);
 	
 	if (!GamesAvailable)
 	{ /*No games in lobby.*/
@@ -223,7 +223,7 @@ bool WZ::GetGamesList(const char *Server, unsigned short Port, const char *SendT
 			snprintf(OutBuf, sizeof OutBuf, "No games available.");
 		}
 		
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 	}
 		
 	/*Now send them to the user.*/
@@ -273,7 +273,7 @@ bool WZ::GetGamesList(const char *Server, unsigned short Port, const char *SendT
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
 				GamesList[Inc].PrivateGame ? "\0038(private)\x3 " : "", GamesList[Inc].NetSpecs.HostIP,
 				GamesList[Inc].VersionString, ModBuf);
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 	}
 	
 	if (GamesList) free(GamesList);

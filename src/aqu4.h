@@ -116,114 +116,92 @@ struct _CmdList
 typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCOLOR = 0 } ConsoleColor;
 
 /*main.c*/
-namespace Main
-{
-	void SetTextColor(ConsoleColor Color);
-	bool SaveSocket(const char *OkMessageTarget);
-}
+void Bot_SetTextColor(ConsoleColor Color);
+bool Main_SaveSocket(const char *OkMessageTarget);
+
 /*config.c*/
-namespace Config
-{
-	bool ReadConfig(void);
-	bool LoadBrain(void);
-	bool DumpBrain(void);
-}
+bool Config_ReadConfig(void);
+bool Config_LoadBrain(void);
+bool Config_DumpBrain(void);
+
 /*netcore.c*/
-namespace Net
-{
-	bool Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);
-	bool Write(int SockDescriptor, const char *InMsg);
-	bool Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool TextStream);
-	bool Disconnect(int SockDescriptor);
-}
+bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_);
+bool Net_Write(int SockDescriptor, const char *InMsg);
+bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool TextStream);
+bool Net_Disconnect(int SockDescriptor);
+
 /*irc.c*/
-namespace IRC
-{
-	bool Connect(void);
-	void Loop(void);
-	bool Quit(const char *QuitMSG);
-	bool JoinChannel(const char *Channel);
-	bool LeaveChannel(const char *Channel);
-	bool Message(const char *Target, const char *Message);
-	bool Notice(const char *Target, const char *Notice);
-	bool NickChange(const char *Nick);
-	void Pong(const char *Param);
-	struct ChannelTree *AddChannelToTree(const char *const Channel, const char *const Prefix);
-	bool DelChannelFromTree(const char *Channel);
-	void ShutdownChannelTree(void);
-	MessageType GetMessageType(const char *InStream_);
-	bool GetMessageData(const char *Message, char *OutData);
-	bool BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut);
-	bool GetStatusCode(const char *Message, int *OutNumber);
-	bool AddUserToChannel(const char *Channel, const char *Nick, const char *Ident, const char *Mask, bool FullUser);
-	bool DelUserFromChannel(const char *Channel, const char *Nick);
-	void CompleteChannelUser(const char *const Nick, const char *const Ident, const char *const Mask);
-	bool DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick);
-	bool UserInChannel(const char *Channel, const char *Nick);
-	bool UserInChannelP(const struct ChannelTree *Channel, const char *Nick);
-	void ShutdownChannelUsers(struct ChannelTree *Channel);
-	struct ChannelTree *GetChannelFromDB(const char *const Channel);
-	bool StripControlCodes(char *Stream);
-	struct _UserList *GetUserInChannel(const char *const ChannelName, const char *Nick_);
-}
+bool IRC_Connect(void);
+void IRC_Loop(void);
+bool IRC_Quit(const char *QuitMSG);
+bool IRC_JoinChannel(const char *Channel);
+bool IRC_LeaveChannel(const char *Channel);
+bool IRC_Message(const char *Target, const char *Message);
+bool IRC_Notice(const char *Target, const char *Notice);
+bool IRC_NickChange(const char *Nick);
+void IRC_Pong(const char *Param);
+struct ChannelTree *IRC_AddChannelToTree(const char *const Channel, const char *const Prefix);
+bool IRC_DelChannelFromTree(const char *Channel);
+void IRC_ShutdownChannelTree(void);
+MessageType IRC_GetMessageType(const char *InStream_);
+bool IRC_GetMessageData(const char *Message, char *OutData);
+bool IRC_BreakdownNick(const char *Message, char *NickOut, char *IdentOut, char *MaskOut);
+bool IRC_GetStatusCode(const char *Message, int *OutNumber);
+bool IRC_AddUserToChannel(const char *Channel, const char *Nick, const char *Ident, const char *Mask, bool FullUser);
+bool IRC_DelUserFromChannel(const char *Channel, const char *Nick);
+void IRC_CompleteChannelUser(const char *const Nick, const char *const Ident, const char *const Mask);
+bool IRC_DelUserFromChannelP(struct ChannelTree *const Channel, const char *const Nick);
+bool IRC_UserInChannel(const char *Channel, const char *Nick);
+bool IRC_UserInChannelP(const struct ChannelTree *Channel, const char *Nick);
+void IRC_ShutdownChannelUsers(struct ChannelTree *Channel);
+struct ChannelTree *IRC_GetChannelFromDB(const char *const Channel);
+bool IRC_StripControlCodes(char *Stream);
+struct _UserList *IRC_GetUserInChannel(const char *const ChannelName, const char *Nick_);
+
 /*commands.c*/
-namespace CMD
-{
-	void ProcessCommand(const char *InStream);
-	bool AddToTellDB(const char *Target, const char *Source, const char *Message);
-	bool ReadTellDB(const char *Target);
-	unsigned AddToStickyDB(const char *Owner, const char *Sticky, bool Private);
-	void UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage);
-	bool SaveSeenDB(void);
-	void LoadSeenDB(void);
-	void AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode,
-								const char *Target, const char *Channel);
-	bool DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel);
-	bool LoadUserModes(void);
-	bool SaveUserModes(void);
-	void ListUserModes(const char *SendTo);
-	void ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel);
-}
+void CMD_ProcessCommand(const char *InStream);
+bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message);
+bool CMD_ReadTellDB(const char *Target);
+unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky, bool Private);
+void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage);
+bool CMD_SaveSeenDB(void);
+void CMD_LoadSeenDB(void);
+void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode,
+							const char *Target, const char *Channel);
+bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel);
+bool CMD_LoadUserModes(void);
+bool CMD_SaveUserModes(void);
+void CMD_ListUserModes(const char *SendTo);
+void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel);
 
 /*auth.c*/
-namespace Auth
-{
-	bool AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool BotOwner);
-	bool DelAdmin(const char *Nick, const char *Ident, const char *Mask, bool OwnersToo);
-	bool IsAdmin(const char *Nick, const char *Ident, const char *Mask, bool *BotOwner);
-	void ListAdmins(const char *SendTo);
-	void ShutdownAdmin(void);
-	bool IsBlacklisted(const char *Nick, const char *Ident, const char *Mask);
-	bool BlacklistDel(const char *Nick, const char *Ident, const char *Mask);
-	bool BlacklistAdd(const char *Nick, const char *Ident, const char *Mask);
-	void ShutdownBlacklist(void);
-	void BlacklistLoad(void);
-	bool BlacklistSave(void);
-	void BlacklistSendList(const char *SendTo);
-}
+bool Auth_AddAdmin(const char *Nick, const char *Ident, const char *Mask, bool BotOwner);
+bool Auth_DelAdmin(const char *Nick, const char *Ident, const char *Mask, bool OwnersToo);
+bool Auth_IsAdmin(const char *Nick, const char *Ident, const char *Mask, bool *BotOwner);
+void Auth_ListAdmins(const char *SendTo);
+void Auth_ShutdownAdmin(void);
+bool Auth_IsBlacklisted(const char *Nick, const char *Ident, const char *Mask);
+bool Auth_BlacklistDel(const char *Nick, const char *Ident, const char *Mask);
+bool Auth_BlacklistAdd(const char *Nick, const char *Ident, const char *Mask);
+void Auth_ShutdownBlacklist(void);
+void Auth_BlacklistLoad(void);
+bool Auth_BlacklistSave(void);
+void Auth_BlacklistSendList(const char *SendTo);
+
 /*logging.c*/
-namespace Log
-{
-	bool WriteMsg(const char *InStream, MessageType MType);
-	bool CoreWrite(const char *InStream, const char *FileTitle);
-	bool TailLog(const char *const ChannelOrNick, const int NumLinesToOut, char *const OutStream, const int Capacity);
-}
+bool Log_WriteMsg(const char *InStream, MessageType MType);
+bool Log_CoreWrite(const char *InStream, const char *FileTitle);
+bool Log_TailLog(const char *const ChannelOrNick, const int NumLinesToOut, char *const OutStream, const int Capacity);
+
 /*wz.c*/
-namespace WZ
-{
-	bool GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy);
-}
+bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy);
+
 /*ddg.c*/
-namespace DDG
-{
-	bool Query(const char *Search, const char *SendTo);
-}
+bool DDG_Query(const char *Search, const char *SendTo);
 
 /*curlcore.c*/
-namespace CurlCore
-{
-	bool GetHTTP(const char *const URL, void *const OutStream, const unsigned MaxOutBytes);
-}
+bool CurlCore_GetHTTP(const char *const URL, void *const OutStream, const unsigned MaxOutBytes);
+
 /*Various globals.*/
 extern int SocketDescriptor;
 extern struct _ServerInfo ServerInfo;

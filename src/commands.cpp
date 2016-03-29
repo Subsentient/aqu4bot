@@ -144,16 +144,13 @@ static struct _SeenDB
 	struct _SeenDB *Prev;
 } *SeenRoot;
 
-namespace CMD
-{ //Static functions
-	static void ChanCTL(const char *Message, const char *CmdStream, const char *SendTo);
-	static struct _SeenDB *SeenDBLookup(const char *const Nick);
-	static bool ListStickies(const char *SendTo);
-	static bool StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete);
-	static bool SearchStickies(const char *SendTo, const char *SearchQuery);
-}
+static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo);
+static struct _SeenDB *CMD_SeenDBLookup(const char *const Nick);
+static bool CMD_ListStickies(const char *SendTo);
+static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete);
+static bool CMD_SearchStickies(const char *SendTo, const char *SearchQuery);
 
-void CMD::ProcessCommand(const char *InStream_)
+void CMD_ProcessCommand(const char *InStream_)
 { /*Every good program needs at least one huge, unreadable,
 	monolithic function that does wayyyy too much.*/
 	char Nick[128], Ident[128], Mask[128], Target[128];
@@ -168,14 +165,14 @@ void CMD::ProcessCommand(const char *InStream_)
 	snprintf(NickBasedPrefix, sizeof NickBasedPrefix, "%s:", ServerInfo.Nick);
 	
 	/*Get the nick info from this user.*/
-	if (!IRC::BreakdownNick(InStream, Nick, Ident, Mask)) return;
+	if (!IRC_BreakdownNick(InStream, Nick, Ident, Mask)) return;
 	
 	if (!strcmp(Nick, ServerInfo.Nick) && !NEXUSCompat) return; /*Don't let us order ourselves.*/
 	
 	/*Check authorization.*/
-	IsAdmin = Auth::IsAdmin(Nick, Ident, Mask, &BotOwner);
+	IsAdmin = Auth_IsAdmin(Nick, Ident, Mask, &BotOwner);
 	
-	while (CMD::ReadTellDB(Nick));
+	while (CMD_ReadTellDB(Nick));
 	
 	/*Skip past PRIVMSG.*/
 	InStream = strstr(InStream, "PRIVMSG ") + (sizeof "PRIVMSG " - 1);
@@ -233,12 +230,12 @@ void CMD::ProcessCommand(const char *InStream_)
 		/*Handle the joke commands people send to us via nick.*/
 		if (!strcmp(InStream, "hi") || !strcmp(InStream, "hello"))
 		{
-			IRC::Message(SendTo, "Hiyah.");
+			IRC_Message(SendTo, "Hiyah.");
 			return;
 		}
 		else if (*InStream == '\0')
 		{
-			IRC::Message(SendTo, "Umm, can I help you?");
+			IRC_Message(SendTo, "Umm, can I help you?");
 			return;
 		}
 	}
@@ -249,7 +246,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		//Lowercase the channel.
 		SubStrings.ASCII.LowerS(Target);
 		
-		LookupChannel = IRC::GetChannelFromDB(Target); /*look up the channel.*/
+		LookupChannel = IRC_GetChannelFromDB(Target); /*look up the channel.*/
 		
 		if (!LookupChannel) return; /*Channel not found.*/
 		
@@ -279,7 +276,7 @@ void CMD::ProcessCommand(const char *InStream_)
 #ifndef NO_LIBCURL	
 			goto TitleCommand; /*Jump into title code. Suck my goto.*/
 #else
-			IRC::Message(SendTo, "Auto-URL-title invoked, but this aqu4bot was compiled without libcurl.");
+			IRC_Message(SendTo, "Auto-URL-title invoked, but this aqu4bot was compiled without libcurl.");
 #endif
 		}
 		
@@ -319,7 +316,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (*Argument == '\0')
 		{
-			IRC::Message(SendTo, HelpGreeting); //Defined at the top of commands.c
+			IRC_Message(SendTo, HelpGreeting); //Defined at the top of commands.c
 		}
 		else
 		{
@@ -331,14 +328,14 @@ void CMD::ProcessCommand(const char *InStream_)
 					snprintf(TmpBuf, sizeof TmpBuf, "%s[%s%s%s]: %s", PermStrings[CmdList[Inc].P],
 							CmdPrefix, CmdList[Inc].CmdName, ArgRequired[CmdList[Inc].AM],
 							CmdList[Inc].HelpString);
-					IRC::Message(SendTo, TmpBuf);
+					IRC_Message(SendTo, TmpBuf);
 					break;
 				}
 			}
 			
 			if (*CmdList[Inc].CmdName == '\0')
 			{
-				IRC::Message(SendTo, "No help found for that command. Does it exist?"
+				IRC_Message(SendTo, "No help found for that command. Does it exist?"
 							" Try an empty help command for a list of commands.");
 			}
 		}
@@ -374,11 +371,11 @@ void CMD::ProcessCommand(const char *InStream_)
 			
 			if (!BotOwner)
 			{
-				IRC::Message(SendTo, "You must be an owner for that.");
+				IRC_Message(SendTo, "You must be an owner for that.");
 				return;
 			}
 			
-			IRC::Message(SendTo, "Dumping channel database contents.");
+			IRC_Message(SendTo, "Dumping channel database contents.");
 			
 			for (; Worker; Worker = Worker->Next)
 			{
@@ -395,12 +392,12 @@ void CMD::ProcessCommand(const char *InStream_)
 							snprintf(OutBuf, sizeof OutBuf, "%s: %s", Worker->Channel, UWorker->Nick);
 						}
 						
-						IRC::Message(SendTo, OutBuf);
+						IRC_Message(SendTo, OutBuf);
 					}
 				}
 			}
 		
-			IRC::Message(SendTo, "End of list.");
+			IRC_Message(SendTo, "End of list.");
 		}
 		else if (!strcmp(Subcommand, "listchannels"))
 		{
@@ -410,11 +407,11 @@ void CMD::ProcessCommand(const char *InStream_)
 			
 			if (!IsAdmin)
 			{
-				IRC::Message(SendTo, "You aren't authorized to see that.");
+				IRC_Message(SendTo, "You aren't authorized to see that.");
 				return;
 			}
 			
-			IRC::Message(SendTo, "List of channels I'm in:");
+			IRC_Message(SendTo, "List of channels I'm in:");
 			
 			for (; Worker; Worker = Worker->Next)
 			{
@@ -424,51 +421,51 @@ void CMD::ProcessCommand(const char *InStream_)
 				{
 					OutBuf[strlen(OutBuf) - 2] = '\0';
 					TInc = 1;
-					IRC::Message(SendTo, OutBuf);
+					IRC_Message(SendTo, OutBuf);
 					*OutBuf = '\0';
 				}
 				else ++TInc;
 			}
 			
-			IRC::Message(SendTo, "End of list.");
+			IRC_Message(SendTo, "End of list.");
 		}
 		else if (!strcmp(Subcommand, "togglecontrolcodes"))
 		{
 			if (!BotOwner)
 			{
-				IRC::Message(SendTo, "You aren't authorized to do that. Only owners.");
+				IRC_Message(SendTo, "You aren't authorized to do that. Only owners.");
 				return;
 			}
 			
 			NoControlCodes = !NoControlCodes;
 			
-			IRC::Message(SendTo, NoControlCodes ? "Control codes disabled." : "Control codes enabled.");
+			IRC_Message(SendTo, NoControlCodes ? "Control codes disabled." : "Control codes enabled.");
 			return;
 		}
 		else if (!strcmp(Subcommand, "togglenexuscompat"))
 		{
 			if (!BotOwner)
 			{
-				IRC::Message(SendTo, "You aren't authorized to do that. Only owners.");
+				IRC_Message(SendTo, "You aren't authorized to do that. Only owners.");
 				return;
 			}
 			
 			NEXUSCompat = !NEXUSCompat;
 			
-			IRC::Message(SendTo, NEXUSCompat ? "NEXUS Compatibility enabled" : "NEXUS Compatibility disabled");
+			IRC_Message(SendTo, NEXUSCompat ? "NEXUS Compatibility enabled" : "NEXUS Compatibility disabled");
 			return;
 		}
 		else if (!strcmp(Subcommand, "togglecmdenabled"))
 		{
 			if (!BotOwner)
 			{
-				IRC::Message(SendTo, "You aren't authorized to do that. Only owners.");
+				IRC_Message(SendTo, "You aren't authorized to do that. Only owners.");
 				return;
 			}
 			
 			if (!*Subargs)
 			{
-				IRC::Message(SendTo, "No command ID specified.");
+				IRC_Message(SendTo, "No command ID specified.");
 				return;
 			}
 			
@@ -480,18 +477,18 @@ void CMD::ProcessCommand(const char *InStream_)
 					
 					char OutBuf[256];
 					snprintf(OutBuf, sizeof OutBuf, "The \"%s\" command has been %s.", Subargs, CmdList[Inc].DisableCommand ? "disabled" : "enabled");
-					IRC::Message(SendTo, OutBuf);
+					IRC_Message(SendTo, OutBuf);
 					return;
 				}
 			}
 			
-			IRC::Message(SendTo, "Command ID was not found.");
+			IRC_Message(SendTo, "Command ID was not found.");
 			return;
 			
 		}	
 		else
 		{
-			IRC::Message(SendTo, "Bad debug subcommand.");
+			IRC_Message(SendTo, "Bad debug subcommand.");
 			return;
 		}
 		
@@ -517,12 +514,12 @@ void CMD::ProcessCommand(const char *InStream_)
 						
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "I need something to ask the coin.");
+			IRC_Message(SendTo, "I need something to ask the coin.");
 			return;
 		}
 	
 		snprintf(TmpBuf, sizeof TmpBuf, "\001ACTION %s on \"%s\"\001", CoinPhrases[rand() / (RAND_MAX / 10 + 1)], Argument);
-		IRC::Message(SendTo, TmpBuf);
+		IRC_Message(SendTo, TmpBuf);
 		
 		/*Gerbil magic.*/
 		for (Inc = 0; Argument[Inc] != '\0'; ++Inc)
@@ -535,7 +532,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		snprintf(TmpBuf, sizeof TmpBuf, "I got %s.", YesNo ? "heads" : "tails");
 		
-		IRC::Message(SendTo, TmpBuf);
+		IRC_Message(SendTo, TmpBuf);
 		return;
 	}	
 	else if (!strcmp(CommandID, "tail"))
@@ -547,13 +544,13 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!IsAdmin)
 		{
-			IRC::Message(SendTo, "You must be an admin to do that.");
+			IRC_Message(SendTo, "You must be an admin to do that.");
 			return;
 		}
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "You must provide a channel or user name.");
+			IRC_Message(SendTo, "You must provide a channel or user name.");
 			return;
 		}
 		
@@ -571,9 +568,9 @@ void CMD::ProcessCommand(const char *InStream_)
 		}
 		
 		//Now get the info.
-		if (!Log::TailLog(TailChannel, NumLines, InBuf, sizeof InBuf))
+		if (!Log_TailLog(TailChannel, NumLines, InBuf, sizeof InBuf))
 		{
-			IRC::Message(SendTo, "Unable to tail the log. Most likely the channel/user isn't logged.");
+			IRC_Message(SendTo, "Unable to tail the log. Most likely the channel/user isn't logged.");
 			return;
 		}
 		
@@ -582,24 +579,24 @@ void CMD::ProcessCommand(const char *InStream_)
 		//Iteratively send the requested log lines.
 		while (SubStrings.Line.GetLine(LineBuf, sizeof LineBuf, (const char**)&Worker))
 		{			
-			IRC::Message(SendTo, LineBuf);
+			IRC_Message(SendTo, LineBuf);
 		}
 			
 		
-		IRC::Message(SendTo, "End of tail.");
+		IRC_Message(SendTo, "End of tail.");
 		return;
 	}
 	else if (!strcmp(CommandID, "pageall"))
 	{//Sends a list of all users nicks in the channel. Good for highlighting people.
 		if (*Argument)
 		{
-			IRC::Message(SendTo, "This command takes no arguments.");
+			IRC_Message(SendTo, "This command takes no arguments.");
 			return;
 		}
 		
 		if (*SendTo != '#')
 		{
-			IRC::Message(SendTo, "This command only works in a channel.");
+			IRC_Message(SendTo, "This command only works in a channel.");
 			return;
 		}
 		
@@ -608,11 +605,11 @@ void CMD::ProcessCommand(const char *InStream_)
 		SubStrings.Copy(DupSendTo, SendTo, sizeof DupSendTo);
 		SubStrings.ASCII.LowerS(DupSendTo);
 		
-		struct ChannelTree *Channel = IRC::GetChannelFromDB(DupSendTo);
+		struct ChannelTree *Channel = IRC_GetChannelFromDB(DupSendTo);
 		
 		if (!Channel || !Channel->UserList)
 		{
-			IRC::Message(SendTo, "No user data available for that channel.");
+			IRC_Message(SendTo, "No user data available for that channel.");
 			return;
 		}
 		
@@ -629,7 +626,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (Inc == 50 && !BotOwner) //Allow owners to do anything
 		{ //We do this because we don't want to spam huge channels like #freenode etc.
-			IRC::Message(SendTo, "More than 50 users in this channel. Cannot proceed.");
+			IRC_Message(SendTo, "More than 50 users in this channel. Cannot proceed.");
 			return;
 		}
 		
@@ -647,7 +644,7 @@ void CMD::ProcessCommand(const char *InStream_)
 			{ //We're at ten, so send it and reset our counter.
 				SubStrings.StripTrailingChars(NickBuf, " "); //Nuke trailing space.
 				
-				IRC::Message(SendTo, NickBuf);
+				IRC_Message(SendTo, NickBuf);
 				Inc = 1;
 				*NickBuf = '\0';
 			}
@@ -658,15 +655,15 @@ void CMD::ProcessCommand(const char *InStream_)
 	{
 		char Subcommand[32], *Worker = Argument;
 		
-		if (!Auth::IsAdmin(Nick, Ident, Mask, NULL))
+		if (!Auth_IsAdmin(Nick, Ident, Mask, NULL))
 		{
-			IRC::Message(SendTo, "You must be an admin to use that command.");
+			IRC_Message(SendTo, "You must be an admin to use that command.");
 			return;
 		}
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "I need a subcommand. See 'help blacklist'.");
+			IRC_Message(SendTo, "I need a subcommand. See 'help blacklist'.");
 			return;
 		}
 		
@@ -680,52 +677,52 @@ void CMD::ProcessCommand(const char *InStream_)
 			
 			if (!Worker)
 			{
-				IRC::Message(SendTo, "This command requires both a subcommand and an argument to the subcommand.");
+				IRC_Message(SendTo, "This command requires both a subcommand and an argument to the subcommand.");
 				return;
 			}
 			
 			while (*Worker == ' ') ++Worker;
 			
-			if (!IRC::BreakdownNick(Worker, NNick, NIdent, NMask))
+			if (!IRC_BreakdownNick(Worker, NNick, NIdent, NMask))
 			{
-				IRC::Message(SendTo, "That doesn't seem to be a valid vhost.");
+				IRC_Message(SendTo, "That doesn't seem to be a valid vhost.");
 				return;
 			}
 			
 			if (!strcmp(Subcommand, "unset"))
 			{
-				if (Auth::BlacklistDel(NNick, NIdent, NMask))
+				if (Auth_BlacklistDel(NNick, NIdent, NMask))
 				{
-					IRC::Message(SendTo, "Unblacklisting successful.");
+					IRC_Message(SendTo, "Unblacklisting successful.");
 					return;
 				}
 				else
 				{
-					IRC::Message(SendTo, "Unable to delete blacklist, it probably doesn't exist.");
+					IRC_Message(SendTo, "Unable to delete blacklist, it probably doesn't exist.");
 					return;
 				}
 			}
 			else
 			{
-				if (Auth::BlacklistAdd(NNick, NIdent, NMask))
+				if (Auth_BlacklistAdd(NNick, NIdent, NMask))
 				{
-					IRC::Message(SendTo, "Blacklisting successful.");
+					IRC_Message(SendTo, "Blacklisting successful.");
 					return;
 				}
 				else
 				{
-					IRC::Message(SendTo, "Unable to add blacklist!");
+					IRC_Message(SendTo, "Unable to add blacklist!");
 					return;
 				}
 			}
 		}
 		else if (!strcmp(Subcommand, "list"))
 		{
-			Auth::BlacklistSendList(SendTo);
+			Auth_BlacklistSendList(SendTo);
 		}
 		else
 		{
-			IRC::Message(SendTo, "Invalid subcommand. Valid are set, unset, and list.");
+			IRC_Message(SendTo, "Invalid subcommand. Valid are set, unset, and list.");
 			return;
 		}
 	}
@@ -736,11 +733,11 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (*Argument)
 		{
-			IRC::Message(SendTo, "This command takes no argument.");
+			IRC_Message(SendTo, "This command takes no argument.");
 			return;
 		}
 		
-		IRC::Message(SendTo, "Commands with 1 star = admins only, 2 stars = owners only. \02Commands available\02:");
+		IRC_Message(SendTo, "Commands with 1 star = admins only, 2 stars = owners only. \02Commands available\02:");
 		
 		/*Count number of commands.*/
 		for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc);
@@ -760,7 +757,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		CommandList[strlen(CommandList) - 2] = '\0';
 		
-		IRC::Message(SendTo, CommandList);
+		IRC_Message(SendTo, CommandList);
 		free(CommandList);
 		return;
 	}
@@ -768,23 +765,23 @@ void CMD::ProcessCommand(const char *InStream_)
 	{
 		char OutBuf[1024];
 		
-		if (*Argument == '\0') IRC::Message(SendTo, "The burrito command requires an argument.");
+		if (*Argument == '\0') IRC_Message(SendTo, "The burrito command requires an argument.");
 		else
 		{
 			snprintf(OutBuf, sizeof OutBuf, "\01ACTION chucks a nasty, rotten burrito at %s\01",
 					!strcmp(Argument, ServerInfo.Nick) ? Nick : Argument); /*Tell us to burrito ourselves will you?*/
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 		}
 	}
 	else if (!strcmp(CommandID, "beer"))
 	{
 		char OutBuf[1024];
 		
-		if (*Argument == '\0') IRC::Message(SendTo, "The beer command requires an argument.");
+		if (*Argument == '\0') IRC_Message(SendTo, "The beer command requires an argument.");
 		else
 		{
 			snprintf(OutBuf, sizeof OutBuf, "\01ACTION gives %s a cold can of beer\01", Argument);
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 		}
 	}
 	else if (!strcmp(CommandID, "wz"))
@@ -793,17 +790,17 @@ void CMD::ProcessCommand(const char *InStream_)
 		{
 			if (!strcmp(Argument, "legacy"))
 			{
-				WZ::GetGamesList(WZSERVER_LEGACY, WZSERVER_LEGACY_PORT, SendTo, true);
+				WZ_GetGamesList(WZSERVER_LEGACY, WZSERVER_LEGACY_PORT, SendTo, true);
 			}
 			else
 			{
-				IRC::Message(SendTo, "Bad argument for command.");
+				IRC_Message(SendTo, "Bad argument for command.");
 				return;
 			}
 		}
 		else
 		{
-			WZ::GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo, false);
+			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo, false);
 		}
 	}
 #ifndef NO_LIBCURL /*No ddg or title commands.*/
@@ -811,11 +808,11 @@ void CMD::ProcessCommand(const char *InStream_)
 	{
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "You must specify something to search DuckDuckGo for.");
+			IRC_Message(SendTo, "You must specify something to search DuckDuckGo for.");
 			return;
 		}
 		
-		DDG::Query(Argument, SendTo);
+		DDG_Query(Argument, SendTo);
 		return;
 	}
 	else if (!strcmp(CommandID, "title"))
@@ -828,7 +825,7 @@ void CMD::ProcessCommand(const char *InStream_)
 #define MAX_TITLE_DATA_SIZE ((1024 * 1024) * 2)
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "You need to provide a valid link.");
+			IRC_Message(SendTo, "You need to provide a valid link.");
 			return;
 		}
 		
@@ -853,16 +850,16 @@ void CMD::ProcessCommand(const char *InStream_)
 			}
 		}
 		
-		if (!CurlCore::GetHTTP(Worker, RecvBuffer, MAX_TITLE_DATA_SIZE))
+		if (!CurlCore_GetHTTP(Worker, RecvBuffer, MAX_TITLE_DATA_SIZE))
 		{ /*Download the first 16K*/
-			IRC::Message(SendTo, "Failed to connect to retrieve page title.");
+			IRC_Message(SendTo, "Failed to connect to retrieve page title.");
 			free(RecvBuffer);
 			return;
 		}
 		
 		if (!(Worker = SubStrings.Find("<title>", 1, RecvBuffer)) && !(Worker = SubStrings.Find("<TITLE>", 1, RecvBuffer)))
 		{ /*Find the title.*/
-			IRC::Message(SendTo, "No title found.");
+			IRC_Message(SendTo, "No title found.");
 			free(RecvBuffer);
 			return;
 		}
@@ -872,7 +869,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		if (!(EndTerminator = SubStrings.Find("</title>", 1, Worker)) &&
 			!(EndTerminator = SubStrings.Find("</TITLE>", 1, Worker)))
 		{
-			IRC::Message(SendTo, "Found a <title> but no </title>!");
+			IRC_Message(SendTo, "Found a <title> but no </title>!");
 			free(RecvBuffer);
 			return;
 		}
@@ -894,7 +891,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		SubStrings.Replace(PageTitle, TempBuf, sizeof PageTitle, "&quot;", "\"");
 		
 		snprintf(OutBuf, sizeof OutBuf, "\2 ^\2 \"\2\0033%s\3\2\"", PageTitle);
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 		
 		//Release the buffer we allocated on the heap for the scan.
 		free(RecvBuffer);
@@ -908,13 +905,13 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!BotOwner)
 		{
-			IRC::Message(SendTo, "You must be one of my owners to use that command.");
+			IRC_Message(SendTo, "You must be one of my owners to use that command.");
 			return;
 		}
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "This command requires you specify a sub-command.");
+			IRC_Message(SendTo, "This command requires you specify a sub-command.");
 			return;
 		}
 		
@@ -928,7 +925,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (*Worker == '\0' && strcmp(Subcommand, "list") != 0)
 		{
-			IRC::Message(SendTo, "This subcommand requires an argument.");
+			IRC_Message(SendTo, "This subcommand requires an argument.");
 			return;
 		}
 		
@@ -938,52 +935,52 @@ void CMD::ProcessCommand(const char *InStream_)
 		{
 			if (*Worker)
 			{
-				IRC::Message(SendTo, "This command takes no argument.");
+				IRC_Message(SendTo, "This command takes no argument.");
 				return;
 			}
 			
-			Auth::ListAdmins(SendTo);
+			Auth_ListAdmins(SendTo);
 			return;
 		}
 		else if (!strcmp(Subcommand, "add") || !strcmp(Subcommand, "del"))
 		{
 			char NNick[128], NIdent[128], NMask[128];
 			
-			if (!IRC::BreakdownNick(Worker, NNick, NIdent, NMask))
+			if (!IRC_BreakdownNick(Worker, NNick, NIdent, NMask))
 			{
-				IRC::Message(SendTo, "Invalid vhost specified.");
+				IRC_Message(SendTo, "Invalid vhost specified.");
 				return;
 			}
 			
 			if (!strcmp(Subcommand, "add"))
 			{
 				
-				if (Auth::AddAdmin(NNick, NIdent, NMask, false))
+				if (Auth_AddAdmin(NNick, NIdent, NMask, false))
 				{
-					IRC::Message(SendTo, "Admin add successful.");
+					IRC_Message(SendTo, "Admin add successful.");
 				}
 				else
 				{
-					IRC::Message(SendTo, "Unable to add admin!");
+					IRC_Message(SendTo, "Unable to add admin!");
 				}
 				return;
 			}
 			else
 			{
-				if (Auth::DelAdmin(NNick, NIdent, NMask, false))
+				if (Auth_DelAdmin(NNick, NIdent, NMask, false))
 				{
-					IRC::Message(SendTo, "Admin deletion successful.");
+					IRC_Message(SendTo, "Admin deletion successful.");
 				}
 				else
 				{
-					IRC::Message(SendTo, "Failed to delete admin!");
+					IRC_Message(SendTo, "Failed to delete admin!");
 				}
 				return;
 			}
 		}
 		else
 		{
-			IRC::Message(SendTo, "Bad subcommand name.");
+			IRC_Message(SendTo, "Bad subcommand name.");
 			return;
 		}
 	}
@@ -994,13 +991,13 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!IsAdmin)
 		{
-			IRC::Message(SendTo, "You aren't authorized to use that command, you must be an admin.");
+			IRC_Message(SendTo, "You aren't authorized to use that command, you must be an admin.");
 			return;
 		}
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "This command requires an argument.");
+			IRC_Message(SendTo, "This command requires an argument.");
 			return;
 		}
 		
@@ -1012,7 +1009,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (*Worker == '\0')
 		{
-			IRC::Message(SendTo, "Both a nickname and a message are required, in that order.");
+			IRC_Message(SendTo, "Both a nickname and a message are required, in that order.");
 			return;
 		}
 		
@@ -1024,24 +1021,24 @@ void CMD::ProcessCommand(const char *InStream_)
 		}
 		Msg[Inc] = '\0';
 		
-		IRC::Message(SendTo, "Ok.");
+		IRC_Message(SendTo, "Ok.");
 		
 		if (!strcmp(CommandID, "memsg"))
 		{
 			char OutBuf[2048];
 			
 			snprintf(OutBuf, sizeof OutBuf, "\01ACTION %s\01", Msg);
-			IRC::Message(MsgTarget, OutBuf);
+			IRC_Message(MsgTarget, OutBuf);
 		}
 		else 
 		{
 			if (!strcmp(CommandID, "noticemsg"))
 			{
-				IRC::Notice(MsgTarget, Msg);
+				IRC_Notice(MsgTarget, Msg);
 			}
 			else
 			{
-				IRC::Message(MsgTarget, Msg);
+				IRC_Message(MsgTarget, Msg);
 			}
 		}
 		return;
@@ -1058,14 +1055,14 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "Please guess a number between one and ten.");
+			IRC_Message(SendTo, "Please guess a number between one and ten.");
 			return;
 		}
 		
 		if (!strcmp(Argument, "solve"))
 		{
 			snprintf(OutBuf, sizeof OutBuf, "%s: Alright. I was thinking of %d!", Nick, RandGame.Num);
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 			RandGame.Set = false;
 			return;
 		}
@@ -1073,13 +1070,13 @@ void CMD::ProcessCommand(const char *InStream_)
 		if (RandGame.Num == atoi(Argument))
 		{
 			snprintf(OutBuf, sizeof OutBuf, "%s: That's right, I was thinking of %d!", Nick, RandGame.Num);
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 			RandGame.Set = false;
 		}
 		else
 		{
 			snprintf(OutBuf, sizeof OutBuf, "%s: Nope, \"%s\" is not the number I'm thinking of.", Nick, Argument);
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 		}
 		return;
 	}
@@ -1090,7 +1087,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (*Argument == '\0')
 		{
-			IRC::Message(SendTo, "The sr command requires an argument.");
+			IRC_Message(SendTo, "The sr command requires an argument.");
 			return;
 		}
 		
@@ -1100,8 +1097,8 @@ void CMD::ProcessCommand(const char *InStream_)
 			
 			snprintf(OutBuf, sizeof OutBuf, "\1ACTION dropkicks a cinderblock at %s's head\01", Nick);
 			
-			IRC::Message(SendTo, OutBuf);
-			IRC::Message(SendTo, "You sneaky thing.");
+			IRC_Message(SendTo, OutBuf);
+			IRC_Message(SendTo, "You sneaky thing.");
 			return;
 		}
 			
@@ -1113,7 +1110,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		snprintf(OutBuf, sizeof OutBuf, "\"%s\" >> \"%s\"", Argument, NewString);
 		
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 	}
 	else if (!strcmp(CommandID, "quit") || !strcmp(CommandID, "restart"))
 	{
@@ -1121,45 +1118,45 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!BotOwner)
 		{
-			IRC::Message(SendTo, "You aren't authorized to tell me to do that.");
+			IRC_Message(SendTo, "You aren't authorized to tell me to do that.");
 			return;
 		}
 		
-		IRC::Message(SendTo, FullQuit ? "See you around." : "Be right back.");
+		IRC_Message(SendTo, FullQuit ? "See you around." : "Be right back.");
 		
 		if (FullQuit)
 		{
 			if (!strcmp(Argument, "save"))
 			{
-				if (!Config::DumpBrain()) IRC::Message(SendTo, "Failed to dump brain.");
+				if (!Config_DumpBrain()) IRC_Message(SendTo, "Failed to dump brain.");
 				*Argument = '\0';
 			}
 			
-			IRC::Quit(*Argument ? Argument : NULL);
+			IRC_Quit(*Argument ? Argument : NULL);
 		}
 		else
 		{
 			if (!SubStrings.Compare("nosave", Argument))
 			{
-				if (Config::DumpBrain())
+				if (Config_DumpBrain())
 				{
 #ifndef NOSOCKETINHERIT
-					if (!Main::SaveSocket(SendTo))
+					if (!Main_SaveSocket(SendTo))
 #endif //NOSOCKETINHERIT
 					{
-						IRC::Quit("aqu4bot is restarting...");
+						IRC_Quit("aqu4bot is restarting...");
 					}
 				}
-				else IRC::Message(SendTo, "Failed to dump brain.");
+				else IRC_Message(SendTo, "Failed to dump brain.");
 			}
-			else IRC::Quit("aqu4bot is restarting...");
+			else IRC_Quit("aqu4bot is restarting...");
 		}
 		
-		IRC::ShutdownChannelTree();
-		Auth::ShutdownAdmin();
-		CMD::SaveSeenDB();
-		CMD::SaveUserModes();
-		Auth::ShutdownBlacklist();
+		IRC_ShutdownChannelTree();
+		Auth_ShutdownAdmin();
+		CMD_SaveSeenDB();
+		CMD_SaveUserModes();
+		Auth_ShutdownBlacklist();
 		
 		if (FullQuit)
 		{
@@ -1182,14 +1179,14 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (*Argument == 0)
 		{
-			IRC::Message(SendTo, "I need a nickname to check.");
+			IRC_Message(SendTo, "I need a nickname to check.");
 			return;
 		}
 		
-		if (!(SeenRecord = CMD::SeenDBLookup(Argument)))
+		if (!(SeenRecord = CMD_SeenDBLookup(Argument)))
 		{ /*No record found.*/
 			snprintf(OutBuf, sizeof OutBuf, "I'm afraid I don't remember anyone with the nick %s, sorry.", Argument);
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 			return;
 		}
 
@@ -1208,69 +1205,69 @@ void CMD::ProcessCommand(const char *InStream_)
 					"I don't tell what PMs I get.", SeenRecord->Nick, TimeString);
 		}
 		
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 	}
 	else if (!strcmp(CommandID, "chanctl"))
 	{
 		if (!IsAdmin)
 		{
-			IRC::Message(SendTo, "You are not authorized to use that command, you need to be an admin.");
+			IRC_Message(SendTo, "You are not authorized to use that command, you need to be an admin.");
 			return;
 		}
 		
 		if (*Argument == 0)
 		{
-			IRC::Message(SendTo, "No channel control applet name provided.");
+			IRC_Message(SendTo, "No channel control applet name provided.");
 			return;
 		}
 		
-		CMD::ChanCTL(InStream_, Argument, SendTo);
+		CMD_ChanCTL(InStream_, Argument, SendTo);
 	}
 	else if (!strcmp(CommandID, "netwrite"))
 	{
 		if (!BotOwner)
 		{
-			IRC::Message(SendTo, "You aren't authorized to use that command.");
+			IRC_Message(SendTo, "You aren't authorized to use that command.");
 			return;
 		}
 		
-		if (*Argument == 0) IRC::Message(SendTo, "Give me a command please!");
+		if (*Argument == 0) IRC_Message(SendTo, "Give me a command please!");
 		else
 		{
-			Net::Write(SocketDescriptor, Argument);
-			Net::Write(SocketDescriptor, "\r\n");
+			Net_Write(SocketDescriptor, Argument);
+			Net_Write(SocketDescriptor, "\r\n");
 		}
-	}																																																																																																																																																																																				else if (!strcmp(CommandID, "rat")) { const char WhiteRatImg[][128] =     {      "\00311,::,,,,,,:,,,,:,,::::::::::;:;;;;;i;:;,:;i::::;1i;\003", "\00311,,,;:,,,,,,:,:,:;1ii1iitt11tt111ii;iii;i;::i1i;;;i\003",      "\00311,,,,,:;:,,,,:;11iiii11tt11111i1i1ttti1:;i1;;;;:;;;\003",      "\00311,:;:,,,,:i:;ii;;;iiiifLtfCf111i;ii1111::::;::::;;i\003",      "\00311,:,,,,;;;;;ii;::;i1tft1111ffLt1;:::;i1i;;:i;::;;;:\003",      "\00311,,,:;;::;ii;;::::;i;;:::;;;;;i:::::::ii1i;;;::::::\003",      "\00311:::::::;ii;;:::::::::::::::::::::,::::;ii;;;;;::;:\003",      "\00311,,,::;;;ii::::::,::::::::::::::::::;;;i1i;;;;:::::\003",      "\00311:::::::;;;;;;:::,,::::::::::;:;;:::;;ii11i;::::;;:\003",      "\00311:::,,::;;;;i;::::::;;;;:::;;;;;ii;;;:;;;;;;:;;;;;;\003",      "\00311:::,,,,:::;;;:;ii:;::;::::;ii;iiit1i;;ii;::::::::;\003",      "\00311:,,,,,,,:;:;;ii1i;;;;;::::;;;;;;iiiii;;;::::::::;;\003",      "\00311,:,,,,,,,,,:::;:;;;:::::::::;;;;;;;;::;:::::::::::\003",      "\00311::,:,,::::::::::::::::::::::::::::;;:;:::::::::;;:\003",      "\00311,::,,,:,:::;:::::::::::,:,:::::::;:;ii;;::::::::::\003",      "\00311:::::::::;;;;;;:::::::,::,::::::::;i1t1;;;:::::::;\003",      "\00311:::::::::;;iii;::::,,,,,,,:::::::::;1t1;:::::::::;\003",      "\00311::::::;:::::11;::::,,,::,,::::::::::i1i;;;;::;;;;;\003",      "\00311::::;;::::::::,:,,,,,,:,,::::::::,,:,,,,,,:;;;::;:\003",      "\00311:::;;;;:,,,,,,,,,,,,,,:,:,,::::::,,:,,,,,,:;;;;;;;\003",      "\00311;::;:;i,,,,,,,,:,,,,,,,,,::::,,,,,,::,,,,,,:i;;;;;\003",      "\00311::::;;1,,,,,,,:::,,,,,,,::::,,,,,,::;:1Li:;;;;;iii\003",      "\00311i;:;::;;;iGG1:;;::,,,,,,:,,:,,,,,,:11i;:;;;:;;i;ii\003",      "\00311;;;;;;:;;;;;iiii1::,,,,,,,,:,,,,::;1t111i;;;;;iii;\003",      "\00311:;i;;:::;;i1t1iii;::,,,,,::::,,,,:;;1t1ii;;;i;;i;;\003",      "Remember \0033pr0t0\003. -Subsentient", ""     }; if (!IsAdmin) return; for (Inc = 0; *WhiteRatImg[Inc] != '\0'; ++Inc) IRC::Message(SendTo, WhiteRatImg[Inc]);      return;  }	
+	}																																																																																																																																																																																				else if (!strcmp(CommandID, "rat")) { const char WhiteRatImg[][128] =     {      "\00311,::,,,,,,:,,,,:,,::::::::::;:;;;;;i;:;,:;i::::;1i;\003", "\00311,,,;:,,,,,,:,:,:;1ii1iitt11tt111ii;iii;i;::i1i;;;i\003",      "\00311,,,,,:;:,,,,:;11iiii11tt11111i1i1ttti1:;i1;;;;:;;;\003",      "\00311,:;:,,,,:i:;ii;;;iiiifLtfCf111i;ii1111::::;::::;;i\003",      "\00311,:,,,,;;;;;ii;::;i1tft1111ffLt1;:::;i1i;;:i;::;;;:\003",      "\00311,,,:;;::;ii;;::::;i;;:::;;;;;i:::::::ii1i;;;::::::\003",      "\00311:::::::;ii;;:::::::::::::::::::::,::::;ii;;;;;::;:\003",      "\00311,,,::;;;ii::::::,::::::::::::::::::;;;i1i;;;;:::::\003",      "\00311:::::::;;;;;;:::,,::::::::::;:;;:::;;ii11i;::::;;:\003",      "\00311:::,,::;;;;i;::::::;;;;:::;;;;;ii;;;:;;;;;;:;;;;;;\003",      "\00311:::,,,,:::;;;:;ii:;::;::::;ii;iiit1i;;ii;::::::::;\003",      "\00311:,,,,,,,:;:;;ii1i;;;;;::::;;;;;;iiiii;;;::::::::;;\003",      "\00311,:,,,,,,,,,:::;:;;;:::::::::;;;;;;;;::;:::::::::::\003",      "\00311::,:,,::::::::::::::::::::::::::::;;:;:::::::::;;:\003",      "\00311,::,,,:,:::;:::::::::::,:,:::::::;:;ii;;::::::::::\003",      "\00311:::::::::;;;;;;:::::::,::,::::::::;i1t1;;;:::::::;\003",      "\00311:::::::::;;iii;::::,,,,,,,:::::::::;1t1;:::::::::;\003",      "\00311::::::;:::::11;::::,,,::,,::::::::::i1i;;;;::;;;;;\003",      "\00311::::;;::::::::,:,,,,,,:,,::::::::,,:,,,,,,:;;;::;:\003",      "\00311:::;;;;:,,,,,,,,,,,,,,:,:,,::::::,,:,,,,,,:;;;;;;;\003",      "\00311;::;:;i,,,,,,,,:,,,,,,,,,::::,,,,,,::,,,,,,:i;;;;;\003",      "\00311::::;;1,,,,,,,:::,,,,,,,::::,,,,,,::;:1Li:;;;;;iii\003",      "\00311i;:;::;;;iGG1:;;::,,,,,,:,,:,,,,,,:11i;:;;;:;;i;ii\003",      "\00311;;;;;;:;;;;;iiii1::,,,,,,,,:,,,,::;1t111i;;;;;iii;\003",      "\00311:;i;;:::;;i1t1iii;::,,,,,::::,,,,:;;1t1ii;;;i;;i;;\003",      "Remember \0033pr0t0\003. -Subsentient", ""     }; if (!IsAdmin) return; for (Inc = 0; *WhiteRatImg[Inc] != '\0'; ++Inc) IRC_Message(SendTo, WhiteRatImg[Inc]);      return;  }	
 	else if (!strcmp(CommandID, "whoami"))
 	{
 		char OutBuf[2048];
 		
 		snprintf(OutBuf, sizeof OutBuf, "You are %s!%s@%s, and you are %s%s.", Nick, Ident, Mask,
 				IsAdmin ? "an admin" : "not an admin", BotOwner ? ", and an owner" : "");
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 	}
 	else if (!strcmp(CommandID, "nickchange"))
 	{
 		if (!BotOwner)
 		{
-			IRC::Message(SendTo, "You aren't authorized to tell me to do that.");
+			IRC_Message(SendTo, "You aren't authorized to tell me to do that.");
 			return;
 		}
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "Please specify a new nick.");
+			IRC_Message(SendTo, "Please specify a new nick.");
 			return;
 		}
 		
 		if (isdigit(*Argument) || strpbrk(Argument, " \t@$%#!()*&<>?/'\";:\\[]{}+="))
 		{
-			IRC::Message(SendTo, "Bad nickname.");
+			IRC_Message(SendTo, "Bad nickname.");
 			return;
 		}
 		
-		IRC::Message(SendTo, "Ok.");
-		IRC::NickChange(Argument);
+		IRC_Message(SendTo, "Ok.");
+		IRC_NickChange(Argument);
 		
 		strncpy(ServerInfo.Nick, Argument, sizeof ServerInfo.Nick - 1);
 		ServerInfo.Nick[sizeof ServerInfo.Nick - 1] = '\0';
@@ -1324,7 +1321,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		if (*TZ) unsetenv("TZ"); /*Restore to normalcy.*/
 #endif
 
-		IRC::Message(SendTo, TimeString);
+		IRC_Message(SendTo, TimeString);
 	}
 	else if (!strcmp(CommandID, "join"))
 	{
@@ -1335,14 +1332,14 @@ void CMD::ProcessCommand(const char *InStream_)
 
 		if (!IsAdmin)
 		{
-			IRC::Message(SendTo, "You aren't authorized to tell me to join a channel.");
+			IRC_Message(SendTo, "You aren't authorized to tell me to join a channel.");
 			return;
 		}
 		
 		/*Got an argument?*/
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "I need at least one channel name to join.");
+			IRC_Message(SendTo, "I need at least one channel name to join.");
 			return;
 		}
 		
@@ -1377,7 +1374,7 @@ void CMD::ProcessCommand(const char *InStream_)
 				snprintf(TmpBuf, sizeof TmpBuf, "\"%s\" is not a channel name.%s", FinalChan, 
 						strchr(TW, ' ') ? " Continuing join operation." : "");
 						
-				IRC::Message(SendTo, TmpBuf);
+				IRC_Message(SendTo, TmpBuf);
 				--Count; /*Don't count a failure.*/
 				continue;
 			}
@@ -1394,9 +1391,9 @@ void CMD::ProcessCommand(const char *InStream_)
 			}
 			else *Prefix = '\0'; /*Let us know if no prefix.*/
 			
-			if (IRC::JoinChannel(FinalChan))
+			if (IRC_JoinChannel(FinalChan))
 			{
-				struct ChannelTree *TChan = IRC::AddChannelToTree(FinalChan, *Prefix ? Prefix : NULL);
+				struct ChannelTree *TChan = IRC_AddChannelToTree(FinalChan, *Prefix ? Prefix : NULL);
 				
 				TChan->AutoLinkTitle = AutoLinkTitle;
 				TChan->ExcludeFromLogs = ExcludeFromLogs;
@@ -1406,14 +1403,14 @@ void CMD::ProcessCommand(const char *InStream_)
 				snprintf(TmpBuf, sizeof TmpBuf, "Failed to join channel %s.%s", CurChan, 
 						TW[Inc] == ' ' ? " Continuing join operation." : "");
 						
-				IRC::Message(SendTo, TmpBuf);
+				IRC_Message(SendTo, TmpBuf);
 				--Count; /*Don't count a failure.*/
 				continue;
 			}
 		} while (++Count, (TW = SubStrings.Line.WhitespaceJump(TW)));
 		
 		snprintf(TmpBuf, sizeof TmpBuf, "Joined %d/%d channels.", Count, Specified);
-		IRC::Message(SendTo, TmpBuf);
+		IRC_Message(SendTo, TmpBuf);
 		
 		return;
 	}
@@ -1425,7 +1422,7 @@ void CMD::ProcessCommand(const char *InStream_)
 
 		if (!IsAdmin)
 		{
-			IRC::Message(SendTo, "You aren't authorized to tell me to leave a channel.");
+			IRC_Message(SendTo, "You aren't authorized to tell me to leave a channel.");
 			return;
 		}
 		
@@ -1433,16 +1430,16 @@ void CMD::ProcessCommand(const char *InStream_)
 		{
 			if (*SendTo == '#')
 			{ /*If no argument and in a channel, leave the current channel.*/
-				IRC::Message(SendTo, "Assuming you mean this channel.");
+				IRC_Message(SendTo, "Assuming you mean this channel.");
 				
-				if (!IRC::LeaveChannel(SendTo) || !IRC::DelChannelFromTree(SendTo))
+				if (!IRC_LeaveChannel(SendTo) || !IRC_DelChannelFromTree(SendTo))
 				{
-					IRC::Message(SendTo, "Sorry, failed to leave! Something's wrong.");
+					IRC_Message(SendTo, "Sorry, failed to leave! Something's wrong.");
 				}
 			}
 			else
 			{
-				IRC::Message(SendTo, "I need at least one channel name to part.");
+				IRC_Message(SendTo, "I need at least one channel name to part.");
 			}
 			
 			return;
@@ -1463,17 +1460,17 @@ void CMD::ProcessCommand(const char *InStream_)
 				
 				snprintf(TmpBuf, sizeof TmpBuf, "\"%s\" is not a channel name.%s", CurChan,
 						(strchr(TW, ' ') ? " Continuing part operation." : "") );
-				IRC::Message(SendTo, TmpBuf);
+				IRC_Message(SendTo, TmpBuf);
 				--Count; /*Don't count a failure.*/
 				continue;
 			}
 			
-			if (!IRC::LeaveChannel(CurChan) || !IRC::DelChannelFromTree(CurChan))
+			if (!IRC_LeaveChannel(CurChan) || !IRC_DelChannelFromTree(CurChan))
 			{
 				snprintf(TmpBuf, sizeof TmpBuf, "Failed to part \"%s\".%s", CurChan,
 						strchr(TW, ' ') ? " Continuing part operation." : "");
 						
-				IRC::Message(SendTo, TmpBuf);
+				IRC_Message(SendTo, TmpBuf);
 				--Count; /*don't count a failure.*/
 				continue;
 			}
@@ -1481,7 +1478,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		snprintf(TmpBuf, sizeof TmpBuf, "Parted %d/%d channels.", Count, Specified);
 		
-		IRC::Message(SendTo, TmpBuf);
+		IRC_Message(SendTo, TmpBuf);
 		
 		return;
 		
@@ -1495,13 +1492,13 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!IsAdmin)
 		{
-			IRC::Message(SendTo, "You must be an admin to use that command.");
+			IRC_Message(SendTo, "You must be an admin to use that command.");
 			return;
 		}
 		
 		if (*Argument != '#' && *SendTo != '#')
 		{ //They didn't give us a channel and we're not in a channel.
-			IRC::Message(SendTo, "Since you're telling me via PM, tell me what channel to cycle.");
+			IRC_Message(SendTo, "Since you're telling me via PM, tell me what channel to cycle.");
 			return;
 		}
 		
@@ -1547,7 +1544,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		//Bad channel.
 		if (!ChannelStruct)
 		{
-			IRC::Message(SendTo, "I'm not in that channel.");
+			IRC_Message(SendTo, "I'm not in that channel.");
 			return;
 		}
 		
@@ -1590,7 +1587,7 @@ void CMD::ProcessCommand(const char *InStream_)
 				else if (!strcmp(Arg, "off")) ChannelStruct->AutoLinkTitle = false;
 				else
 				{
-					IRC::Message(SendTo, "Bad parameter to 'cycle autotitle'.");
+					IRC_Message(SendTo, "Bad parameter to 'cycle autotitle'.");
 					return;
 				}
 			}
@@ -1605,7 +1602,7 @@ void CMD::ProcessCommand(const char *InStream_)
 				else if (!strcmp(Arg, "off")) ChannelStruct->ExcludeFromLogs = false;
 				else
 				{
-					IRC::Message(SendTo, "Bad parameter to 'cycle logexclude'.");
+					IRC_Message(SendTo, "Bad parameter to 'cycle logexclude'.");
 					return;
 				}
 			}
@@ -1617,7 +1614,7 @@ void CMD::ProcessCommand(const char *InStream_)
 
 				if (*Arg != '"' || !SubStrings.EndsWith("\"", Arg))
 				{
-					IRC::Message(SendTo, "The parameter for 'cycle prefix' must begin and end with \" \" quotes.");
+					IRC_Message(SendTo, "The parameter for 'cycle prefix' must begin and end with \" \" quotes.");
 					return;
 				}
 				
@@ -1628,18 +1625,18 @@ void CMD::ProcessCommand(const char *InStream_)
 			}
 			else
 			{
-				IRC::Message(SendTo, "Bad subcommand.");
+				IRC_Message(SendTo, "Bad subcommand.");
 				return;
 			}
 		}
 		
-		if (IRC::LeaveChannel(ChannelStruct->Channel) && IRC::JoinChannel(ChannelStruct->Channel))
+		if (IRC_LeaveChannel(ChannelStruct->Channel) && IRC_JoinChannel(ChannelStruct->Channel))
 		{ //Perform the operation.
-			IRC::Message(SendTo, "Channel cycle complete.");
+			IRC_Message(SendTo, "Channel cycle complete.");
 		}
 		else
 		{
-			IRC::Message(SendTo, "Failed to cycle the specified channel.");
+			IRC_Message(SendTo, "Failed to cycle the specified channel.");
 		}
 			
 		return;
@@ -1655,13 +1652,13 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "This command requires an argument.");
+			IRC_Message(SendTo, "This command requires an argument.");
 			return;
 		}
 		
 		if (*SendTo != '#')
 		{
-			IRC::Message(SendTo, "This command only works in a channel.");
+			IRC_Message(SendTo, "This command only works in a channel.");
 			return;
 		}
 		
@@ -1679,7 +1676,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!(TW = SubStrings.Line.WhitespaceJump(TW)))
 		{
-			IRC::Message(SendTo, "You must specify more than just a nick.");
+			IRC_Message(SendTo, "You must specify more than just a nick.");
 			return;
 		}
 		
@@ -1691,7 +1688,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (Inc == 0)
 		{ /*They just gave us a tick and nothing to look for.*/
-			IRC::Message(SendTo, "Something to match against is required.");
+			IRC_Message(SendTo, "Something to match against is required.");
 			return;
 		}
 		
@@ -1704,22 +1701,22 @@ void CMD::ProcessCommand(const char *InStream_)
 		New[Inc] = '\0';
 		
 		/**$seen lookup powers, activate!**/
-		if (!(SeenRecord = CMD::SeenDBLookup(TargetUser)))
+		if (!(SeenRecord = CMD_SeenDBLookup(TargetUser)))
 		{
-			IRC::Message(SendTo, "No record of any speech by that user.");
+			IRC_Message(SendTo, "No record of any speech by that user.");
 			return;
 		}
 
 		if (strcmp(SeenRecord->Channel, Chan) != 0)
 		{ /*Wrong channel.*/
-			IRC::Message(SendTo, "User's last speech was not in this channel. Cannot replace.");
+			IRC_Message(SendTo, "User's last speech was not in this channel. Cannot replace.");
 			return;
 		}
 			
 		if (!SubStrings.Split(H[0], H[1], Old, SeenRecord->LastMessage, SPLIT_NOKEEP))
 		{ /*perform the replacement.*/
 			/*It failed.*/
-			IRC::Message(SendTo, "Failed to perform replace. No match found in user's last message.");
+			IRC_Message(SendTo, "Failed to perform replace. No match found in user's last message.");
 			return;
 		}
 		
@@ -1729,7 +1726,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		/*Out format for message.*/
 		snprintf(OutBuf, sizeof OutBuf, "%s: \"<%s>: %s\"", Nick, TargetUser, Message);
 		
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 		return;
 	}
 	else if (!strcmp(CommandID, "godzilla"))
@@ -1749,25 +1746,25 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!BotOwner)
 		{ /*Only owners may behold this glory.*/
-			IRC::Message(SendTo, "How about no?");
+			IRC_Message(SendTo, "How about no?");
 			return;
 		}
 		
 		if (*NChan != '#')
 		{ /*For the random eatings and crappings we need a channel with a user list.*/
-			IRC::Message(SendTo, "I can only do the 'zilla in a channel.");
+			IRC_Message(SendTo, "I can only do the 'zilla in a channel.");
 			return;
 		}
 		
-		if (!(ChanCore = IRC::GetChannelFromDB(NChan)))
+		if (!(ChanCore = IRC_GetChannelFromDB(NChan)))
 		{ /*Get the pointer for this channel.*/
-			IRC::Message(SendTo, "Internal error, I can't zilla because I can't look up the channel in my database!");
+			IRC_Message(SendTo, "Internal error, I can't zilla because I can't look up the channel in my database!");
 			return;
 		}
 		
 		if (!(UW = ChanCore->UserList))
 		{ /*Now get the userlist for the channel.*/
-			IRC::Message(SendTo, "Empty user list database for channel! Can't zilla!");
+			IRC_Message(SendTo, "Empty user list database for channel! Can't zilla!");
 			return;
 		}
 		
@@ -1776,7 +1773,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (MunchCount < 4)
 		{ /*We need food you know. or it's not worth it.*/
-			IRC::Message(SendTo, "No munching with under 4 munchees.");
+			IRC_Message(SendTo, "No munching with under 4 munchees.");
 			return;
 		}
 	ReMunch:
@@ -1791,7 +1788,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		if (UW) Munch = UW->Nick; /*Now get their name.*/
 		else
 		{
-			IRC::Message(SendTo, "Error calculating munchee.");
+			IRC_Message(SendTo, "Error calculating munchee.");
 			return;
 		}
 		
@@ -1802,7 +1799,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		if (UW) Poo = UW->Nick; /*And again the name of the pooee.*/
 		else
 		{
-			IRC::Message(SendTo, "Errr calculating pooee.");
+			IRC_Message(SendTo, "Errr calculating pooee.");
 			return;
 		}
 		
@@ -1810,26 +1807,26 @@ void CMD::ProcessCommand(const char *InStream_)
 		if (!strcmp(Munch, ServerInfo.Nick) || !strcmp(Poo, ServerInfo.Nick) || !strcmp(Munch, Poo)) goto ReMunch;
 		
 		/**COMMENCE ROMPING!!!**/
-		IRC::Message(SendTo, "\001ACTION turns into Godzilla and begins to wreak havoc upon you all\001");
+		IRC_Message(SendTo, "\001ACTION turns into Godzilla and begins to wreak havoc upon you all\001");
 		
-		for (Inc = 0; Inc < 5; ++Inc) IRC::Message(SendTo, "*ROMP*");
+		for (Inc = 0; Inc < 5; ++Inc) IRC_Message(SendTo, "*ROMP*");
 		
 		/*Commence munching.*/
 		snprintf(TempBuf, sizeof TempBuf, "\001ACTION eats %s\001", Munch);
-		IRC::Message(SendTo, TempBuf);
+		IRC_Message(SendTo, TempBuf);
 		
 		/*More romping.*/
-		for (Inc = 0; Inc < 3; ++Inc) IRC::Message(SendTo, "*ROMP*");
+		for (Inc = 0; Inc < 3; ++Inc) IRC_Message(SendTo, "*ROMP*");
 		
 		/*Commence crapping.*/
 		snprintf(TempBuf, sizeof TempBuf, "\001ACTION craps out %s on %s\001", Munch, Poo);
-		IRC::Message(SendTo, TempBuf);
+		IRC_Message(SendTo, TempBuf);
 		
 		/*Final romping.*/
-		for (Inc = 0; Inc < 4; ++Inc) IRC::Message(SendTo, "*ROMP*");
+		for (Inc = 0; Inc < 4; ++Inc) IRC_Message(SendTo, "*ROMP*");
 		
 		/*And the reversion to normal aqu4bot.*/
-		IRC::Message(SendTo, "\001ACTION slowly shrinks back to normal size and scampers off\001");
+		IRC_Message(SendTo, "\001ACTION slowly shrinks back to normal size and scampers off\001");
 		return;
 	}
 	else if (!strcmp(CommandID, "tell"))
@@ -1838,7 +1835,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!*Argument)
 		{
-			IRC::Message(SendTo, "This command requires an argument.");
+			IRC_Message(SendTo, "This command requires an argument.");
 			return;
 		}
 		
@@ -1850,7 +1847,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker + Inc)))
 		{
-			IRC::Message(SendTo, "Bad format for tell command.");
+			IRC_Message(SendTo, "Bad format for tell command.");
 			return;
 		}
 		
@@ -1858,9 +1855,9 @@ void CMD::ProcessCommand(const char *InStream_)
 		SubStrings.Copy(Message, Worker, sizeof Message);
 		
 		/*Now send it.*/
-		CMD::AddToTellDB(TellTarget, Nick, Message);
+		CMD_AddToTellDB(TellTarget, Nick, Message);
 		
-		IRC::Message(SendTo, "I'll tell them in a PM next time I see 'em.");
+		IRC_Message(SendTo, "I'll tell them in a PM next time I see 'em.");
 		return;
 	}
 	else if (!strcmp(CommandID, "sticky"))
@@ -1870,7 +1867,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (*Argument == '\0')
 		{
-			IRC::Message(SendTo, "The sticky command requires an argument.");
+			IRC_Message(SendTo, "The sticky command requires an argument.");
 			return;
 		}
 		
@@ -1882,7 +1879,7 @@ void CMD::ProcessCommand(const char *InStream_)
 		
 		if (strcmp(Mode, "list") != 0 && strcmp(Mode, "reset") != 0 && ((Worker = strchr(Argument, ' ')) == NULL || Worker[1] == '\0'))
 		{
-			IRC::Message(SendTo, "You need to specify a sub-command and then another argument.");
+			IRC_Message(SendTo, "You need to specify a sub-command and then another argument.");
 			return;
 		}
 		
@@ -1894,19 +1891,19 @@ void CMD::ProcessCommand(const char *InStream_)
 			
 			if (Private && !IsAdmin)
 			{
-				IRC::Message(SendTo, "Only admins may save private stickies.");
+				IRC_Message(SendTo, "Only admins may save private stickies.");
 				return;
 			}
 			
-			unsigned StickyID = CMD::AddToStickyDB(Nick, Worker, Private);
+			unsigned StickyID = CMD_AddToStickyDB(Nick, Worker, Private);
 			
-			if (!StickyID) IRC::Message(SendTo, "Error saving sticky. It's my fault.");
+			if (!StickyID) IRC_Message(SendTo, "Error saving sticky. It's my fault.");
 			else
 			{
 				char OutBuf[1024];
 				snprintf(OutBuf, sizeof OutBuf, "Sticky saved. Its sticky ID is \"%u\".", StickyID);
 				
-				IRC::Message(SendTo, OutBuf);
+				IRC_Message(SendTo, OutBuf);
 			}
 		}
 		else if (!strcmp(Mode, "read"))
@@ -1917,9 +1914,9 @@ void CMD::ProcessCommand(const char *InStream_)
 			char OutBuf[2048];
 			const char *Sticky_Data = Sticky.Data;
 			
-			if (!CMD::StickyDB(atol(Worker), &Sticky, false))
+			if (!CMD_StickyDB(atol(Worker), &Sticky, false))
 			{
-				IRC::Message(SendTo, "Sticky not found.");
+				IRC_Message(SendTo, "Sticky not found.");
 				return;
 			}
 			
@@ -1933,12 +1930,12 @@ void CMD::ProcessCommand(const char *InStream_)
 					
 					snprintf(OutBuf, sizeof OutBuf, "That sticky is private. It belongs to %s.", Sticky.Owner);
 					
-					IRC::Message(SendTo, OutBuf);
+					IRC_Message(SendTo, OutBuf);
 					return;
 				}
 				else if (!IsAdmin)
 				{ //For private stickies we take extra care to make sure nobody but the owner can read it.
-					IRC::Message(SendTo, "Your nickname is recognized as admin but you are not showing the correct credentials.");
+					IRC_Message(SendTo, "Your nickname is recognized as admin but you are not showing the correct credentials.");
 					return;
 				}
 			}
@@ -1947,63 +1944,63 @@ void CMD::ProcessCommand(const char *InStream_)
 			strftime(TimeString, sizeof TimeString, "%m/%d/%Y %H:%M:%S UTC", TimeStruct);
 			
 			snprintf(OutBuf, sizeof OutBuf, "Created by \"%s\" at %s: %s", Sticky.Owner, TimeString, Sticky_Data);
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 		}
 		else if (!strcmp(Mode, "delete"))
 		{
 			struct StickySpec Sticky = { 0 };
 			
-			if (!CMD::StickyDB(atol(Worker), &Sticky, false))
+			if (!CMD_StickyDB(atol(Worker), &Sticky, false))
 			{
-				IRC::Message(SendTo, "Cannot find sticky to delete it!");
+				IRC_Message(SendTo, "Cannot find sticky to delete it!");
 				return;
 			}
 			
 			if (strcmp(Sticky.Owner, Nick) != 0 && !IsAdmin)
 			{
-				IRC::Message(SendTo, "I can't delete that sticky because you didn't create it.");
+				IRC_Message(SendTo, "I can't delete that sticky because you didn't create it.");
 				return;
 			}
 			else if (*Sticky.Data == '\1' && !strcmp(Sticky.Owner, Nick) && !IsAdmin) //Private sticky.
 			{ //For private stickies we add an additional layer of protection.
-				IRC::Message(SendTo, "Your nickname is recognized as admin but you are not showing the correct credentials.");
+				IRC_Message(SendTo, "Your nickname is recognized as admin but you are not showing the correct credentials.");
 				return;
 			}
 			
-			if (!CMD::StickyDB(atol(Worker), NULL, true))
+			if (!CMD_StickyDB(atol(Worker), NULL, true))
 			{
-				IRC::Message(SendTo, "There was an error deleting the sticky. Does it exist, and do you own it?");
+				IRC_Message(SendTo, "There was an error deleting the sticky. Does it exist, and do you own it?");
 				return;
 			}
-			else IRC::Message(SendTo, "Sticky deleted.");
+			else IRC_Message(SendTo, "Sticky deleted.");
 		}
 		else if (!strcmp(Mode, "list"))
 		{
-			CMD::ListStickies(SendTo);
+			CMD_ListStickies(SendTo);
 		}
 		else if (!strcmp(Mode, "search"))
 		{
-			CMD::SearchStickies(SendTo, Worker);
+			CMD_SearchStickies(SendTo, Worker);
 		}
 		else if (!strcmp(Mode, "reset"))
 		{
 			if (!IsAdmin)
 			{
-				IRC::Message(SendTo, "You aren't authorized to do that.");
+				IRC_Message(SendTo, "You aren't authorized to do that.");
 				return;
 			}
 			
-			if (remove("db/sticky.db") == 0) IRC::Message(SendTo, "Sticky database reset.");
-			else IRC::Message(SendTo, "Cannot reset sticky database. Do any stickies exist?");
+			if (remove("db/sticky.db") == 0) IRC_Message(SendTo, "Sticky database reset.");
+			else IRC_Message(SendTo, "Cannot reset sticky database. Do any stickies exist?");
 		}	
 		else
 		{
-			IRC::Message(SendTo, "Bad sticky sub-command.");
+			IRC_Message(SendTo, "Bad sticky sub-command.");
 		}
 	}	
 }
 
-bool CMD::AddToTellDB(const char *Target, const char *Source, const char *Message)
+bool CMD_AddToTellDB(const char *Target, const char *Source, const char *Message)
 {
 	FILE *Descriptor = fopen("db/tell.db", "ab");
 	char OutBuffer[2048];
@@ -2019,7 +2016,7 @@ bool CMD::AddToTellDB(const char *Target, const char *Source, const char *Messag
 	return true;
 }
 
-bool CMD::ReadTellDB(const char *Target)
+bool CMD_ReadTellDB(const char *Target)
 {
 	FILE *Descriptor = fopen("db/tell.db", "rb");
 	char *TellDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
@@ -2092,7 +2089,7 @@ bool CMD::ReadTellDB(const char *Target)
 			
 			snprintf(OutBuf, sizeof OutBuf, "%s You have a message from %s: %s", TimeString, Source, Message);
 			
-			IRC::Message(Nick, OutBuf);
+			IRC_Message(Nick, OutBuf);
 			
 			/*Now comes the dangerous part where we have to delete everything.*/
 			if (StartOfNextLine[0] == '\n' && StartOfNextLine[1] != '\0')
@@ -2124,7 +2121,7 @@ bool CMD::ReadTellDB(const char *Target)
 	return Found;
 }
 
-unsigned CMD::AddToStickyDB(const char *Owner, const char *Sticky, bool Private)
+unsigned CMD_AddToStickyDB(const char *Owner, const char *Sticky, bool Private)
 {
 	FILE *Descriptor = fopen("db/sticky.db", "a+b");
 	char OutBuf[4096];
@@ -2181,7 +2178,7 @@ unsigned CMD::AddToStickyDB(const char *Owner, const char *Sticky, bool Private)
 	return StickyID;
 }
 
-static bool CMD::SearchStickies(const char *SendTo, const char *SearchQuery)
+static bool CMD_SearchStickies(const char *SendTo, const char *SearchQuery)
 {
 	FILE *Descriptor = fopen("db/sticky.db", "rb");
 	
@@ -2231,17 +2228,17 @@ static bool CMD::SearchStickies(const char *SendTo, const char *SearchQuery)
 	
 	if (Found)
 	{
-		IRC::Message(SendTo, OutMessage);
+		IRC_Message(SendTo, OutMessage);
 	}
 	else
 	{
-		IRC::Message(SendTo, "No stickies matching your search were found.");
+		IRC_Message(SendTo, "No stickies matching your search were found.");
 	}
 	
 	return Found;
 }	
 		
-static bool CMD::ListStickies(const char *SendTo)
+static bool CMD_ListStickies(const char *SendTo)
 {
 #define MAX_STICKIES_TO_LIST 10
 	unsigned Inc = 0;
@@ -2259,7 +2256,7 @@ static bool CMD::ListStickies(const char *SendTo)
 	{
 		if (Descriptor) fclose(Descriptor);
 		remove("db/sticky.db");
-		IRC::Message(SendTo, "No stickies currently exist.");
+		IRC_Message(SendTo, "No stickies currently exist.");
 		return false;
 	}
 	
@@ -2274,7 +2271,7 @@ static bool CMD::ListStickies(const char *SendTo)
 	do Worker = SubStrings.Line.NextLine(Worker); while(++StickyCount, Worker);
 	
 	snprintf(OutBuf, sizeof OutBuf, "Total of %u stickies found. Syntax is [ID|Creator].", StickyCount);
-	IRC::Message(SendTo, OutBuf);
+	IRC_Message(SendTo, OutBuf);
 	*OutBuf = '\0'; /*We will need OutBuf cleared for what waits ahead.*/
 	
 	Worker = StickyDB;
@@ -2308,7 +2305,7 @@ static bool CMD::ListStickies(const char *SendTo)
 		if (QTicker == 8 || SubStrings.Line.NextLine(Worker) == NULL) /*We need to check for a new line otherwise we fall short in listings.*/
 		{ /*We have 8 of these listings on one line.*/
 			OutBuf[strlen(OutBuf) - 1] = '\0'; /*Nuke the space at the end.*/
-			IRC::Message(SendTo, OutBuf);
+			IRC_Message(SendTo, OutBuf);
 			*OutBuf = '\0'; /*Set back to empty.*/
 			QTicker = 1; /*And then set the ticker back.*/
 			continue;
@@ -2317,19 +2314,19 @@ static bool CMD::ListStickies(const char *SendTo)
 		
 	} while ((Worker = SubStrings.Line.NextLine(Worker)));
 	
-	IRC::Message(SendTo, "End of sticky list.");
+	IRC_Message(SendTo, "End of sticky list.");
 	
 	free(StickyDB);
 	
 	return true;
 }
 
-static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char *SendTo)
+static void CMD_ChanCTL(const char *Message, const char *CmdStream, const char *SendTo)
 {
 	unsigned Inc = 0;
 	char Command[64], OutBuf[2048], Nick[128], Ident[128], Mask[128];
 	
-	if (!IRC::BreakdownNick(Message, Nick, Ident, Mask)) return;
+	if (!IRC_BreakdownNick(Message, Nick, Ident, Mask)) return;
 	
 	for (; CmdStream[Inc] != ' ' && CmdStream[Inc] != '\0' && Inc < sizeof Command - 1; ++Inc)
 	{
@@ -2342,16 +2339,16 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 	
 	if (*CmdStream == '\0' && strcmp(Command, "help") != 0 && strcmp(Command, "listpumodes") != 0)
 	{
-		IRC::Message(SendTo, "That command requires an argument.");
+		IRC_Message(SendTo, "That command requires an argument.");
 		return;
 	}
 	
 	if (!strcmp(Command, "modeset"))
 	{	
-		IRC::Message(SendTo, "Ok.");
+		IRC_Message(SendTo, "Ok.");
 		
 		snprintf(OutBuf, sizeof OutBuf, "MODE %s\r\n", CmdStream);
-		Net::Write(SocketDescriptor, OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		return;
 	}
 	else if (!strcmp(Command, "invite"))
@@ -2376,14 +2373,14 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 			}
 			else
 			{
-				IRC::Message(SendTo, "You need to specify both a nickname and someone to invite.");
+				IRC_Message(SendTo, "You need to specify both a nickname and someone to invite.");
 				return;
 			}
 		}
 		
-		IRC::Message(SendTo, "Ok.");
+		IRC_Message(SendTo, "Ok.");
 		snprintf(OutBuf, sizeof OutBuf, "INVITE %s :%s\r\n", NickName, Worker);
-		Net::Write(SocketDescriptor, OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		return;
 	}
@@ -2401,7 +2398,7 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 			}
 			else
 			{
-				IRC::Message(SendTo, "Invalid channel name.");
+				IRC_Message(SendTo, "Invalid channel name.");
 				return;
 			}
 		}
@@ -2420,13 +2417,13 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 		
 		if (*Worker == '\0')
 		{
-			IRC::Message(SendTo, "You need to specify both a channel name and a new topic.");
+			IRC_Message(SendTo, "You need to specify both a channel name and a new topic.");
 			return;
 		}
 		
-		IRC::Message(SendTo, "Ok.");
+		IRC_Message(SendTo, "Ok.");
 		snprintf(OutBuf, sizeof OutBuf, "TOPIC %s :%s\r\n", ChannelName, Worker);
-		Net::Write(SocketDescriptor, OutBuf);
+		Net_Write(SocketDescriptor, OutBuf);
 		
 		return;
 	}
@@ -2452,7 +2449,7 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 			}
 			else
 			{
-				IRC::Message(SendTo, "Invalid channel name.");
+				IRC_Message(SendTo, "Invalid channel name.");
 				return;
 			}
 		}
@@ -2471,11 +2468,11 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 		
 		if (*Worker == '\0')
 		{
-			IRC::Message(SendTo, "You need to specify a channel and a user/nick/mask/etc.");
+			IRC_Message(SendTo, "You need to specify a channel and a user/nick/mask/etc.");
 			return;
 		}
 		
-		IRC::Message(SendTo, "Ok.");
+		IRC_Message(SendTo, "Ok.");
 		
 		if (!strcmp(Command, "op") || !strcmp(Command, "raise")) Mode = 0;
 		else if (Command[0] == 'd') Mode = 1;
@@ -2503,7 +2500,7 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 			TempDescriptor = SocketDescriptor;
 			SocketDescriptor = 0;
 			
-			Net::Write(TempDescriptor, OutBuf);
+			Net_Write(TempDescriptor, OutBuf);
 			
 			SocketDescriptor = TempDescriptor;
 			
@@ -2529,7 +2526,7 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 			}
 			else
 			{
-				IRC::Message(SendTo, "Invalid channel name.");
+				IRC_Message(SendTo, "Invalid channel name.");
 				return;
 			}
 		}
@@ -2548,11 +2545,11 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 		
 		if (*Worker == '\0')
 		{
-			IRC::Message(SendTo, "You need to specify both a channel name and a nick");
+			IRC_Message(SendTo, "You need to specify both a channel name and a nick");
 			return;
 		}
 		
-		IRC::Message(SendTo, "Ok.");
+		IRC_Message(SendTo, "Ok.");
 		
 		do
 		{
@@ -2571,7 +2568,7 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 			TempDescriptor = SocketDescriptor;
 			SocketDescriptor = 0;
 			
-			Net::Write(TempDescriptor, OutBuf);
+			Net_Write(TempDescriptor, OutBuf);
 			
 			SocketDescriptor = TempDescriptor;
 			
@@ -2584,18 +2581,18 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 	else if (!strcmp(Command, "addpumode") || !strcmp(Command, "delpumode"))
 	{
 		char Nick[128], Ident[128], Mask[128], Mode[128], Channel[128], ModeTarget[384];
-		bool ValidVhost = IRC::BreakdownNick(CmdStream, Nick, Ident, Mask); /*The first mask is for the target we match against.*/
+		bool ValidVhost = IRC_BreakdownNick(CmdStream, Nick, Ident, Mask); /*The first mask is for the target we match against.*/
 		const char *Worker = CmdStream;
 		char OutBuf[1024];
 		
 		if (!ValidVhost)
 		{
-			IRC::Message(SendTo, "Invalid user vhost specified.");
+			IRC_Message(SendTo, "Invalid user vhost specified.");
 			return;
 		}
 		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
 		{ /*Jump to the mode target we send to the server.*/
-			IRC::Message(SendTo, "Missing/bad mode target provided.");
+			IRC_Message(SendTo, "Missing/bad mode target provided.");
 			return;
 		}
 		
@@ -2607,13 +2604,13 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 		
 		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
 		{ /*Jump to channel.*/
-			IRC::Message(SendTo, "Missing/bad channel name.");
+			IRC_Message(SendTo, "Missing/bad channel name.");
 			return;
 		}
 		
 		if (*Worker != '#')
 		{
-			IRC::Message(SendTo, "Channel field is not a channel.");
+			IRC_Message(SendTo, "Channel field is not a channel.");
 			return;
 		}
 		
@@ -2625,7 +2622,7 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 		
 		if (!(Worker = SubStrings.Line.WhitespaceJump(Worker)))
 		{
-			IRC::Message(SendTo, "Missing/bad mode to set.");
+			IRC_Message(SendTo, "Missing/bad mode to set.");
 			return;
 		}
 		
@@ -2636,50 +2633,50 @@ static void CMD::ChanCTL(const char *Message, const char *CmdStream, const char 
 		{
 			const int TempDescriptor = SocketDescriptor;
 			
-			CMD::AddUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel);
+			CMD_AddUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel);
 
 			/*Now, set the mode.*/
 			snprintf(OutBuf, sizeof OutBuf, "MODE %s %s %s\r\n", Channel, Mode, ModeTarget);
 			
 			SocketDescriptor = 0;
-			Net::Write(TempDescriptor, OutBuf);
+			Net_Write(TempDescriptor, OutBuf);
 			SocketDescriptor = TempDescriptor;
 			
-			IRC::Message(SendTo, "Mode saved.");
+			IRC_Message(SendTo, "Mode saved.");
 		}
 		else
 		{
-			if (CMD::DelUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel))
+			if (CMD_DelUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel))
 			{
-				IRC::Message(SendTo, "Mode deleted.");
+				IRC_Message(SendTo, "Mode deleted.");
 			}
 			else
 			{
-				IRC::Message(SendTo, "Specified mode does not exist.");
+				IRC_Message(SendTo, "Specified mode does not exist.");
 			}
 		}
 		return;
 	}
 	else if (!strcmp(Command, "listpumodes"))
 	{
-		CMD::ListUserModes(SendTo);
+		CMD_ListUserModes(SendTo);
 		return;
 	}
 	else if (!strcmp(Command, "help"))
 	{
-		IRC::Message(SendTo, "The following channel control commands are available:");
+		IRC_Message(SendTo, "The following channel control commands are available:");
 		
-		IRC::Message(SendTo, "modeset, listpumodes, addpumode, delpumode, settopic, invite, op, deop, voice, unvoice, quiet, unquiet, ban, unban, and kick.");
+		IRC_Message(SendTo, "modeset, listpumodes, addpumode, delpumode, settopic, invite, op, deop, voice, unvoice, quiet, unquiet, ban, unban, and kick.");
 		return;
 	}
 	else
 	{
-		IRC::Message(SendTo, "Bad channel control command name.");
+		IRC_Message(SendTo, "Bad channel control command name.");
 		return;
 	}
 }
 
-static bool CMD::StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete)
+static bool CMD_StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete)
 { /*If SendTo is NULL, we delete the sticky instead of reading it.*/
 	char *StickyDB = NULL, *Worker = NULL, *LineRoot = NULL, *StartOfNextLine = NULL;
 	unsigned Inc = 0;
@@ -2784,7 +2781,7 @@ static bool CMD::StickyDB(unsigned StickyID, void *OutSpec_, bool JustDelete)
 	return Found;
 }
 
-void CMD::UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage)
+void CMD_UpdateSeenDB(long Time, const char *Nick, const char *Channel, const char *LastMessage)
 {
 	struct _SeenDB *Worker = SeenRoot;
 	
@@ -2826,7 +2823,7 @@ void CMD::UpdateSeenDB(long Time, const char *Nick, const char *Channel, const c
 					free(Worker);
 				}
 						
-				CMD::UpdateSeenDB(Time, Nick, Channel, LastMessage);
+				CMD_UpdateSeenDB(Time, Nick, Channel, LastMessage);
 				return;
 			}
 		}
@@ -2872,7 +2869,7 @@ void CMD::UpdateSeenDB(long Time, const char *Nick, const char *Channel, const c
 	Worker->Channel[sizeof Worker->Channel - 1] = '\0';
 }
 
-static struct _SeenDB *CMD::SeenDBLookup(const char *const Nick)
+static struct _SeenDB *CMD_SeenDBLookup(const char *const Nick)
 {
 	struct _SeenDB *Worker = SeenRoot;
 	char NickBuf[2][128];
@@ -2902,7 +2899,7 @@ static struct _SeenDB *CMD::SeenDBLookup(const char *const Nick)
 	return NULL;
 }
 
-void CMD::LoadSeenDB(void) /*Loads it from disk.*/
+void CMD_LoadSeenDB(void) /*Loads it from disk.*/
 {
 	FILE *Descriptor = fopen("db/seen.db", "rb");
 	char *SeenDB, *TextWorker  = NULL;
@@ -2955,14 +2952,14 @@ void CMD::LoadSeenDB(void) /*Loads it from disk.*/
 		}
 		LastMessage[Inc] = '\0';
 		
-		CMD::UpdateSeenDB(atol(ATime), Nick, Channel, LastMessage);
+		CMD_UpdateSeenDB(atol(ATime), Nick, Channel, LastMessage);
 	} while ((TextWorker = SubStrings.Line.NextLine(TextWorker)));
 
 	free(SeenDB);
 }
 
 
-bool CMD::SaveSeenDB(void)
+bool CMD_SaveSeenDB(void)
 {
 	struct _SeenDB *Worker = SeenRoot, *Temp;
 	FILE *Descriptor = NULL;
@@ -2991,7 +2988,7 @@ bool CMD::SaveSeenDB(void)
 	return true;
 }
 
-void CMD::AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode,
+void CMD_AddUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode,
 					const char *Target, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
@@ -3029,7 +3026,7 @@ void CMD::AddUserMode(const char *Nick, const char *Ident, const char *Mask, con
 	
 }
 
-bool CMD::DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel)
+bool CMD_DelUserMode(const char *Nick, const char *Ident, const char *Mask, const char *Mode, const char *Target, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	char WChannel[128];
@@ -3078,7 +3075,7 @@ bool CMD::DelUserMode(const char *Nick, const char *Ident, const char *Mask, con
 	return false;
 }
 
-bool CMD::LoadUserModes(void)
+bool CMD_LoadUserModes(void)
 {
 	struct stat FileStat;
 	char *Stream = NULL, *Worker = NULL;
@@ -3106,7 +3103,7 @@ bool CMD::LoadUserModes(void)
 		}
 		CurLine[Inc] = '\0';
 		
-		if (!IRC::BreakdownNick(CurLine, Nick, Ident, Mask))
+		if (!IRC_BreakdownNick(CurLine, Nick, Ident, Mask))
 		{
 			fprintf(stderr, "Corrupted db/usermodes.db file!\n");
 			free(Stream);
@@ -3149,7 +3146,7 @@ bool CMD::LoadUserModes(void)
 		
 		SubStrings.Copy(Mode, MW, sizeof Mode);
 
-		CMD::AddUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel);
+		CMD_AddUserMode(Nick, Ident, Mask, Mode, ModeTarget, Channel);
 	
 	} while ((Worker = SubStrings.Line.NextLine(Worker)));
 	
@@ -3159,7 +3156,7 @@ bool CMD::LoadUserModes(void)
 		
 }
 
-void CMD::ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel)
+void CMD_ProcessUserModes(const char *Nick, const char *Ident, const char *Mask, const char *Channel)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	char SendBuf[1024], WChannel[128];
@@ -3184,13 +3181,13 @@ void CMD::ProcessUserModes(const char *Nick, const char *Ident, const char *Mask
 			snprintf(SendBuf, sizeof SendBuf, "MODE %s %s %s\r\n", Worker->Channel, Worker->Mode, Worker->Target);
 			
 			SocketDescriptor = 0;
-			Net::Write(TempDescriptor, SendBuf);
+			Net_Write(TempDescriptor, SendBuf);
 			SocketDescriptor = TempDescriptor;
 		}
 	}
 }
 
-bool CMD::SaveUserModes(void)
+bool CMD_SaveUserModes(void)
 {
 	FILE *Descriptor = fopen("db/usermodes.db", "wb");
 	struct UserModeSpec *Worker = UserModeRoot, *Del;
@@ -3220,7 +3217,7 @@ bool CMD::SaveUserModes(void)
 	return true;
 }
 
-void CMD::ListUserModes(const char *SendTo)
+void CMD_ListUserModes(const char *SendTo)
 {
 	struct UserModeSpec *Worker = UserModeRoot;
 	char OutBuf[1024];
@@ -3228,11 +3225,11 @@ void CMD::ListUserModes(const char *SendTo)
 	
 	if (!UserModeRoot)
 	{
-		IRC::Message(SendTo, "No user modes are saved.");
+		IRC_Message(SendTo, "No user modes are saved.");
 		return;
 	}
 	
-	IRC::Message(SendTo, "List of user modes currently saved:");
+	IRC_Message(SendTo, "List of user modes currently saved:");
 	
 	for (; Worker; Worker = Worker->Next, ++Inc)
 	{
@@ -3240,8 +3237,8 @@ void CMD::ListUserModes(const char *SendTo)
 				Inc, Worker->Nick, Worker->Ident, Worker->Mask, Worker->Target, Worker->Channel, Worker->Mode);
 
 		
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 	}
 	
-	IRC::Message(SendTo, "End of list.");
+	IRC_Message(SendTo, "End of list.");
 }

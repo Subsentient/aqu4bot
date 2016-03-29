@@ -16,7 +16,7 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 #include "aqu4.h"
 
-bool DDG::Query(const char *Search, const char *SendTo)
+bool DDG_Query(const char *Search, const char *SendTo)
 { /*Results from DuckDuckGo. http://api.duckduckgo.com/ */
 	char Results[8192] = { '\0' };
 	int Counter = 1;
@@ -28,9 +28,9 @@ bool DDG::Query(const char *Search, const char *SendTo)
 	
 	snprintf(Query, sizeof Query, "https://duckduckgo.com/?q=%s&format=json&pretty=1&t=aqu4bot%%20IRC%%20bot", Search);
 	
-	if (!CurlCore::GetHTTP(Query, Results, sizeof Results))
+	if (!CurlCore_GetHTTP(Query, Results, sizeof Results))
 	{
-		IRC::Message(SendTo, "Unable to retrieve results, can't download results!");
+		IRC_Message(SendTo, "Unable to retrieve results, can't download results!");
 		return false;
 	}
 	
@@ -38,7 +38,7 @@ bool DDG::Query(const char *Search, const char *SendTo)
 	{ /*This is the kind of stuff where SubStrings shines.*/
 		if (!(Worker = SubStrings.Find("\"FirstURL\" : \"", 1, Worker)))
 		{
-			IRC::Message(SendTo, "I received bad results from DuckDuckGo, or something's changed. I can't get results' URLs.");
+			IRC_Message(SendTo, "I received bad results from DuckDuckGo, or something's changed. I can't get results' URLs.");
 			return false;
 		}
 		Worker += sizeof "\"FirstURL\" : \"" - 1;
@@ -53,7 +53,7 @@ bool DDG::Query(const char *Search, const char *SendTo)
 		
 		if (!(Worker = SubStrings.Find("\"Text\" : \"", 1, Worker)))
 		{
-			IRC::Message(SendTo, "I received bad results from DuckDuckGo, or something's changed. I can't get results' titles.");
+			IRC_Message(SendTo, "I received bad results from DuckDuckGo, or something's changed. I can't get results' titles.");
 			return false;
 		}
 		Worker += sizeof "\"Text\" : \"" - 1;
@@ -66,16 +66,16 @@ bool DDG::Query(const char *Search, const char *SendTo)
 		Title[Inc] = '\0';
 		
 		snprintf(OutBuf, sizeof OutBuf, "[%d]: \002Title:\002 %s | \002URL:\002 \00312%s\003", Counter, Title, URL);
-		IRC::Message(SendTo, OutBuf);
+		IRC_Message(SendTo, OutBuf);
 	}
 	
 	if (Counter == 1)
 	{
-		IRC::Message(SendTo, "No results found.");
+		IRC_Message(SendTo, "No results found.");
 	}
 	else
 	{
-		IRC::Message(SendTo, "End of results.");
+		IRC_Message(SendTo, "End of results.");
 	}
 	
 	return true;

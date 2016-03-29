@@ -24,7 +24,7 @@ See the file UNLICENSE.TXT for more information.
 int SocketDescriptor;
 unsigned short SendDelay = 8; /*Ten is one second.*/
 
-bool Net::Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_)
+bool Net_Connect(const char *InHost, unsigned short PortNum, int *SocketDescriptor_)
 {
 
 	const char *FailMsg = "Failed to establish a connection to the server:";
@@ -64,7 +64,7 @@ bool Net::Connect(const char *InHost, unsigned short PortNum, int *SocketDescrip
 	return true;
 }
 
-bool Net::Write(int SockDescriptor, const char *InMsg)
+bool Net_Write(int SockDescriptor, const char *InMsg)
 {
 	size_t StringSize = strlen(InMsg);
 	unsigned Transferred = 0, TotalTransferred = 0;
@@ -88,7 +88,7 @@ bool Net::Write(int SockDescriptor, const char *InMsg)
 	return true;
 }
 
-bool Net::Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool TextStream)
+bool Net_Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool TextStream)
 {
 	int Status = 0;
 	unsigned char Byte = 0;
@@ -118,7 +118,7 @@ bool Net::Read(int SockDescriptor, void *OutStream_, unsigned MaxLength, bool Te
 	return true;
 }
 
-bool Net::Disconnect(int SockDescriptor)
+bool Net_Disconnect(int SockDescriptor)
 {
 	if (!SockDescriptor) return false;
 	
