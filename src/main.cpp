@@ -21,8 +21,8 @@ See the file UNLICENSE.TXT for more information.
 #include "substrings/substrings.h"
 
 bool ShowOutput;
-int _argc;
-char **_argv;
+int local_argc;
+char **local_argv;
 
 static void SigHandler(int Signal)
 {
@@ -329,8 +329,8 @@ int main(int argc, char **argv)
 	}
 #endif
 
-	_argc = argc;
-	_argv = argv;
+	local_argc = argc;
+	local_argv = argv;
 	
 	signal(SIGINT, SigHandler);
 	signal(SIGTERM, SigHandler);
