@@ -835,7 +835,8 @@ void CMD_ProcessCommand(const char *InStream_)
 		//We're auto-titling and we want to ensure that we don't print titles for binary files then.
 		if (*Worker == '\1') IsAutoTitle = true, ++Worker;
 		
-		if ((Worker = SubStrings.Find("http://", 1, Worker))) Worker += sizeof "http://" - 1;
+		if (SubStrings.StartsWith("http://", Worker)) Worker += sizeof "http://" - 1;
+		else if (SubStrings.StartsWith("https://", Worker)) Worker += sizeof "https://" - 1;
 		else Worker = *Argument == '\1' ? Argument + 1 : Argument;
 		
 		RecvBuffer = (char*)malloc(MAX_TITLE_DATA_SIZE); //Allocate 2MB. Some platforms like Windows don't appreciate our large arrays on stack.
