@@ -183,14 +183,22 @@ bool Config_ReadConfig(void)
 			}
 		}
 		else if (!strcmp(LineID, "DisableCommand"))
-		{
+		{ //DisableCommand=wz,#whateverchannel
 			bool Located = false;
 			
+			char Command[256] = { 0 };
+			char Channel[256] = { 0 };
+			
+			SubStrings.Split(Command, Channel, ",", LineData, SPLIT_NOKEEP);
+
 			for (int Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
 			{
-				if (!strcmp(LineData, CmdList[Inc].CmdName))
-				{
-					Located = CmdList[Inc].DisableCommand = true;
+				if (!strcmp(Command, CmdList[Inc].CmdName))
+				{					
+					CmdList[Inc].DisabledChannels.push_back((const char*)Channel);
+					
+					
+					Located = true;
 					break;
 				}
 			}

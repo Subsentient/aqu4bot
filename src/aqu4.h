@@ -26,12 +26,9 @@ See the file UNLICENSE.TXT for more information.
 #define BOT_OS "UNIX"
 #endif
 
-#ifndef __cplusplus
-#include <stdbool.h>
-#else
-extern "C"
-{
-#endif
+#include <vector>
+#include <string>
+
 /*The commands that are found via IRC.*/
 typedef enum
 {
@@ -113,7 +110,8 @@ struct _CmdList
 	char HelpString[512];
 	enum ArgMode AM;
 	enum HPerms P;
-	bool DisableCommand;
+	std::vector<std::string> DisabledChannels;
+	bool IsDisabled(const std::string &ChannelName) const;
 };
 
 typedef enum { BLACK = 30, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ENDCOLOR = 0 } ConsoleColor;
@@ -222,6 +220,4 @@ extern struct _CmdList CmdList[];
 extern char HelpGreeting[1024];
 extern bool NEXUSCompat;
 
-#ifdef __cplusplus
-}
-#endif
+

@@ -125,6 +125,18 @@ struct _CmdList CmdList[] =
 			{ "commands", "Prints the list of commands I know.", NOARG, ANY },
 			{ { '\0' } } /*Terminator.*/
 		};
+		
+bool _CmdList::IsDisabled(const std::string &ChannelName) const
+{
+	for (size_t Inc = 0; Inc < this->DisabledChannels.size(); ++Inc)
+	{
+		if ((ChannelName[0] == '#' && ChannelName == this->DisabledChannels.at(Inc)) || this->DisabledChannels.at(Inc) == "*")
+		{
+			return true;
+		}
+	}
+	return false;
+}
 
 static struct _RandomGame
 {
@@ -301,7 +313,7 @@ void CMD_ProcessCommand(const char *InStream_)
 	///Check if this command has been disabled.
 	for (unsigned TInc = 0; TInc < sizeof CmdList / sizeof *CmdList; ++TInc)
 	{
-		if (!strcmp(CommandID, CmdList[TInc].CmdName) && !BotOwner && CmdList[TInc].DisableCommand) //Owners can use disabled commands.
+		if (!strcmp(CommandID, CmdList[TInc].CmdName) && !BotOwner && CmdList[TInc].IsDisabled(SendTo)) //Owners can use disabled commands.
 		{ //This command has been explicitly disabled. Do nothing (return)
 			return;
 		}
@@ -323,7 +335,7 @@ void CMD_ProcessCommand(const char *InStream_)
 			for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
 			{
 				if (!strcmp(Argument, CmdList[Inc].CmdName) &&
-					(!CmdList[Inc].DisableCommand || (BotOwner && *SendTo != '#'))) //If it's disabled don't report its existance.
+					(!CmdList[Inc].IsDisabled(SendTo) || (BotOwner && *SendTo != '#'))) //If it's disabled don't report its existance.
 				{
 					snprintf(TmpBuf, sizeof TmpBuf, "%s[%s%s%s]: %s", PermStrings[CmdList[Inc].P],
 							CmdPrefix, CmdList[Inc].CmdName, ArgRequired[CmdList[Inc].AM],
@@ -455,37 +467,6 @@ void CMD_ProcessCommand(const char *InStream_)
 			IRC_Message(SendTo, NEXUSCompat ? "NEXUS Compatibility enabled" : "NEXUS Compatibility disabled");
 			return;
 		}
-		else if (!strcmp(Subcommand, "togglecmdenabled"))
-		{
-			if (!BotOwner)
-			{
-				IRC_Message(SendTo, "You aren't authorized to do that. Only owners.");
-				return;
-			}
-			
-			if (!*Subargs)
-			{
-				IRC_Message(SendTo, "No command ID specified.");
-				return;
-			}
-			
-			for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
-			{
-				if (!strcmp(Subargs, CmdList[Inc].CmdName))
-				{
-					CmdList[Inc].DisableCommand = !CmdList[Inc].DisableCommand;
-					
-					char OutBuf[256];
-					snprintf(OutBuf, sizeof OutBuf, "The \"%s\" command has been %s.", Subargs, CmdList[Inc].DisableCommand ? "disabled" : "enabled");
-					IRC_Message(SendTo, OutBuf);
-					return;
-				}
-			}
-			
-			IRC_Message(SendTo, "Command ID was not found.");
-			return;
-			
-		}	
 		else
 		{
 			IRC_Message(SendTo, "Bad debug subcommand.");
@@ -748,7 +729,7 @@ void CMD_ProcessCommand(const char *InStream_)
 		for (Inc = 0; *CmdList[Inc].CmdName != '\0'; ++Inc)
 		{
 			//Don't list disabled commands.
-			if (CmdList[Inc].DisableCommand && (!BotOwner || *SendTo == '#')) continue;
+			if (CmdList[Inc].IsDisabled(SendTo) && (!BotOwner || *SendTo == '#')) continue;
 			
 			strcat(CommandList, CmdList[Inc].CmdName);
 			strcat(CommandList, PermStars[CmdList[Inc].P]);
