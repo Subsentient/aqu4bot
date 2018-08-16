@@ -140,7 +140,6 @@ static bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct)
 
 bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, const char *Version)
 {
-	GameStruct *GamesList = NULL;
 	int WZSocket = 0;
 	char OutBuf[2048];
 	uint32_t GamesAvailable = 0, Inc = 0;
@@ -167,7 +166,8 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	GamesAvailable = ntohl(GamesAvailable);
 	
 	/*Allocate space for them.*/
-	GamesList = (GameStruct*)malloc(sizeof(GameStruct) * GamesAvailable);
+	std::vector<GameStruct> GamesList;
+	GamesList.reserve(GamesAvailable);
 
 	uint32_t RelevantGamesAvailable = GamesAvailable;
 	
@@ -177,7 +177,6 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 		
 		if (!WZ_RecvGameStruct(WZSocket, &Struct))
 		{
-			free(GamesList);
 			return false;
 		}
 		
@@ -187,7 +186,7 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 			continue;
 		}
 		
-		memcpy(GamesList + Inc, &Struct, sizeof(GameStruct));
+		GamesList.push_back(Struct);
 	}
 	
 	Net_Disconnect(WZSocket);
@@ -255,10 +254,7 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 				GamesList[Inc].PrivateGame ? "\0038(private)\x3 " : "", GamesList[Inc].NetSpecs.HostIP,
 				GamesList[Inc].VersionString, ModBuf);
 		IRC_Message(SendTo, OutBuf);
-	}
-	
-	if (GamesList) free(GamesList);
-		
+	}		
 	
 	return true;
 	
