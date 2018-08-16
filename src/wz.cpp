@@ -138,13 +138,12 @@ static bool WZ_RecvGameStruct(int SockDescriptor, void *OutStruct)
 	return true;
 }
 
-bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy)
+bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, const char *Version)
 {
 	GameStruct *GamesList = NULL;
 	int WZSocket = 0;
 	char OutBuf[2048];
 	uint32_t GamesAvailable = 0, Inc = 0;
-	uint32_t LastHosted = 0;
 	
 	if (!Net_Connect(Server, Port, &WZSocket))
 	{
@@ -170,56 +169,38 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	/*Allocate space for them.*/
 	GamesList = (GameStruct*)malloc(sizeof(GameStruct) * GamesAvailable);
 
+	uint32_t RelevantGamesAvailable = GamesAvailable;
+	
 	for (; Inc < GamesAvailable; ++Inc)
 	{ /*Receive the listings.*/
-		if (!WZ_RecvGameStruct(WZSocket, GamesList + Inc))
-		{
-			free(GamesList);
-			return false;
-		}
-	}
-	
-	/*If we're Legacy protocol, retrieve the time since last hosted.*/
-	if (WZLegacy)
-	{
-		if (!Net_Read(WZSocket, &LastHosted, sizeof(uint32_t), false))
+		GameStruct Struct = { 0 };
+		
+		if (!WZ_RecvGameStruct(WZSocket, &Struct))
 		{
 			free(GamesList);
 			return false;
 		}
 		
-		LastHosted = ntohl(LastHosted);
+		if (Version && strcmp(Version, Struct.VersionString) != 0)
+		{
+			--RelevantGamesAvailable;
+			continue;
+		}
+		
+		memcpy(GamesList + Inc, &Struct, sizeof(GameStruct));
 	}
 	
 	Net_Disconnect(WZSocket);
-	
-	if (!GamesAvailable)
+		
+	if (!RelevantGamesAvailable)
 	{ /*No games in lobby.*/
-		if (WZLegacy)
-		{ /*Legacy has some helpful info on when games were recently hosted.*/
-			if (((LastHosted / 60) / 60) / 24)
-			{ /*Days.*/
-				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u days ago.",
-						(unsigned)((LastHosted / 60) / 60) / 24);
-			}
-			else if (LastHosted / 60 > 60)
-			{ /*Hours.*/
-				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u hours ago.",
-						(unsigned)((LastHosted / 60) / 60));
-			}
-			else if (LastHosted >= 60)
-			{ /*Minutes.*/
-				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u minutes ago.",
-						(unsigned)LastHosted / 60);
-			}
-			else
-			{ /*Seconds.*/
-				snprintf(OutBuf, sizeof OutBuf, "No games available. Last game was hosted %u seconds ago.",
-						(unsigned)LastHosted);
-			}
+		if (Version)
+		{
+			snprintf(OutBuf, sizeof OutBuf, "No games available for version %s.%s", Version, GamesAvailable ? " Games available for other versions." : "No other games available.");
+			
 		}
 		else
-		{ /*But alas, 3.1 lobby does not. Except for a long MOTD we won't read.*/
+		{
 			snprintf(OutBuf, sizeof OutBuf, "No games available.");
 		}
 		
@@ -227,19 +208,19 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 	}
 		
 	/*Now send them to the user.*/
-	for (Inc = 0; Inc < GamesAvailable; ++Inc)
-	{
+	for (Inc = 0; Inc < RelevantGamesAvailable; ++Inc)
+	{		
 		char ModBuf[512] = { '\0' };
 		char MapBuf[128] = { '\0' };
 		char ColTag[2] = { '\0' };
 		
 		/**Check for map-mod.**/		
-		if (!WZLegacy && GamesList[Inc].MapMod)
-		{ /*Legacy can't detect map-mods so it'd be wrong.*/
+		if (GamesList[Inc].MapMod)
+		{
 			snprintf(MapBuf, sizeof MapBuf, "\0034%s\003 (map-mod)", GamesList[Inc].Map);
 		}
 		else
-		{ /*Either Legacy or no mod.*/
+		{ //No mod
 			SubStrings.Copy(MapBuf, GamesList[Inc].Map, sizeof MapBuf);
 		}
 		
@@ -269,7 +250,7 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 		
 		snprintf(OutBuf, sizeof OutBuf, "\2\3%s[%u of %u]\3\2 \02Name\02: %s | \02Map\02: %s | \02Host\02: %s | "
 				"\02Players\02: %d/%d %s| \02IP\02: %s | \02Version\02: %s%s",
-				ColTag, (unsigned)Inc + 1, (unsigned)GamesAvailable, GamesList[Inc].GameName, MapBuf,
+				ColTag, (unsigned)Inc + 1, (unsigned)RelevantGamesAvailable, GamesList[Inc].GameName, MapBuf,
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
 				GamesList[Inc].PrivateGame ? "\0038(private)\x3 " : "", GamesList[Inc].NetSpecs.HostIP,
 				GamesList[Inc].VersionString, ModBuf);

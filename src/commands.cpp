@@ -53,7 +53,7 @@ struct _CmdList CmdList[] =
 			{ "beer", "Gives someone a cold, Samuel Adams beer.", REQARG, ANY },
 			{ "godzilla", "Turns me into godzilla for a couple moments.", NOARG, OWNER },
 			{ "wz", "Shows games in either the Warzone 2100 or Warzone 2100 Legacy game lobby."
-				" Passing 'legacy' as an argument chooses the Legacy server, otherwise it's the wz2100.net server.", OPTARG, ANY },
+				" You may pass a version string to filter undesired games.", OPTARG, ANY },
 			{ "guessinggame", "A simple number-guessing game where you guess from one to ten. "
 				"The first guess starts the game.", REQARG, ANY },
 			{ "sr", "A goofy command that returns whatever text you give it backwards.", REQARG, ANY },
@@ -769,19 +769,11 @@ void CMD_ProcessCommand(const char *InStream_)
 	{
 		if (*Argument)
 		{
-			if (!strcmp(Argument, "legacy"))
-			{
-				WZ_GetGamesList(WZSERVER_LEGACY, WZSERVER_LEGACY_PORT, SendTo, true);
-			}
-			else
-			{
-				IRC_Message(SendTo, "Bad argument for command.");
-				return;
-			}
+			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo, Argument);
 		}
 		else
 		{
-			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo, false);
+			WZ_GetGamesList(WZSERVER_MAIN, WZSERVER_MAIN_PORT, SendTo, NULL);
 		}
 	}
 #ifndef NO_LIBCURL /*No ddg or title commands.*/

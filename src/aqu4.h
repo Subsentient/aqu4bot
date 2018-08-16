@@ -16,9 +16,6 @@ See the file UNLICENSE.TXT for more information.
 #define WZSERVER_MAIN "lobby.wz2100.net"
 #define WZSERVER_MAIN_PORT 9990
 
-#define WZSERVER_LEGACY "universe2.us"
-#define WZSERVER_LEGACY_PORT 9990
-
 #define ROOT_URL "http://universe2.us/"
 #define SOURCECODE_URL "http://github.com/Subsentient/aqu4bot/"
 
@@ -195,7 +192,7 @@ bool Log_CoreWrite(const char *InStream, const char *FileTitle);
 bool Log_TailLog(const char *const ChannelOrNick, const int NumLinesToOut, char *const OutStream, const int Capacity);
 
 /*wz.cpp*/
-bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, bool WZLegacy);
+bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo, const char *Version);
 
 /*ddg.cpp*/
 bool DDG_Query(const char *Search, const char *SendTo);
