@@ -248,7 +248,7 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 		}
 		
 		snprintf(OutBuf, sizeof OutBuf, "\2\3%s[%u of %u]\3\2 \02\0032Name\02\03: %s | \02\0037Map\02\03: %s | \02\0033Host\02\03: %s | "
-				"\02\0038Players\02\03: %d/%d %s| \02\0034IP\02\03: %s | \02\0036Version\02\03: %s%s",
+				"\02\0035Players\02\03: %d/%d %s| \02\0034IP\02\03: %s | \02\0036Version\02\03: %s%s",
 				ColTag, (unsigned)Inc + 1, (unsigned)RelevantGamesAvailable, GamesList[Inc].GameName, MapBuf,
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
 				GamesList[Inc].PrivateGame ? "\0038(private)\x3 " : "", GamesList[Inc].NetSpecs.HostIP,
