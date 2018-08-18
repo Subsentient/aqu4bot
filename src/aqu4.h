@@ -25,6 +25,7 @@ See the file UNLICENSE.TXT for more information.
 
 #include <vector>
 #include <string>
+#include <set>
 
 /*The commands that are found via IRC.*/
 typedef enum
@@ -216,5 +217,4 @@ extern bool NoControlCodes;
 extern struct _CmdList CmdList[];
 extern char HelpGreeting[1024];
 extern bool NEXUSCompat;
-
-
+extern std::set<std::string> WZ_NoIPChannels;

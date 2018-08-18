@@ -20,26 +20,26 @@ indent_mode=2
 [project]
 name=aqu4bot
 base_path=/home/ben/aqu4_classic
+description=
 
 [long line marker]
 long_line_behaviour=1
 long_line_column=72
 
 [files]
-current_page=1
-FILE_NAME_0=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Faqu4.h;0;4
-FILE_NAME_1=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fauth.cpp;0;4
-FILE_NAME_2=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fcommands.cpp;0;4
-FILE_NAME_3=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fconfig.cpp;0;4
-FILE_NAME_4=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fcurlcore.cpp;0;4
-FILE_NAME_5=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fddg.cpp;0;4
-FILE_NAME_6=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Firc.cpp;0;4
-FILE_NAME_7=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Flogging.cpp;0;4
-FILE_NAME_8=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fmain.cpp;0;4
-FILE_NAME_9=0;Make;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2FMakefile;0;4
-FILE_NAME_10=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fnetcore.cpp;0;4
-FILE_NAME_11=5150;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fwz.cpp;0;4
-FILE_NAME_12=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4_classic%2Fsrc%2Fsubstrings%2Fsubstrings.h;0;4
+current_page=11
+FILE_NAME_0=7018;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Faqu4.h;0;4
+FILE_NAME_1=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fauth.cpp;0;4
+FILE_NAME_2=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fcommands.cpp;0;4
+FILE_NAME_3=5919;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fconfig.cpp;0;4
+FILE_NAME_4=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fcurlcore.cpp;0;4
+FILE_NAME_5=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fddg.cpp;0;4
+FILE_NAME_6=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Firc.cpp;0;4
+FILE_NAME_7=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Flogging.cpp;0;4
+FILE_NAME_8=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fmain.cpp;0;4
+FILE_NAME_9=0;Make;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2FMakefile;0;4
+FILE_NAME_10=0;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fnetcore.cpp;0;4
+FILE_NAME_11=5500;C++;0;EUTF-8;1;1;0;%2Fhome%2Fben%2Faqu4bot%2Fsrc%2Fwz.cpp;0;4
 
 [VTE]
 last_dir=/home/ben/volition

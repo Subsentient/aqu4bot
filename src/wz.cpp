@@ -21,6 +21,8 @@ See the file UNLICENSE.TXT for more information.
 #include "aqu4.h"
 #include "substrings/substrings.h"
 
+std::set<std::string> WZ_NoIPChannels;
+
 typedef struct
 {
 	uint32_t StructVer;
@@ -251,7 +253,7 @@ bool WZ_GetGamesList(const char *Server, unsigned short Port, const char *SendTo
 				"\02\0035Players\02\03: %d/%d %s| \02\0034IP\02\03: %s | \02\0036Version\02\03: %s%s",
 				ColTag, (unsigned)Inc + 1, (unsigned)RelevantGamesAvailable, GamesList[Inc].GameName, MapBuf,
 				GamesList[Inc].HostNick, GamesList[Inc].NetSpecs.CurPlayers, GamesList[Inc].NetSpecs.MaxPlayers,
-				GamesList[Inc].PrivateGame ? "\0038(private)\x3 " : "", GamesList[Inc].NetSpecs.HostIP,
+				GamesList[Inc].PrivateGame ? "\0038(private)\x3 " : "", (WZ_NoIPChannels.count(SendTo) || WZ_NoIPChannels.count("*")) ? "(hidden)" : GamesList[Inc].NetSpecs.HostIP,
 				GamesList[Inc].VersionString, ModBuf);
 		IRC_Message(SendTo, OutBuf);
 	}		

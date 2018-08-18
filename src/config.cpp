@@ -225,6 +225,10 @@ bool Config_ReadConfig(void)
 		{
 			if (!strcmp(LineData, "true")) ServerInfo.SetBotmode = true;
 		}
+		else if (!strcmp(LineID, "HideWarzoneIPsInChannel"))
+		{
+			WZ_NoIPChannels.insert(LineData);
+		}
 		else
 		{
 			Bot_SetTextColor(RED);
